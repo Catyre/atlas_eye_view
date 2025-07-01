@@ -4,45 +4,10 @@ import * as numeric from 'numeric';
 import * as math from 'mathjs';
 import $ from 'jquery';
 window.jQuery = $;
-window.astrometrics = {};
+window.astrometrics = {}; // Global variable for star data
 import 'jquery-csv';
+
 // ---------------------Basic setup------------------------------- //
-function retrieveAstrometrics(fileName) {
-  $.get(fileName, function(CSVdata) {
-        window.astrometrics = $.csv.toObjects(CSVdata);
-        processAstrometrics();
-  });
-}
-
-function processAstrometrics() {
-  const stars = window.astrometrics;
-
-  console.log(stars)
-  const dAB = stars[0].B;
-  const dAC = stars[0].C;
-  const dBC = stars[1].C;
-  const anchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
-
-  // Use the loaded star data
-  window.astrometrics.forEach(system => {
-
-    // Material for stars
-    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
-    const geometry = new THREE.SphereGeometry(5, 8, 8);
-    const star = new THREE.Mesh(geometry, starMaterial);
-
-    // Trilaterate point (only takes first solution right now)
-    const star_pos = trilateratePoint(system.name, anchors.A, anchors.B, anchors.C, system.A, system.B, system.C);
-
-    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
-    star.name = system.name;
-    scene.add(star);
-  });
-}
-
-// Update astrometry
-//const dummy = csv2json("astrometrics.csv");
-
 // Set up scene, camera, and renderer
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -55,12 +20,6 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.keys = {
-  LEFT: 'ArrowLeft', //left arrow
-  UP: 'ArrowUp', // up arrow
-  RIGHT: 'ArrowRight', // right arrow
-  BOTTOM: 'ArrowDown' // down arrow
-}
 
 // Add lights
 const light = new THREE.PointLight(0xffffff, 1);
@@ -124,25 +83,43 @@ function trilateratePoint(name, A, B, C, r1, r2, r3) {
 
 }
 
-// Load star spreadsheet
-async function loadStarDistanceData(url) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Failed to fetch JSON data");
-    const data = await response.json();
-    console.log("Loaded star data:", data);
-    return data;
-  } catch (error) {
-    console.error("Error loading star distances:", error);
-  }
+// Retrieve CSV of star data, process the distances into proper coordinates
+function applyAstrometrics(fileName) {
+  $.get(fileName, function(CSVdata) {
+        window.astrometrics = $.csv.toObjects(CSVdata);
+        processAstrometrics(); // Avoids async issues
+  });
 }
 
+// Used to avoid async issues
+function processAstrometrics() {
+  const stars = window.astrometrics;
+  const dAB = stars[0].B;
+  const dAC = stars[0].C;
+  const dBC = stars[1].C;
+  
+  const anchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
 
-retrieveAstrometrics("astrometrics.csv");
+  // Use the loaded star data
+  stars.forEach(system => {
 
+    // Material for stars
+    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+    const geometry = new THREE.SphereGeometry(5, 8, 8);
+    const star = new THREE.Mesh(geometry, starMaterial);
+
+    // Trilaterate point (only takes first solution right now)
+    const star_pos = trilateratePoint(system.name, anchors.A, anchors.B, anchors.C, system.A, system.B, system.C);
+
+    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
+    star.name = system.name;
+    scene.add(star);
+  });
+}
+
+applyAstrometrics("astrometrics.csv");
 
 // -----------------------Begin render------------------------------- //
-
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
