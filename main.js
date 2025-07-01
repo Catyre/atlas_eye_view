@@ -4,8 +4,42 @@ import * as numeric from 'numeric';
 import * as math from 'mathjs';
 import $ from 'jquery';
 window.jQuery = $;
+window.astrometrics = {};
 import 'jquery-csv';
 // ---------------------Basic setup------------------------------- //
+function retrieveAstrometrics(fileName) {
+  $.get(fileName, function(CSVdata) {
+        window.astrometrics = $.csv.toObjects(CSVdata);
+        processAstrometrics();
+  });
+}
+
+function processAstrometrics() {
+  const stars = window.astrometrics;
+
+  console.log(stars)
+  const dAB = stars[0].B;
+  const dAC = stars[0].C;
+  const dBC = stars[1].C;
+  const anchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
+
+  // Use the loaded star data
+  window.astrometrics.forEach(system => {
+
+    // Material for stars
+    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+    const geometry = new THREE.SphereGeometry(5, 8, 8);
+    const star = new THREE.Mesh(geometry, starMaterial);
+
+    // Trilaterate point (only takes first solution right now)
+    const star_pos = trilateratePoint(system.name, anchors.A, anchors.B, anchors.C, system.A, system.B, system.C);
+
+    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
+    star.name = system.name;
+    scene.add(star);
+  });
+}
+
 // Update astrometry
 //const dummy = csv2json("astrometrics.csv");
 
@@ -103,33 +137,8 @@ async function loadStarDistanceData(url) {
   }
 }
 
-var stars;
-$.get("astrometrics.csv", function(CSVdata) {
-      stars = $.csv.toObjects(CSVdata);
-      console.log("JSON Object: ", stars)
-});
 
-const dAB = stars[0].B; // A's distance to B
-const dAC = stars[0].C; // A's distance to C
-const dBC = stars[1].C; // B's distance to C
-
-const anchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
-
-// Use the loaded star data
-stars.forEach(system => {
-
-  // Material for stars
-  const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
-  const geometry = new THREE.SphereGeometry(5, 8, 8);
-  const star = new THREE.Mesh(geometry, starMaterial);
-
-  // Trilaterate point (only takes first solution right now)
-  const star_pos = trilateratePoint(system.name, anchors.A, anchors.B, anchors.C, system.A, system.B, system.C);
-
-  star.position.set(star_pos[0], star_pos[1], star_pos[2]);
-  star.name = system.name;
-  scene.add(star);
-});
+retrieveAstrometrics("astrometrics.csv");
 
 
 // -----------------------Begin render------------------------------- //
