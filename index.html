@@ -8,12 +8,22 @@
     canvas { display: block; }
   </style>
   <script src="https://unpkg.com/numeric@1.2.6/numeric-1.2.6.js"></script>
-  <script type="module" src="/main.js"></script>
+  <script type="module" src="main.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
 </head>
 <body>
   <canvas id="atlas_view"></canvas>
+  <div class="info">
+    <p><a href="https://thesoideosinterface.vercel.app/galactic-hub-cartography-project/hubspace-n-lateration/">Galactic Hub Cartography Project</a></p>
+    <select id="starSelector">
+      <option value="">-- Select a Star --</option>
+    </select>
+    <button id="snapButton"> Snap to Star</button>
+  </div>
+  <button onclick="window.htmlVars.cameraControls.reset( true )">reset</button>
+
+  <script type="module" src="viewer.js"></script>
 </body>
 </html>
 
