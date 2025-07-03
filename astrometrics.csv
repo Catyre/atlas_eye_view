@@ -1,12 +1,51 @@
-name,A,B,C,color
-[HUB1-74] Sun Tzu,0,28,192,
-[HUB1-3F0] Zeta Kentaurus,28,0,198,
-[HUB1-153] Voyager's Lantern,192,198,0,
-[HUB1-46] Valkyrie System,65,75,139,
-[HUB1-1E8] Luck of the Irish,61,88,177,
-[HUB1-47] Cousteau,23,36,175,
-[HUB1-25] Ganymede,62,71,135,
-[HUB1-101] Gargantuan Treasure,235,256,158,
-[HUB10-193] Aerial Boundaries,169,178,125,
-[HUB1-156] Konig,174,180,65,
-[HUB4-D7] Yamcha,86,80,277,
+name,A,B,C,D,color
+[HUB1-74] Sun Tzu,0,287,192,153,white
+[HUB2-55] Nero,287, 0, 282,260,yellow
+[HUB1-153] Voyager's Lantern,192,282,0,164,yellow
+[HUB10-1EB] Hirk's Spine,153,260,164,0,green
+[HUB1-46] Valkyrie,65,266,139,99,yellow
+[HUB1-1E8] Luck of the Irish,61,326,177,139,yellow
+[HUB1-47] Cousteau,23,274,175,131,yellow
+[HUB4-D7] Yamcha,86,313,277,215,red
+[HUB4-28] Zen-oh,35,291,225,179,yellow
+[HUB13-434] Muhlgasse 35,184,166,296,192,purple
+[HUB6-416] Regrets,248,482,251,238,purple
+[HUB4-87] Iwan,106,390,227,214,blue
+[HUB4-99] Whis,75,352,195,167,red
+[HUB1-27] Deacon's Rest,12,286,193,163,yellow
+[HUB1-1F8] Enthrareos,47,260,172,167,green
+[HUB1-402] Rhea,46,332,203,171,purple
+[HUB4-97] Roezen,47,267,209,185,blue
+[HUB1-30] Wyverntide,26,262,180,148,yellow
+[HUB1-115] Shinto,222,350,67,203,blue
+[HUB1-3F0] Zeta Kentaurus,28,263,198,158,purple
+[HUB1-1F4] Ifthendang,65,287,188,201,green
+[HUB1-2F] Mobia,171,289,24,158,yellow
+[HUB1-6F] Siesta,162,290,35,159,yellow
+[HUB1-71] Telomon's Cradle,168,297,37,168,yellow
+[HUB1-69] Flexibility's Edge,162,297,41,163,yellow
+[HUB1-63] Kuiper Alpha,169,309,48,176,yellow
+[HUB1-150] Bottom of the Branches,170,298,52,186,yellow
+[HUB1-1D] TopOfTheTree4,176,314,67,202,yellow
+[HUB1-13B] Penultimate Peak,191,326,89,227,blue
+[HUB1-13A] Astrobius,187,312,86,224,red
+[HUB4-AE] Iouy,37,299,228,184,yellow
+[HUB4-5F] Skathuse,36,280,215,181,yellow
+[HUB1-1E7] Hasper Dream,18,294,179,145,yellow
+[HUB4-8A] Rubin & Charise,45,254,211,165,blue
+[HUB1-1BA] Soul's Rest,71,242,148,158,green
+[HUB1-76] Spartacus,29,257,186,143,yellow
+[HUB1-79] New^2 Lemon,26,266,184,130,yellow
+[HUB4-D8] Roncastot,81,340,269,198,red
+[HUB4-98] Wunyano,67,248,223,187,red
+[HUB4-AF] Neushooorn,55,254,222,176,yellow
+[HUB4-89] Prouder Mary,71,234,218,176,yellow
+[HUB4-86] Latwhis,55,253,212,181,yellow
+[HUB4-88] Erusan,83,230,224,191,yellow
+[HUB4-BD] Usi Uybi Sequence,55,332,221,203,blue
+[HUB4-413] Pertinax,136,327,321,222,purple
+[HUB4-C2] Seangib,70,332,261,205,green
+[HUB1-3FB] Wellspring,91,318,183,219,purple
+[HUB1-F7] Astra Mae,67,322,167,184,yellow
+[HUB1-1E4] Pained Symphonea,76,339,166,168,yellow
+[HUB1-1D3] Shadow Sigma,94,332,159,120,green

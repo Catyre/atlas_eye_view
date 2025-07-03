@@ -1,3 +1,7 @@
+// TODO: Choose least coplanar three anchors for basis
+//  Introduce confidence calculations
+//  Dyanmic anchors
+
 import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 import * as numeric from 'numeric';
@@ -18,13 +22,13 @@ const width = window.innerWidth;
 const height = window.innerHeight;
 const clock = new THREE.Clock();
 const camera = new THREE.PerspectiveCamera( 90, width / height, 0.01, 1000 );
-camera.position.set( 0, 0, 300);
+camera.position.set( 100, 100, 100);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const cameraControls = new CameraControls( camera, renderer.domElement );
 cameraControls.setTarget(0, 0, 0, true)
 const pivot = new THREE.Object3D();
 scene.add(pivot);
-pivot.add(camera);  // camera rotates with pivot
+//pivot.add(camera);  // camera rotates with pivot
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -67,7 +71,8 @@ function buildBasis(P1, P2, P3) {
   // z axis will just be cross product of x and y unit vectors
   const ez = math.cross(ex, ey);
 
-  const basis = {ex: ex, ey: numeric.mul(-1, ez), ez: ey, i: i, j: j}; // This is not a mistake - the basis vectors need to be rotated
+  //const basis = {ex: ex, ey: numeric.mul(-1, ez), ez: ey, i: i, j: j}; // This is not a mistake - the basis vectors need to be rotated
+  const basis = {ex: ex, ey: ey, ez: ez, i: i, j: j};
   return basis;
 }
 
@@ -86,7 +91,7 @@ function trilaterate4(name, P1, P2, P3, P4, r1, r2, r3, r4) {
 
   var zSquared = r1**2 - x**2 - y**2;
   if (zSquared < 0) {
-    console.log("Invalid trilateration - Using -zSquared\n zSquared = ", zSquared, "\n Name: ", name)
+    console.log("Invalid trilateration - Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, r4, "]");
     zSquared *= -1;
     //throw new Error("Trilateration failed: No real solution (z² < 0)");
   }
@@ -123,12 +128,11 @@ function trilateratePoint(name, P1, P2, P3, r1, r2, r3) {
 
   // r1^2 - x^2 - y^2
   var zSquared = r1 ** 2 - x ** 2 - y ** 2;
-    console.log(x, y, zSquared);
 
   // Decide what to do with z
   if(zSquared < 0) {
     //pass
-    console.log("Invalid trilateration - Using -zSquared\n zSquared = ", zSquared, "\n Name: ", name);
+    console.log("Invalid trilateration - Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, "]");
 
     zSquared *= -1;
   }
@@ -141,9 +145,7 @@ function trilateratePoint(name, P1, P2, P3, r1, r2, r3) {
   const solution1 = numeric.add(part2, numeric.mul(ez, z));
   const solution2 = numeric.sub(part2, numeric.mul(ez, z)); // mirrored solution
 
-  console.log("Plotting ", name, " at point ", solution1)
   return solution1; //part1 < part2 ? solution1 : solution2;
-
 }
 
 // Retrieve CSV of star data, process the distances into proper coordinates
@@ -163,32 +165,39 @@ function processAstrometrics() {
   
   const anchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
   const basis = buildBasis(anchors.A, anchors.B, anchors.C);
+  
+  camera.position.set(anchors.B);
 
   const P4 = trilateratePoint(stars[3].name, anchors.A, anchors.B, anchors.C, stars[3].A, stars[3].B, stars[3].C)
-
+console.log(stars)
   // Use the loaded star data
   stars.forEach(system => {
-    // Material for stars
-    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
-    const geometry = new THREE.SphereGeometry(.8, 16, 16);
-    const star = new THREE.Mesh(geometry, starMaterial);
 
-    // Trilaterate point (only takes first solution right now)
-    const star_pos = trilaterate4(system.name, anchors.A, anchors.B, anchors.C, P4, system.A, system.B, system.C, system.D);
+    if (!JSON.parse(system.is_anchor) || system.color === "white") {
+      // Trilaterate point (only takes first solution right now)
+      const star_pos = trilaterate4(system.name, anchors.A, anchors.B, anchors.C, P4, system.A, system.B, system.C, system.D);
 
-    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
-    star.name = system.name;
-    scene.add(star);
+      // Material for stars
+      const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+      const geometry = new THREE.SphereGeometry(.8, 16, 16);
+      const star = new THREE.Mesh(geometry, starMaterial);
 
-    const selector = document.getElementById("starSelector");
-    const option = document.createElement("option");
-    option.value = [star_pos[0], star_pos[1], star_pos[2]];
-    option.textContent = star.name;
-    selector.appendChild(option);
+      star.position.set(star_pos[0], star_pos[1], star_pos[2]);
+      star.name = system.name;
+      scene.add(star);
+
+      const selector = document.getElementById("starSelector");
+      const option = document.createElement("option");
+      option.value = [star_pos[0], star_pos[1], star_pos[2]];
+      option.textContent = star.name;
+      selector.appendChild(option);
+    }
   });
+
+  console.log(`${stars.length} systems mapped!`)
 }
 
-applyAstrometrics("astrometrics.csv");
+applyAstrometrics("euclid_astrometrics.csv");
 
 // -----------------------Begin render------------------------------- //
 // Exclusive control for user dragging
@@ -230,7 +239,7 @@ function animate() {
 
 
   if (!disableAutoRotate) {
-      cameraControls.azimuthAngle += -10 * delta * THREE.MathUtils.DEG2RAD;
+      //cameraControls.azimuthAngle += -10 * delta * THREE.MathUtils.DEG2RAD;
       //cameraControls.polarAngle += 10 * delta * THREE.MathUtils.DEG2RAD;
   }
 
