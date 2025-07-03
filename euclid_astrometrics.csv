@@ -1,14 +1,14 @@
-name,A,B,C,D,color,is_anchor
-[HUB12-416] Lion Shield,0,691,1334,967,purple,true
-[HUB1-74] Sun Tzu,691,0,875,435,white,true
-[HUB7-3FE] Aniwani,1334,875,0,1148,purple,true
-[HUB22-406] Legods,967,435,1148,0,purple,true
-[HUB1-3FB] Wellspring,767,91,858,372,purple,false
-[HUB1-13B] Penultimate Peak,821,191,734,457,blue,false
-[HUB1-1F4] Ifthendang,728,65,879,381,green,false
-[HUB1-1F7] Astra Mae,756,67,835,415,yellow,false
-[HUB4-BD] Usi Uybi Sequence,734,55,889,396,blue,false
-[HUB4-87] Iwan,782,106,847,432,blue,false
-[HUB1-1F8] Enthrareos,698,47,871,414,green,false
-[HUB4-97] Roezen,683,47,906,401,blue,false
-[HUB1-1E4] Pained Symponea,758,76,815,446,yellow,false
+id,name,A,B,C,D,color,is_anchor,confidence
+[HUB12-416],Lion Shield,0,691,1334,967,purple,true,0
+[HUB1-74],Sun Tzu,691,0,875,435,white,true,0
+[HUB7-3FE],Aniwani,1334,875,0,1148,purple,true,0
+[HUB22-406],Legods,967,435,1148,0,purple,true,0
+[HUB1-3FB],Wellspring,767,91,858,372,purple,false,0
+[HUB1-13B],Penultimate Peak,821,191,734,457,blue,false,0
+[HUB1-1F4],Ifthendang,728,65,879,381,green,false,0
+[HUB1-1F7],Astra Mae,756,67,835,415,yellow,false,0
+[HUB4-BD],Usi Uybi Sequence,734,55,889,396,blue,false,0
+[HUB4-87],Iwan,782,106,847,432,blue,false,0
+[HUB1-1F8],Enthrareos,698,47,871,414,green,false,0
+[HUB4-97],Roezen,683,47,906,401,blue,false,0
+[HUB1-1E4],Pained Symponea,758,76,815,446,yellow,false,0
