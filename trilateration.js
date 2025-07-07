@@ -18,6 +18,14 @@ function rotate3D(v, axis, angle) {
   }
 }
 
+// Calculate Euclidean distance between two 3D points
+export function calculateDistance(point1, point2) {
+  const dx = point1[0] - point2[0];
+  const dy = point1[1] - point2[1];
+  const dz = point1[2] - point2[2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 // Need to build coordinate system from anchor points
 //  TODO: Be dynamic
 export function reconstructAnchorsFromDistances(dAB, dAC, dBC) {
@@ -54,14 +62,19 @@ export function buildBasis(P1, P2, P3) {
   //var basis = rotate3D([ex, ey, ez], 'x', 90);
   //console.log(basis);
   const OGbasis = [ex, ey, ez];
-  const basis = OGbasis.map(vec => rotate3D(vec, 'y', 30));
+  const basis = OGbasis.map(vec => rotate3D(vec, 'y', 0));
+
+  // Ensure right-handed system
+  if (numeric.dot(math.cross(basis[0], basis[1]), basis[2]) < 0) {
+    basis[2] = numeric.mul(-1, basis[2]);
+  }
+
   return {ex: basis[0], ey: basis[1], ez: basis[2], i: i, j: j};
 }
 
 // Quadrilateration (trilateration, but more!)
 export function trilaterate4(name, P1, P2, P3, P4, r1, r2, r3, r4) {
   const basis = buildBasis(P1, P2, P3);
-  console.log(basis);
   const ex = basis.ex;
   const ey = basis.ey;
   const ez = basis.ez;
