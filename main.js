@@ -2,9 +2,7 @@ import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 import $ from 'jquery';
 import * as tri from './trilateration.js';
-import { setupDB } from './galaxy.js';
 window.jQuery = $;
-window.astrometrics = {}; // Global variable for star data
 import 'jquery-csv';
 
 // ---------------------Basic setup------------------------------- //
@@ -17,7 +15,7 @@ CameraControls.install({THREE: THREE});
 const width = window.innerWidth;
 const height = window.innerHeight;
 const clock = new THREE.Clock();
-const camera = new THREE.PerspectiveCamera( 90, width / height, 0.01, 5000 );
+const camera = new THREE.PerspectiveCamera( 60, width / height, 0.01, 5000 );
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const cameraControls = new CameraControls( camera, renderer.domElement );
 //const pivot = new THREE.Object3D();
@@ -35,18 +33,10 @@ scene.add(light);
 
 // -----------------------Functions------------------------------- //
 
-// Retrieve CSV of star data, process the distances into proper coordinates
-function applyAstrometrics(fileName) {
-  $.get(fileName, function(CSVdata) {
-        window.astrometrics = $.csv.toObjects(CSVdata);
-        setupDB(window.astrometrics)
-        processAstrometrics(); // Avoids async issues
-  });
-}
-
-// Used to avoid async issues
-function processAstrometrics() {
-  const stars = window.astrometrics;
+// Fetch system database and process the data
+async function processAstrometrics() {
+  const res= await fetch("http://192.168.1.96:3000/systems");
+  const stars = await res.json();
   const dAB = stars[0].B;
   const dAC = stars[0].C;
   const dBC = stars[1].C;
@@ -58,7 +48,6 @@ function processAstrometrics() {
   cameraControls.setTarget(anchors.B[0], anchors.B[1], anchors.B[2], true);
 
   const P4 = tri.trilateratePoint(stars[3].name, anchors.A, anchors.B, anchors.C, stars[3].A, stars[3].B, stars[3].C)
-console.log(stars)
   // Use the loaded star data
   stars.forEach(system => {
 
@@ -86,7 +75,7 @@ console.log(stars)
   console.log(`${stars.length} systems mapped!`)
 }
 
-applyAstrometrics("euclid_astrometrics.csv");
+processAstrometrics();
 
 // -----------------------Begin render------------------------------- //
 // Exclusive control for user dragging

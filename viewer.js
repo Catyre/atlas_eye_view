@@ -2,21 +2,6 @@
 import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 
-export let camera, cameraControls
-
-export function rotateCamera45() {
-  const angle = Math.PI / 4; // 45 degrees in radians
-
-  const radius = Math.sqrt(camera.position.x**2 + camera.position.z**2);
-  const theta = Math.atan2(camera.position.z, camera.position.x) + angle;
-
-  camera.position.x = radius * Math.cos(theta);
-  camera.position.z = radius * Math.sin(theta);
-  camera.lookAt(0, 0, 0); // Or wherever your scene's center is
-
-  if (controls) controls.update();
-}
-
 const selector = document.getElementById("starSelector");
 document.getElementById("snapButton").addEventListener("click", () => {
   const pos = [];

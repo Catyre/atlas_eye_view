@@ -5,6 +5,19 @@
 import * as numeric from 'numeric';
 import * as math from 'mathjs';
 
+function rotate3D(v, axis, angle) {
+  const [x, y, z] = v;
+  const cos = Math.cos(angle * Math.PI/180);
+  const sin = Math.sin(angle*Math.PI/180);
+
+  switch (axis) {
+    case 'x': return [x, y * cos - z * sin, y * sin + z * cos];
+    case 'y': return [x * cos + z * sin, y, -x * sin + z * cos];
+    case 'z': return [x * cos - y * sin, x * sin + y * cos, z];
+    default: throw new Error("Invalid axis");
+  }
+}
+
 // Need to build coordinate system from anchor points
 //  TODO: Be dynamic
 export function reconstructAnchorsFromDistances(dAB, dAC, dBC) {
@@ -37,13 +50,18 @@ export function buildBasis(P1, P2, P3) {
   const ez = math.cross(ex, ey);
 
   //const basis = {ex: ex, ey: numeric.mul(-1, ez), ez: ey, i: i, j: j}; // This is not a mistake - the basis vectors need to be rotated
-  const basis = {ex: ex, ey: ey, ez: ez, i: i, j: j};
-  return basis;
+  //const basis = {ex: ex, ey: ey, ez: ez, i: i, j: j};
+  //var basis = rotate3D([ex, ey, ez], 'x', 90);
+  //console.log(basis);
+  const OGbasis = [ex, ey, ez];
+  const basis = OGbasis.map(vec => rotate3D(vec, 'y', 30));
+  return {ex: basis[0], ey: basis[1], ez: basis[2], i: i, j: j};
 }
 
 // Quadrilateration (trilateration, but more!)
 export function trilaterate4(name, P1, P2, P3, P4, r1, r2, r3, r4) {
   const basis = buildBasis(P1, P2, P3);
+  console.log(basis);
   const ex = basis.ex;
   const ey = basis.ey;
   const ez = basis.ez;
@@ -56,7 +74,7 @@ export function trilaterate4(name, P1, P2, P3, P4, r1, r2, r3, r4) {
 
   var zSquared = r1**2 - x**2 - y**2;
   if (zSquared < 0) {
-    console.log("Invalid trilateration - Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, r4, "]");
+    console.log("Invalid trilateration for ", name, "- Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, r4, "]");
     zSquared *= -1;
     //throw new Error("Trilateration failed: No real solution (z² < 0)");
   }
