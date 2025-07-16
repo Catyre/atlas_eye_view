@@ -5,7 +5,10 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-const db = new Database('./euclid.sqlite', Database.OPEN_READWRITE);
+const EUCLID = './galaxy_data/euclid_astrometrics.sqlite';
+const CALYPSO = './galaxy_data/calypso_astrometrics.sqlite';
+
+const db = new Database(EUCLID, Database.OPEN_READWRITE);
 
 app.use(cors());
 app.use(express.json());
