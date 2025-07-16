@@ -6,6 +6,9 @@ const Database = require('better-sqlite3');
 const app = express();
 const PORT = 3000;
 
+const EUCLID = './galaxy_data/euclid_astrometrics.sqlite';
+const CALYPSO = './galaxy_data/calypso_astrometrics.sqlite';
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -13,23 +16,23 @@ app.use(express.json());
 // Database connection
 let db;
 try {
-  db = new Database('./euclid.sqlite', { verbose: console.log });
-  console.log('✅ Connected to SQLite database with better-sqlite3');
+  db = new Database(EUCLID, { verbose: console.log });
+  console.log('Connected to SQLite database with better-sqlite3');
 } catch (error) {
-  console.error('❌ Error opening database:', error.message);
+  console.error('Error opening database:', error.message);
   process.exit(1);
 }
 
 // Initialize database with coordinate columns if they don't exist
 function initializeDatabase() {
-  console.log('🔧 Initializing database...');
+  console.log('Initializing database...');
   
   try {
     // Check if coordinate columns exist
     const tableInfo = db.prepare("PRAGMA table_info(systems)");
     const columns = tableInfo.all();
     
-    console.log('📋 Current table structure:');
+    console.log('Current table structure:');
     columns.forEach(column => {
       console.log(`  - ${column.name} (${column.type})`);
     });
@@ -40,32 +43,32 @@ function initializeDatabase() {
     const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
     
     if (missingColumns.length === 0) {
-      console.log('✅ All coordinate columns already exist');
+      console.log('All coordinate columns already exist');
       return;
     }
     
-    console.log(`⚠️  Missing columns: ${missingColumns.join(', ')}`);
+    console.log(`Missing columns: ${missingColumns.join(', ')}`);
     
     // Add missing columns
     missingColumns.forEach(columnName => {
       try {
         const sql = `ALTER TABLE systems ADD COLUMN ${columnName} REAL`;
         db.prepare(sql).run();
-        console.log(`✅ Added column: ${columnName}`);
+        console.log(`Added column: ${columnName}`);
       } catch (error) {
         if (error.message.includes('duplicate column name')) {
-          console.log(`ℹ️  Column ${columnName} already exists`);
+          console.log(`Column ${columnName} already exists`);
         } else {
-          console.error(`❌ Error adding column ${columnName}:`, error.message);
+          console.error(`Error adding column ${columnName}:`, error.message);
           throw error;
         }
       }
     });
     
-    console.log('✅ Database initialization completed');
+    console.log('Database initialization completed');
     
   } catch (error) {
-    console.error('❌ Database initialization failed:', error.message);
+    console.error('Database initialization failed:', error.message);
     throw error;
   }
 }
@@ -77,7 +80,7 @@ app.get('/systems', (req, res) => {
     const rows = stmt.all();
     res.json(rows);
   } catch (error) {
-    console.error('❌ Error fetching systems:', error.message);
+    console.error('Error fetching systems:', error.message);
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -103,7 +106,7 @@ app.post('/update-coordinates', (req, res) => {
       return;
     }
     
-    console.log(`✅ Updated coordinates for ${name}: [${ghc_x.toFixed(2)}, ${ghc_y.toFixed(2)}, ${ghc_z.toFixed(2)}]`);
+    console.log(`Updated coordinates for ${name}: [${ghc_x.toFixed(2)}, ${ghc_y.toFixed(2)}, ${ghc_z.toFixed(2)}]`);
     res.json({ 
       success: true, 
       message: `Coordinates updated for ${name}`,
@@ -112,7 +115,7 @@ app.post('/update-coordinates', (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /update-coordinates endpoint:', error.message);
+    console.error('Error in /update-coordinates endpoint:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -133,7 +136,7 @@ app.get('/system/:name', (req, res) => {
     res.json(row);
     
   } catch (error) {
-    console.error('❌ Error in /system/:name endpoint:', error.message);
+    console.error('Error in /system/:name endpoint:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -150,7 +153,7 @@ app.get('/systems-with-coordinates', (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /systems-with-coordinates endpoint:', error.message);
+    console.error('Error in /systems-with-coordinates endpoint:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -180,7 +183,7 @@ app.get('/coordinates-status', (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /coordinates-status endpoint:', error.message);
+    console.error('Error in /coordinates-status endpoint:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -213,9 +216,9 @@ app.post('/batch-update-coordinates', (req, res) => {
         const result = stmt.run(update.ghc_x, update.ghc_y, update.ghc_z, update.name);
         if (result.changes > 0) {
           updatedCount++;
-          console.log(`✅ Updated ${update.name}: [${update.ghc_x.toFixed(2)}, ${update.ghc_y.toFixed(2)}, ${update.ghc_z.toFixed(2)}]`);
+          console.log(`Updated ${update.name}: [${update.ghc_x.toFixed(2)}, ${update.ghc_y.toFixed(2)}, ${update.ghc_z.toFixed(2)}]`);
         } else {
-          console.warn(`⚠️  System not found: ${update.name}`);
+          console.warn(`System not found: ${update.name}`);
         }
       }
       
@@ -232,7 +235,7 @@ app.post('/batch-update-coordinates', (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Error in /batch-update-coordinates endpoint:', error.message);
+    console.error('Error in /batch-update-coordinates endpoint:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -263,15 +266,15 @@ app.get('/health', (req, res) => {
 // Start server
 async function startServer() {
   try {
-    console.log('🚀 Starting server initialization...');
+    console.log('Starting server initialization...');
     
     // Initialize database
     initializeDatabase();
     
     // Start server
     const server = app.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
-      console.log('📋 Available endpoints:');
+      console.log(`Server running on http://localhost:${PORT}`);
+      console.log('Available endpoints:');
       console.log('  GET  /systems                    - Get all systems');
       console.log('  GET  /system/:name               - Get specific system');
       console.log('  POST /update-coordinates         - Update single system coordinates');
@@ -284,32 +287,32 @@ async function startServer() {
     // Add server error handling
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use. Please try a different port.`);
+        console.error(`Port ${PORT} is already in use. Please try a different port.`);
       } else {
-        console.error('❌ Server error:', error);
+        console.error('Server error:', error);
       }
       process.exit(1);
     });
     
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
+    console.error('Failed to start server:', error.message);
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down server...');
+  console.log('\nShutting down server...');
   if (db) {
     db.close();
-    console.log('✅ Database connection closed');
+    console.log('Database connection closed');
   }
   process.exit(0);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
   if (db) {
     db.close();
   }
@@ -318,7 +321,7 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   if (db) {
     db.close();
   }
