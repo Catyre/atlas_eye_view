@@ -2,6 +2,8 @@
 import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 
+
+/*
 const selector = document.getElementById("starSelector");
 document.getElementById("snapButton").addEventListener("click", () => {
   const pos = [];
@@ -19,4 +21,4 @@ document.getElementById("snapButton").addEventListener("click", () => {
   window.htmlVars.cameraControls.setTarget(x, y, z, true);
   //window.htmlVars.cameraControls.update();
   window.htmlVars.renderer.render(window.htmlVars.scene, window.htmlVars.camera)
-});
+});*/

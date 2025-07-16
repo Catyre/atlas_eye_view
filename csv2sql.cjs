@@ -5,7 +5,7 @@ const Papa = require('papaparse');
 
 // Config
 const RPI_ADDRESS = 'http://192.168.1.96:3000/upload';  // replace with your Pi's IP
-const SYSTEMS_CSV = './new_euclid_astrometrics.csv';
+const SYSTEMS_CSV = './euclid_systems_backup.csv';
 
 // Load and parse CSVs
 function loadCSV(filepath) {
@@ -22,6 +22,9 @@ function convertSystems(rows) {
     B: parseFloat(r.B),
     C: parseFloat(r.C),
     D: parseFloat(r.D),
+    ghc_x: parseFloat(r.ghc_x),
+    ghc_y: parseFloat(r.ghc_y),
+    ghc_z: parseFloat(r.ghc_z),
     color: r.color,
     is_anchor: r.is_anchor === '1' || r.is_anchor === 'true',
     confidence: parseFloat(r.confidence || 0)

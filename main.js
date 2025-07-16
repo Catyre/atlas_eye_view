@@ -3,6 +3,7 @@ import CameraControls from 'camera-controls';
 import $ from 'jquery';
 import * as tri from './trilateration.js';
 import { validateCalculatedPositions } from './validation.js';
+import './popup.css';
 window.jQuery = $;
 import 'jquery-csv';
 
@@ -38,22 +39,7 @@ const mouse = new THREE.Vector2();
 
 // Create popup element
 const popup = document.createElement('div');
-popup.style.cssText = `
-  position: absolute;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid #444;
-  font-family: monospace;
-  font-size: 12px;
-  max-width: 300px;
-  max-height: 400px;
-  overflow-y: auto;
-  z-index: 1000;
-  display: none;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-`;
+popup.className = 'system-popup';
 document.body.appendChild(popup);
 
 // Store system data for popup
@@ -110,6 +96,9 @@ function onMouseClick(event) {
         cameraControls.removeEventListener('rest', onCameraRest);
         // Show popup after camera has finished moving
         showSystemPopup(clickedObject.name, clickedObject.position);
+        
+        // Show unsnap button
+        unsnapButton.style.display = 'block';
       };
       
       cameraControls.addEventListener('rest', onCameraRest);
@@ -120,11 +109,43 @@ function onMouseClick(event) {
   }
 }
 
+// Function to update system coordinates on the backend
+async function updateSystemCoordinates(systemName, coordinates) {
+  try {
+    const updateData = {
+      name: systemName,
+      ghc_x: coordinates[0],
+      ghc_y: coordinates[1],
+      ghc_z: coordinates[2]
+    };
+
+    const response = await fetch('http://192.168.1.96:3000/update-coordinates', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updateData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(`Updated coordinates for ${systemName}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}, ${coordinates[2].toFixed(2)}]`);
+    return result;
+  } catch (error) {
+    console.error(`Failed to update coordinates for ${systemName}:`, error.message);
+    return null;
+  }
+}
+
 // -----------------------Functions------------------------------- //
 // Fetch system database and process the data
 async function processAstrometrics() {
   const res= await fetch("http://192.168.1.96:3000/systems");
   const stars = await res.json();
+  const all_anchors = stars.filter(obj => obj.is_anchor);
   
   // Load validation data
   let validationData = [];
@@ -139,75 +160,65 @@ async function processAstrometrics() {
   const dAC = stars[0].C;
   const dBC = stars[1].C;
   
-  const anchors = tri.reconstructAnchorsFromDistances(dAB, dAC, dBC);
-  const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
+
+  //const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
   
   // Start camera centered on Sun Tzu system at origin
   camera.position.set(20, 20, 20); // Offset from origin
   cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
 
-  const P4 = tri.trilateratePoint(stars[3].name, anchors.A, anchors.B, anchors.C, stars[3].A, stars[3].B, stars[3].C)
-  
-  // Find Sun Tzu system and calculate the shift needed to place it at origin
-  const sunTzuSystem = stars.find(system => system.name === "Sun Tzu");
-  let coordinateShift = [0, 0, 0];
-  
-  if (sunTzuSystem) {
-    // Calculate Sun Tzu's position using trilateration
-    const sunTzuPosition = tri.trilaterate4(sunTzuSystem.name, anchors.A, anchors.B, anchors.C, P4, sunTzuSystem.A, sunTzuSystem.B, sunTzuSystem.C, sunTzuSystem.D);
-    coordinateShift = sunTzuPosition.map(coord => -coord); // Negative to shift to origin
-    console.log("Sun Tzu found at:", sunTzuPosition, "Shifting by:", coordinateShift);
-  } else {
-    console.warn("Sun Tzu system not found in data");
-  }
+  //const P4 = tri.trilateratePoint(stars[3].name, anchors.A, anchors.B, anchors.C, stars[3].A, stars[3].B, stars[3].C)
   
   // Store system data for popup
   stars.forEach(system => {
     systemData[system.name] = system;
   });
-  
-  // Add anchor stars to the scene for clicking (with coordinate shift)
-  const anchorNames = [stars[0].name, stars[1].name, stars[2].name, stars[3].name];
-  const anchorPositions = [anchors.A, anchors.B, anchors.C, P4];
-  
-  anchorNames.forEach((name, index) => {
-    const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const geometry = new THREE.SphereGeometry(1.0, 16, 16);
+
+
+  // Use the loaded star data
+  let processedCount = 0;
+  for (const system of stars) {
+    // Get the selected anchors and their positions
+    const anchorSelection = tri.chooseLeastCoplanarAnchors(all_anchors);
+    
+    // Get distances from this system to the selected anchors
+    const distances = anchorSelection.anchors.map(anchor => system[anchor.anchor_id]);
+
+    // Trilaterate point using dynamic anchor selection
+    const star_pos = tri.trilaterate4(
+      system.name, 
+      anchorSelection.anchors,
+      distances
+    );
+
+    // Update coordinates of the system in the database
+    /*if (system.ghc_x === 0 || system.ghc_y === 0 || system.ghc_z === 0) {
+      console.log("System ", system.name, " has no coordinates - updating");
+      
+      await updateSystemCoordinates(system.name, star_pos);
+    }*/
+
+    // Material for stars
+    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+    const geometry = new THREE.SphereGeometry(.8, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
-    const shiftedPosition = anchorPositions[index].map((coord, i) => coord + coordinateShift[i]);
-    star.position.set(shiftedPosition[0], shiftedPosition[1], shiftedPosition[2]);
-    star.name = name;
+    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
+    star.name = system.name;
     scene.add(star);
-  });
-  
-  // Use the loaded star data
-  stars.forEach(system => {
-    // Only create stars for non-anchor systems
-    if (!JSON.parse(system.is_anchor)) {
-      // Trilaterate point (only takes first solution right now)
-      const star_pos = tri.trilaterate4(system.name, anchors.A, anchors.B, anchors.C, P4, system.A, system.B, system.C, system.D);
-
-      // Material for stars
-      const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
-      const geometry = new THREE.SphereGeometry(.8, 16, 16);
-      const star = new THREE.Mesh(geometry, starMaterial);
-
-      // Apply coordinate shift to position Sun Tzu at origin
-      const shiftedPosition = star_pos.map((coord, i) => coord + coordinateShift[i]);
-      star.position.set(shiftedPosition[0], shiftedPosition[1], shiftedPosition[2]);
-      star.name = system.name;
-      scene.add(star);
-
-      const selector = document.getElementById("starSelector");
-      const option = document.createElement("option");
-      option.value = [shiftedPosition[0], shiftedPosition[1], shiftedPosition[2]];
-      option.textContent = star.name;
-      selector.appendChild(option);
+    
+    // Update progress
+    processedCount++;
+    if (processedCount % 10 === 0 || processedCount === stars.length) {
+      console.log(`Processed ${processedCount}/${stars.length} systems (${((processedCount/stars.length)*100).toFixed(1)}%)`);
     }
-  });
+  }
 
   console.log(`${stars.length} systems mapped!`)
+  
+  // Position camera offset from origin looking at it
+  camera.position.set(50, 50, 50); // Offset from origin
+  cameraControls.setTarget(0, 0, 0, false); // Look at origin where Sun Tzu now is
   
   // Run validation on the loaded data
   const validationResults = validateCalculatedPositions(stars, validationData);
@@ -288,8 +299,149 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// Create unsnap button
+const unsnapButton = document.createElement('button');
+unsnapButton.textContent = 'Unsnap Camera';
+unsnapButton.className = 'unsnap-button';
+document.body.appendChild(unsnapButton);
+
+// Function to unsnap camera
+function unsnapCamera() {
+  // Return camera to default position
+  cameraControls.setLookAt(
+    50, 50, 50,  // Default camera position
+    0, 0, 0,     // Look at origin
+    true         // Smooth transition
+  );
+  
+  // Hide popup
+  hidePopup();
+  
+  // Hide unsnap button
+  unsnapButton.style.display = 'none';
+}
+
+// Add click handler for unsnap button
+unsnapButton.addEventListener('click', unsnapCamera);
+
+// Function to fetch data from No Man's Sky Miraheze wiki
+async function fetchWikiData(systemName) {
+  try {
+    // Clean the system name for wiki search
+    const cleanName = systemName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    
+    // First, search for the system page
+    const searchUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanName)}&format=json&origin=*`;
+    
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) {
+      throw new Error(`Search request failed: ${searchResponse.status}`);
+    }
+    
+    const searchData = await searchResponse.json();
+    
+    if (!searchData.query || searchData.query.search.length === 0) {
+      return { error: `No wiki page found for system: ${systemName}` };
+    }
+    
+    // Get the first search result (most relevant)
+    const pageId = searchData.query.search[0].pageid;
+    const pageTitle = searchData.query.search[0].title;
+    
+    // Fetch the page content
+    const contentUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=parse&pageid=${pageId}&format=json&origin=*`;
+    
+    const contentResponse = await fetch(contentUrl, {
+      method: 'GET',
+      headers: new Headers( {
+        'Api-User-Agent': 'Soideos (thesoideosinterface@gmail.com)'
+      })
+    });
+    if (!contentResponse.ok) {
+      throw new Error(`Content request failed: ${contentResponse.status}`);
+    }
+    
+    const contentData = await contentResponse.json();
+    
+    if (!contentData.parse) {
+      return { error: `Could not parse wiki page for: ${systemName}` };
+    }
+    
+    // Extract useful information from the parsed content
+    const htmlContent = contentData.parse.text['*'];
+    
+    // Create a temporary DOM element to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Extract key information
+    const wikiData = {
+      title: pageTitle,
+      url: `https://nmsgalactichub.miraheze.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`,
+      summary: '',
+      galaxy: '',
+      region: '',
+      planets: '',
+      moons: '',
+      spectral_class: '',
+      distance: '',
+      glyphs: '',
+      waterworlds: '',
+      dissonant: '',
+      faction: '',
+      economy: '',
+      wealth: '',
+      conflict: '',
+      discoveredBy: '',
+    };
+    
+    // Try to extract information from infobox or content
+    const infobox = tempDiv.querySelector('.infoboxWrap');
+    console.log(infobox);
+    if (infobox) {
+      const rowData = infobox.querySelectorAll('.pi-data-value');
+      const rowLabels = infobox.querySelectorAll('.pi-data-label');
+      
+      rowLabels.forEach((row, i) => {
+        const label = row.innerText.trim().toLowerCase();
+        const value = rowData[i].innerText.trim();
+
+        if (label.includes('galaxy')) wikiData.galaxy = value;
+        else if (label.includes('region')) wikiData.region = value;
+        else if (label.includes('planets')) wikiData.planets = value;
+        else if (label.includes('moons')) wikiData.moons = value;
+        else if (label.includes('spectral class')) wikiData.spectral_class = value;
+        else if (label.includes('distance')) wikiData.distance = value;
+        else if (label.includes('glyphs')) wikiData.glyphs = value;
+        else if (label.includes('waterworld')) wikiData.waterworlds = value;
+        else if (label.includes('dissonant')) wikiData.dissonant = value;
+        else if (label.includes('faction')) wikiData.faction = value;
+        else if (label.includes('economy')) wikiData.economy = value;
+        else if (label.includes('conflict')) wikiData.conflict = value;
+        else if (label.includes('discovered by')) wikiData.discoveredBy = value;
+      });
+    }
+    
+    // Extract summary from first paragraph
+    const paragraphs = tempDiv.querySelectorAll('p');
+    for (let p of paragraphs) {
+      const text = p.textContent.trim();
+      if (text.length > 50 && !text.includes('this article') && !text.includes('this page')) {
+        wikiData.summary = text.substring(0, 200) + (text.length > 200 ? '...' : '');
+        break;
+      }
+    }
+    
+    return wikiData;
+    
+  } catch (error) {
+    console.error('Error fetching wiki data:', error);
+    return { error: `Failed to fetch wiki data for ${systemName}: ${error.message}` };
+  }
+}
+
 // Function to show system popup
-function showSystemPopup(systemName, worldPosition) {
+async function showSystemPopup(systemName, worldPosition) {
   // Find system data
   const system = systemData[systemName];
   if (!system) {
@@ -304,18 +456,18 @@ function showSystemPopup(systemName, worldPosition) {
   const mouseX = (screenPosition.x * 0.5 + 0.5) * window.innerWidth;
   const mouseY = (-screenPosition.y * 0.5 + 0.5) * window.innerHeight;
   
-  // Format the JSON data for display
-  const formattedData = JSON.stringify(system, null, 2);
-  
-  // Update popup content
+  // Show loading state
   popup.innerHTML = `
-    <div style="margin-bottom: 10px; font-weight: bold; color: #4CAF50;">${systemName}</div>
-    <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${formattedData}</pre>
+    <div class="system-name">${systemName}</div>
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      Loading wiki data...
+    </div>
   `;
   
-  // Position popup near the star but ensure it stays within viewport
-  const popupWidth = 300;
-  const popupHeight = Math.min(400, popup.scrollHeight);
+  // Position popup
+  const popupWidth = 400;
+  const popupHeight = 200;
   
   let left = mouseX + 10;
   let top = mouseY + 10;
@@ -331,6 +483,57 @@ function showSystemPopup(systemName, worldPosition) {
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
   popup.style.display = 'block';
+  
+  // Fetch wiki data
+  const wikiData = await fetchWikiData(systemName);
+  
+  // Format the system data
+  const formattedData = JSON.stringify(system, null, 2);
+  
+  // Create wiki data section
+  let wikiSection = '';
+  if (wikiData.error) {
+    wikiSection = `
+      <div class="wiki-section">
+        <div class="error-message">Wiki Data</div>
+        <div class="error-text">${wikiData.error}</div>
+      </div>
+    `;
+  } else {
+    wikiSection = `
+      <div class="wiki-section">
+        <div class="wiki-title">
+          <a href="${wikiData.url}">${wikiData.title}</a>
+        </div>
+        ${wikiData.summary ? `<div class="wiki-summary">${wikiData.summary}</div>` : ''}
+        ${wikiData.galaxy ? `<div class="wiki-info"><strong>Galaxy:</strong> ${wikiData.galaxy}</div>` : ''}
+        ${wikiData.region ? `<div class="wiki-info"><strong>Region:</strong> ${wikiData.region}</div>` : ''}
+        ${wikiData.planets ? `<div class="wiki-info"><strong>Planets:</strong> ${wikiData.planets}</div>` : ''}
+        ${wikiData.moons ? `<div class="wiki-info"><strong>Moons:</strong> ${wikiData.moons}</div>` : ''}
+        ${wikiData.spectral_class ? `<div class="wiki-info"><strong>Spectral Class:</strong> ${wikiData.spectral_class}</div>` : ''}
+        ${wikiData.distance ? `<div class="wiki-info"><strong>Distance:</strong> ${wikiData.distance}</div>` : ''}
+        ${wikiData.glyphs ? `<div class="wiki-info glyphs"><strong>Glyphs:</strong> ${wikiData.glyphs}</div>` : ''}
+        ${wikiData.waterworlds ? `<div class="wiki-info"><strong>Waterworlds:</strong> ${wikiData.waterworlds}</div>` : ''}
+        ${wikiData.dissonant ? `<div class="wiki-info"><strong>Dissonant:</strong> ${wikiData.dissonant}</div>` : ''}
+        ${wikiData.faction ? `<div class="wiki-info"><strong>Faction:</strong> ${wikiData.faction}</div>` : ''}
+        ${wikiData.economy ? `<div class="wiki-info"><strong>Economy:</strong> ${wikiData.economy}</div>` : ''}
+        ${wikiData.wealth ? `<div class="wiki-info"><strong>Wealth:</strong> ${wikiData.wealth}</div>` : ''}
+        ${wikiData.conflict ? `<div class="wiki-info"><strong>Conflict:</strong> ${wikiData.conflict}</div>` : ''}
+        ${wikiData.discoveredBy ? `<div class="wiki-info"><strong>Discovered by:</strong> ${wikiData.discoveredBy}</div>` : ''}
+      </div>
+    `;
+  }
+  
+  // Update popup content with both system data
+  popup.innerHTML = `
+    <div class="system-name">${systemName}</div>
+    <div class="wiki-info">${system.B}LY from Capital</div>
+    ${wikiSection}
+  `;
+  
+  // Update popup size based on content
+  const newHeight = Math.min(600, popup.scrollHeight);
+  popup.style.height = `${newHeight}px`;
 }
 
 // Function to hide popup

@@ -23,12 +23,8 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
   // Use 4th anchor for disambiguation
   const P4 = tri.trilateratePoint(
     anchorSystems[3].name, 
-    anchors.A, 
-    anchors.B, 
-    anchors.C, 
-    anchorSystems[3].A, 
-    anchorSystems[3].B, 
-    anchorSystems[3].C
+    [anchors.A, anchors.B, anchors.C], 
+    [anchorSystems[3].A, anchorSystems[3].B, anchorSystems[3].C]
   );
   
   const validationResults = {
@@ -67,14 +63,8 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
     try {
       const calculatedPosition = tri.trilaterate4(
         system.name,
-        anchors.A,
-        anchors.B, 
-        anchors.C,
-        P4,
-        system.A,
-        system.B,
-        system.C,
-        system.D
+        [anchors.A, anchors.B, anchors.C, P4],
+        [system.A, system.B, system.C, system.D]
       );
       
       systemPositions[system.name] = calculatedPosition;
