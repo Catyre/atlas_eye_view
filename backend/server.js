@@ -89,6 +89,7 @@ function initializeDatabase() {
 
 // GET /systems - Get all systems
 app.get('/systems', (req, res) => {
+  console.log('Fetching systems...');
   db.all('SELECT * FROM systems ORDER BY id', (err, rows) => {
     if (err) {
       console.error('Error fetching systems:', err.message);
