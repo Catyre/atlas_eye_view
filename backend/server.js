@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 
 // Create Express app
 const app = express();
@@ -16,10 +16,15 @@ app.use(express.json());
 // Database connection
 let db;
 try {
-  db = new Database(EUCLID, { verbose: console.log });
-  console.log('Connected to SQLite database with better-sqlite3');
+  db = new sqlite3.Database(EUCLID, (err) => {
+    if (err) {
+      console.error('Error opening database:', err.message);
+      process.exit(1);
+    }
+    console.log('Connected to SQLite database with sqlite3');
+  });
 } catch (error) {
-  console.error('Error opening database:', error.message);
+  console.error('Error creating database connection:', error.message);
   process.exit(1);
 }
 
@@ -27,62 +32,71 @@ try {
 function initializeDatabase() {
   console.log('Initializing database...');
   
-  try {
+  return new Promise((resolve, reject) => {
     // Check if coordinate columns exist
-    const tableInfo = db.prepare("PRAGMA table_info(systems)");
-    const columns = tableInfo.all();
-    
-    console.log('Current table structure:');
-    columns.forEach(column => {
-      console.log(`  - ${column.name} (${column.type})`);
-    });
-    
-    // Check for coordinate columns
-    const existingColumns = columns.map(col => col.name);
-    const neededColumns = ['ghc_x', 'ghc_y', 'ghc_z'];
-    const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
-    
-    if (missingColumns.length === 0) {
-      console.log('All coordinate columns already exist');
-      return;
-    }
-    
-    console.log(`Missing columns: ${missingColumns.join(', ')}`);
-    
-    // Add missing columns
-    missingColumns.forEach(columnName => {
-      try {
-        const sql = `ALTER TABLE systems ADD COLUMN ${columnName} REAL`;
-        db.prepare(sql).run();
-        console.log(`Added column: ${columnName}`);
-      } catch (error) {
-        if (error.message.includes('duplicate column name')) {
-          console.log(`Column ${columnName} already exists`);
-        } else {
-          console.error(`Error adding column ${columnName}:`, error.message);
-          throw error;
-        }
+    db.all("PRAGMA table_info(systems)", (err, columns) => {
+      if (err) {
+        console.error('Error getting table info:', err.message);
+        reject(err);
+        return;
       }
+      
+      console.log('Current table structure:');
+      columns.forEach(column => {
+        console.log(`  - ${column.name} (${column.type})`);
+      });
+      
+      // Check for coordinate columns
+      const existingColumns = columns.map(col => col.name);
+      const neededColumns = ['ghc_x', 'ghc_y', 'ghc_z'];
+      const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
+      
+      if (missingColumns.length === 0) {
+        console.log('All coordinate columns already exist');
+        resolve();
+        return;
+      }
+      
+      console.log(`Missing columns: ${missingColumns.join(', ')}`);
+      
+      // Add missing columns
+      let completed = 0;
+      missingColumns.forEach(columnName => {
+        const sql = `ALTER TABLE systems ADD COLUMN ${columnName} REAL`;
+        db.run(sql, (err) => {
+          if (err) {
+            if (err.message.includes('duplicate column name')) {
+              console.log(`Column ${columnName} already exists`);
+            } else {
+              console.error(`Error adding column ${columnName}:`, err.message);
+              reject(err);
+              return;
+            }
+          } else {
+            console.log(`Added column: ${columnName}`);
+          }
+          
+          completed++;
+          if (completed === missingColumns.length) {
+            console.log('Database initialization completed');
+            resolve();
+          }
+        });
+      });
     });
-    
-    console.log('Database initialization completed');
-    
-  } catch (error) {
-    console.error('Database initialization failed:', error.message);
-    throw error;
-  }
+  });
 }
 
 // GET /systems - Get all systems
 app.get('/systems', (req, res) => {
-  try {
-    const stmt = db.prepare('SELECT * FROM systems ORDER BY id');
-    const rows = stmt.all();
+  db.all('SELECT * FROM systems ORDER BY id', (err, rows) => {
+    if (err) {
+      console.error('Error fetching systems:', err.message);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
     res.json(rows);
-  } catch (error) {
-    console.error('Error fetching systems:', error.message);
-    res.status(500).json({ error: 'Database error' });
-  }
+  });
 });
 
 // POST /update-coordinates - Update system coordinates
@@ -98,20 +112,26 @@ app.post('/update-coordinates', (req, res) => {
     }
     
     // Update coordinates in database
-    const stmt = db.prepare('UPDATE systems SET ghc_x = ?, ghc_y = ?, ghc_z = ? WHERE name = ?');
-    const result = stmt.run(ghc_x, ghc_y, ghc_z, name);
-    
-    if (result.changes === 0) {
-      res.status(404).json({ error: `System '${name}' not found` });
-      return;
-    }
-    
-    console.log(`Updated coordinates for ${name}: [${ghc_x.toFixed(2)}, ${ghc_y.toFixed(2)}, ${ghc_z.toFixed(2)}]`);
-    res.json({ 
-      success: true, 
-      message: `Coordinates updated for ${name}`,
-      changes: result.changes,
-      coordinates: { ghc_x, ghc_y, ghc_z }
+    const sql = 'UPDATE systems SET ghc_x = ?, ghc_y = ?, ghc_z = ? WHERE name = ?';
+    db.run(sql, [ghc_x, ghc_y, ghc_z, name], function(err) {
+      if (err) {
+        console.error('Error updating coordinates:', err.message);
+        res.status(500).json({ error: 'Database error' });
+        return;
+      }
+      
+      if (this.changes === 0) {
+        res.status(404).json({ error: `System '${name}' not found` });
+        return;
+      }
+      
+      console.log(`Updated coordinates for ${name}: [${ghc_x.toFixed(2)}, ${ghc_y.toFixed(2)}, ${ghc_z.toFixed(2)}]`);
+      res.json({ 
+        success: true, 
+        message: `Coordinates updated for ${name}`,
+        changes: this.changes,
+        coordinates: { ghc_x, ghc_y, ghc_z }
+      });
     });
     
   } catch (error) {
@@ -125,15 +145,20 @@ app.get('/system/:name', (req, res) => {
   try {
     const { name } = req.params;
     
-    const stmt = db.prepare('SELECT * FROM systems WHERE name = ?');
-    const row = stmt.get(name);
-    
-    if (!row) {
-      res.status(404).json({ error: `System '${name}' not found` });
-      return;
-    }
-    
-    res.json(row);
+    db.get('SELECT * FROM systems WHERE name = ?', [name], (err, row) => {
+      if (err) {
+        console.error('Error fetching system:', err.message);
+        res.status(500).json({ error: 'Database error' });
+        return;
+      }
+      
+      if (!row) {
+        res.status(404).json({ error: `System '${name}' not found` });
+        return;
+      }
+      
+      res.json(row);
+    });
     
   } catch (error) {
     console.error('Error in /system/:name endpoint:', error.message);
@@ -143,34 +168,36 @@ app.get('/system/:name', (req, res) => {
 
 // GET /systems-with-coordinates - Get systems that have coordinates
 app.get('/systems-with-coordinates', (req, res) => {
-  try {
-    const stmt = db.prepare('SELECT * FROM systems WHERE ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL ORDER BY id');
-    const rows = stmt.all();
+  db.all('SELECT * FROM systems WHERE ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL ORDER BY id', (err, rows) => {
+    if (err) {
+      console.error('Error fetching systems with coordinates:', err.message);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
     
     res.json({
       count: rows.length,
       systems: rows
     });
-    
-  } catch (error) {
-    console.error('Error in /systems-with-coordinates endpoint:', error.message);
-    res.status(500).json({ error: 'Server error' });
-  }
+  });
 });
 
 // GET /coordinates-status - Get status of coordinate updates
 app.get('/coordinates-status', (req, res) => {
-  try {
-    const sql = `
-      SELECT 
-        COUNT(*) as total_systems,
-        SUM(CASE WHEN ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL THEN 1 ELSE 0 END) as systems_with_coordinates,
-        SUM(CASE WHEN ghc_x IS NULL OR ghc_y IS NULL OR ghc_z IS NULL THEN 1 ELSE 0 END) as systems_without_coordinates
-      FROM systems
-    `;
-    
-    const stmt = db.prepare(sql);
-    const row = stmt.get();
+  const sql = `
+    SELECT 
+      COUNT(*) as total_systems,
+      SUM(CASE WHEN ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL THEN 1 ELSE 0 END) as systems_with_coordinates,
+      SUM(CASE WHEN ghc_x IS NULL OR ghc_y IS NULL OR ghc_z IS NULL THEN 1 ELSE 0 END) as systems_without_coordinates
+    FROM systems
+  `;
+  
+  db.get(sql, (err, row) => {
+    if (err) {
+      console.error('Error getting coordinates status:', err.message);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
     
     const percentage = row.total_systems > 0 ? 
       ((row.systems_with_coordinates / row.total_systems) * 100).toFixed(1) : 0;
@@ -181,11 +208,7 @@ app.get('/coordinates-status', (req, res) => {
       systems_without_coordinates: row.systems_without_coordinates,
       completion_percentage: percentage
     });
-    
-  } catch (error) {
-    console.error('Error in /coordinates-status endpoint:', error.message);
-    res.status(500).json({ error: 'Server error' });
-  }
+  });
 });
 
 // POST /batch-update-coordinates - Update multiple systems at once
@@ -208,30 +231,44 @@ app.post('/batch-update-coordinates', (req, res) => {
     }
     
     // Begin transaction
-    const transaction = db.transaction((updates) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
       const stmt = db.prepare('UPDATE systems SET ghc_x = ?, ghc_y = ?, ghc_z = ? WHERE name = ?');
       let updatedCount = 0;
+      let completed = 0;
       
-      for (const update of updates) {
-        const result = stmt.run(update.ghc_x, update.ghc_y, update.ghc_z, update.name);
-        if (result.changes > 0) {
-          updatedCount++;
-          console.log(`Updated ${update.name}: [${update.ghc_x.toFixed(2)}, ${update.ghc_y.toFixed(2)}, ${update.ghc_z.toFixed(2)}]`);
-        } else {
-          console.warn(`System not found: ${update.name}`);
-        }
-      }
-      
-      return updatedCount;
-    });
-    
-    const updatedCount = transaction(updates);
-    
-    res.json({ 
-      success: true, 
-      message: `Updated ${updatedCount} out of ${updates.length} systems`,
-      updated_count: updatedCount,
-      total_requested: updates.length
+      updates.forEach((update, index) => {
+        stmt.run([update.ghc_x, update.ghc_y, update.ghc_z, update.name], function(err) {
+          if (err) {
+            console.error(`Error updating ${update.name}:`, err.message);
+          } else if (this.changes > 0) {
+            updatedCount++;
+            console.log(`Updated ${update.name}: [${update.ghc_x.toFixed(2)}, ${update.ghc_y.toFixed(2)}, ${update.ghc_z.toFixed(2)}]`);
+          } else {
+            console.warn(`System not found: ${update.name}`);
+          }
+          
+          completed++;
+          if (completed === updates.length) {
+            stmt.finalize();
+            db.run('COMMIT', (err) => {
+              if (err) {
+                console.error('Error committing transaction:', err.message);
+                res.status(500).json({ error: 'Database error' });
+                return;
+              }
+              
+              res.json({ 
+                success: true, 
+                message: `Updated ${updatedCount} out of ${updates.length} systems`,
+                updated_count: updatedCount,
+                total_requested: updates.length
+              });
+            });
+          }
+        });
+      });
     });
     
   } catch (error) {
@@ -242,25 +279,24 @@ app.post('/batch-update-coordinates', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  try {
-    // Test database connection
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM systems');
-    const result = stmt.get();
+  db.get('SELECT COUNT(*) as count FROM systems', (err, row) => {
+    if (err) {
+      res.status(500).json({ 
+        status: 'unhealthy', 
+        timestamp: new Date().toISOString(),
+        database: 'error',
+        error: err.message
+      });
+      return;
+    }
     
     res.json({ 
       status: 'healthy', 
       timestamp: new Date().toISOString(),
       database: 'connected',
-      total_systems: result.count
+      total_systems: row.count
     });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'unhealthy', 
-      timestamp: new Date().toISOString(),
-      database: 'error',
-      error: error.message
-    });
-  }
+  });
 });
 
 // Start server
@@ -269,7 +305,7 @@ async function startServer() {
     console.log('Starting server initialization...');
     
     // Initialize database
-    initializeDatabase();
+    await initializeDatabase();
     
     // Start server
     const server = app.listen(PORT, () => {
@@ -304,10 +340,17 @@ async function startServer() {
 process.on('SIGINT', () => {
   console.log('\nShutting down server...');
   if (db) {
-    db.close();
-    console.log('Database connection closed');
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message);
+      } else {
+        console.log('Database connection closed');
+      }
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
   }
-  process.exit(0);
 });
 
 // Handle uncaught exceptions
