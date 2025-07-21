@@ -150,9 +150,9 @@ export function trilaterate4Dynamic(name, anchors, targetDistances) {
 */
 
 function buildBasis(anchors) {
-  const P1 = anchors[0];
-  const P2 = anchors[1];
-  const P3 = anchors[2];
+  const P1 = anchors[0].B;
+  const P2 = anchors[0].C;
+  const P3 = anchors[1].C;
 
   console.log("Building basis for ", P1, P2, P3);
   // Unit vector of side BA

@@ -1,5 +1,5 @@
 id,name,A,B,C,D,color,is_anchor,confidence
-[HUB44-A],Tashat,0,1473,1127,1368,yellow,true,0
+[HUB44-A],Tashat,0,1473,1136,1368,yellow,true,0
 [HUB45-A],Nasfiel-Nit,1473,0,1127,1134,yellow,true,0
 [HUB17-A],Ochleac,1136,1127,0,1848,yellow,true,0
 [HUB25-A],Snezhna,1368,1134,1848,0,yellow,true,0

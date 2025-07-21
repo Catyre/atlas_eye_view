@@ -7,7 +7,7 @@ import './popup.css';
 window.jQuery = $;
 import 'jquery-csv';
 
-// ---------------------Basic setup------------------------------- //
+// ---------------------Basic setup - TESTING HMR------------------------------- //
 // Set up scene, camera, and renderer
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -143,9 +143,26 @@ async function updateSystemCoordinates(systemName, coordinates) {
 // -----------------------Functions------------------------------- //
 // Fetch system database and process the data
 async function processAstrometrics() {
-  const res= await fetch("http://192.168.1.96:3000/systems");
-  const stars = await res.json();
-  const all_anchors = stars.filter(obj => obj.is_anchor);
+  let stars = [];
+  try {
+    const res = await fetch("http://192.168.1.96:3000/systems");
+    if (!res.ok) throw new Error("Failed to fetch systems: " + res.status);
+    stars = await res.json();
+  } catch (err) {
+    console.error("Could not fetch systems from backend:", err);
+    alert("Could not load star systems from backend. Is the server running?");
+    return; // Stop further processing
+  }
+
+  const all_anchors = stars
+    .filter(obj => obj.is_anchor)
+    .sort((a, b) => {
+      // Find the key in a whose value is 0
+      const aKey = Object.keys(a).find(key => a[key] === 0);
+      const bKey = Object.keys(b).find(key => b[key] === 0);
+      // Sort by the key name (A, B, C, D, ...)
+      return aKey.localeCompare(bKey);
+    });
   
   // Load validation data
   let validationData = [];
@@ -178,16 +195,36 @@ async function processAstrometrics() {
   // Use the loaded star data
   let processedCount = 0;
   for (const system of stars) {
-    // Get the selected anchors and their positions
-    const anchorSelection = tri.chooseLeastCoplanarAnchors(all_anchors);
+    console.log("anchors: ", all_anchors);
+    // TEMPORARY: Use first 4 anchors and reconstruct their positions
+    const selectedAnchors = all_anchors.slice(0, 4);
+    
+    // Get distances between the first 3 anchors
+    const dAB = selectedAnchors[0].B || 0;
+    const dAC = selectedAnchors[0].C || 0;
+    const dBC = selectedAnchors[1].C || 0;
+    
+    // Reconstruct the first 3 anchor positions
+    const primaryAnchors = tri.reconstructAnchorsFromDistances(dAB, dAC, dBC);
+    
+    // Get distances from 4th anchor to the first 3
+    const d4A = selectedAnchors[3].A || 0;
+    const d4B = selectedAnchors[3].B || 0;
+    const d4C = selectedAnchors[3].C || 0;
+    
+    // Calculate position of 4th anchor
+    const P4 = tri.trilateratePoint(selectedAnchors[3].name, [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C], [d4A, d4B, d4C]);
+    
+    // Create the anchor positions array
+    const anchorPositions = [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C, P4];
     
     // Get distances from this system to the selected anchors
-    const distances = anchorSelection.anchors.map(anchor => system[anchor.anchor_id]);
+    const distances = [system.A, system.B, system.C, system.D];
 
-    // Trilaterate point using dynamic anchor selection
+    // Trilaterate point using properly reconstructed anchor positions
     const star_pos = tri.trilaterate4(
       system.name, 
-      anchorSelection.anchors,
+      anchorPositions,
       distances
     );
 
