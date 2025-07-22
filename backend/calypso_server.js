@@ -326,6 +326,49 @@ app.post('/batch-update-coordinates', (req, res) => {
   }
 });
 
+// POST /upload-systems - Upload or update multiple systems
+app.post('/upload', (req, res) => {
+  try {
+    const { systems } = req.body;
+    if (!Array.isArray(systems)) {
+      return res.status(400).json({ error: 'systems must be an array' });
+    }
+    if (systems.length === 0) {
+      return res.status(400).json({ error: 'systems array is empty' });
+    }
+    // Validate each system minimally
+    for (const sys of systems) {
+      if (!sys.id || !sys.name) {
+        return res.status(400).json({ error: 'Each system must have at least id and name' });
+      }
+    }
+    // Prepare upsert (insert or replace)
+    const fields = ['id','name','A','B','C','D','E','ghc_x','ghc_y','ghc_z','color','is_anchor','confidence'];
+    const placeholders = fields.map(() => '?').join(',');
+    const sql = `INSERT OR REPLACE INTO systems (${fields.join(',')}) VALUES (${placeholders})`;
+    let inserted = 0;
+    db.serialize(() => {
+      const stmt = db.prepare(sql);
+      for (const sys of systems) {
+        const values = fields.map(f => sys[f] !== undefined ? sys[f] : null);
+        stmt.run(values, function(err) {
+          if (!err) inserted++;
+        });
+      }
+      stmt.finalize((err) => {
+        if (err) {
+          res.status(500).json({ error: 'Database error', details: err.message });
+        } else {
+          res.json({ success: true, inserted, total: systems.length });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error in /upload-systems:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   db.get('SELECT COUNT(*) as count FROM systems', (err, row) => {
