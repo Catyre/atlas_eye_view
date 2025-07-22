@@ -4,8 +4,12 @@ const fetch = require('node-fetch').default;
 const Papa = require('papaparse');
 
 // Config
-const RPI_ADDRESS = 'http://192.168.1.96:3000/upload';  // replace with your Pi's IP
-const SYSTEMS_CSV = './euclid_systems_backup.csv';
+const RPI_ADDRESS_EUCLID = 'http://192.168.1.96:3000/upload';  // replace with your Pi's IP
+const RPI_ADDRESS_CAL = 'http://192.168.1.96:4000/upload';  // replace with your Pi's IP
+const CAL_SYSTEMS_CSV = './backend/galaxy_data/new_calypso_astrometrics.csv';
+const EUCLID_SYSTEMS_CSV = './backend/galaxy_data/new_euclid_astrometrics.csv';
+
+const SYSTEMS_CSV = CAL_SYSTEMS_CSV;
 
 // Load and parse CSVs
 function loadCSV(filepath) {
@@ -18,16 +22,13 @@ function convertSystems(rows) {
   return rows.map(r => ({
     id: r.id,
     name: r.name || null,
-    A: parseFloat(r.A),
-    B: parseFloat(r.B),
-    C: parseFloat(r.C),
-    D: parseFloat(r.D),
-    E: parseFloat(r.E),
+    anchors: r.anchors,
     ghc_x: parseFloat(r.ghc_x) || null,
     ghc_y: parseFloat(r.ghc_y) || null,
     ghc_z: parseFloat(r.ghc_z) || null,
     color: r.color,
     is_anchor: r.is_anchor === '1' || r.is_anchor === 'true',
+    anchor_id: r.anchor_id,
     confidence: parseFloat(r.confidence || 0)
   }));
 }
@@ -38,7 +39,7 @@ async function uploadData() {
 
   console.log(JSON.stringify(systems));
 
-  const response = await fetch(RPI_ADDRESS, {
+  const response = await fetch(RPI_ADDRESS_CAL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({systems})

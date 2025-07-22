@@ -119,7 +119,7 @@ async function updateSystemCoordinates(systemName, coordinates) {
       ghc_z: coordinates[2]
     };
 
-    const response = await fetch('http://192.168.1.96:3000/update-coordinates', {
+    const response = await fetch('http://192.168.1.96:4000/update-coordinates', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ async function updateSystemCoordinates(systemName, coordinates) {
 async function processAstrometrics() {
   let stars = [];
   try {
-    const res = await fetch("http://192.168.1.96:3000/systems");
+    const res = await fetch("http://192.168.1.96:4000/systems"); // Port 3000 for Euclid
     if (!res.ok) throw new Error("Failed to fetch systems: " + res.status);
     stars = await res.json();
   } catch (err) {
@@ -173,6 +173,45 @@ async function processAstrometrics() {
     console.warn("Could not load validation_data.json:", error);
   }
 
+    // Build N x N pairwise distance matrix for anchors
+    const N = all_anchors.length;
+    const distMatrix = [];
+    for (let i = 0; i < N; i++) {
+      distMatrix[i] = [];
+      for (let j = 0; j < N; j++) {
+        if (i === j) {
+          distMatrix[i][j] = 0;
+        } else {
+          // Try to get the distance from anchor i to anchor j
+          // Use anchor_id as key
+          let d = all_anchors[i][all_anchors[j].anchor_id];
+          if (d === undefined) d = all_anchors[i][all_anchors[j].anchor_id];
+          if (typeof d !== 'number') {
+            // Try the reverse direction
+            d = all_anchors[j][all_anchors[i].anchor_id];
+            if (d === undefined) d = all_anchors[j][all_anchors[i].anchor_id];
+          }
+          distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
+        }
+      }
+    }
+
+    // Now reconstruct anchor positions
+    console.log("Dist matrix: ", distMatrix);
+    const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
+    console.log('Reconstructed anchor positions:', anchorPositions);
+
+    const {origin, basis} = tri.buildBasis(anchorPositions);
+    console.log("Origin: ", origin, "Basis: ", basis);
+
+    const GHUB_COORDINATE_SYSTEM = {
+      origin: origin,
+      basis: basis,
+      anchorPositions: anchorPositions
+    }
+
+
+
 
   //const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
   
@@ -184,60 +223,17 @@ async function processAstrometrics() {
   
   // Store system data for popup
   stars.forEach(system => {
+    //updateSystemCoordinates(system.name, [system.ghc_x, system.ghc_y, system.ghc_z]);
     systemData[system.name] = system;
   });
- 
-
-  // Reconstruct anchor positions from pairwise distances
-  // Build N x N pairwise distance matrix for anchors
-  const N = all_anchors.length;
-  const distMatrix = [];
-  for (let i = 0; i < N; i++) {
-    distMatrix[i] = [];
-    for (let j = 0; j < N; j++) {
-      if (i === j) {
-        distMatrix[i][j] = 0;
-      } else {
-        // Try to get the distance from anchor i to anchor j
-        // Use anchor_id as key
-        let d = all_anchors[i][all_anchors[j].anchor_id];
-        if (d === undefined) d = all_anchors[i][all_anchors[j].name];
-        if (typeof d !== 'number') {
-          // Try the reverse direction
-          d = all_anchors[j][all_anchors[i].anchor_id];
-          if (d === undefined) d = all_anchors[j][all_anchors[i].name];
-        }
-        distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
-      }
-    }
-  }
-
-  // Now reconstruct anchor positions
-  console.log("Dist matrix: ", distMatrix);
-  const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
-  console.log('Reconstructed anchor positions:', anchorPositions);
 
   // Use the loaded star data
   let processedCount = 0;
   for (const system of stars) {
-    // Collect all anchors with known positions
-    const anchorList = all_anchors.map((anchor, idx) => ({
-      name: anchor.name,
-      anchor_id: anchor.anchor_id,
-      position: anchorPositions[idx]
-    }));
-
-    // Extract anchor positions and distances for this system
-    const { positions, distances } = tri.extractAnchorsAndDistances(system, anchorList);
-    if (positions.length < 4) {
-      console.warn(`Skipping system ${system.name}: not enough anchors with known positions.`);
-      continue;
-    }
-
     // Estimate star position using multilateration
     let star_pos;
     try {
-      star_pos = tri.multilaterate(positions, distances);
+      star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM.anchorPositions, GHUB_COORDINATE_SYSTEM.origin, []);
     } catch (e) {
       console.warn(`Failed to multilaterate position for system ${system.name}:`, e);
       continue;
@@ -266,7 +262,8 @@ async function processAstrometrics() {
   cameraControls.setTarget(0, 0, 0, false); // Look at origin where Sun Tzu now is
   
   // Run validation on the loaded data
-  const validationResults = validateCalculatedPositions(stars, validationData);
+  //const validationResults = validateCalculatedPositions(stars, validationData);
+  const validationResults = false;
   if (validationResults) {
     console.log("Position validation completed. Check console for detailed results.");
   }

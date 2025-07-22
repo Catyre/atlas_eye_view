@@ -43,16 +43,13 @@ function ensureSystemsTable() {
         const createSql = `CREATE TABLE systems (
           id TEXT PRIMARY KEY,
           name TEXT,
-          A REAL,
-          B REAL,
-          C REAL,
-          D REAL,
-          E REAL,
+          anchors TEXT,
           ghc_x REAL,
           ghc_y REAL,
           ghc_z REAL,
           color TEXT,
           is_anchor INTEGER,
+          anchor_id TEXT,
           confidence REAL
         )`;
         db.run(createSql, (err) => {
@@ -96,7 +93,7 @@ function initializeDatabase() {
       
       // Check for coordinate columns
       const existingColumns = columns.map(col => col.name);
-      const neededColumns = ['id', 'name', 'A', 'B', 'C', 'D', 'E', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'confidence'];
+      const neededColumns = ['id', 'name', 'anchors', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'anchor_id', 'confidence'];
       const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
       
       if (missingColumns.length === 0) {
@@ -343,7 +340,7 @@ app.post('/upload', (req, res) => {
       }
     }
     // Prepare upsert (insert or replace)
-    const fields = ['id','name','A','B','C','D','E','ghc_x','ghc_y','ghc_z','color','is_anchor','confidence'];
+    const fields = ['id','name','anchors','ghc_x','ghc_y','ghc_z','color','is_anchor','anchor_id', 'confidence'];
     const placeholders = fields.map(() => '?').join(',');
     const sql = `INSERT OR REPLACE INTO systems (${fields.join(',')}) VALUES (${placeholders})`;
     let inserted = 0;

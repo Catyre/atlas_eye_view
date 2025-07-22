@@ -4,6 +4,7 @@
 
 import * as numeric from 'numeric';
 import * as math from 'mathjs';
+import { Matrix, EigenvalueDecomposition } from 'ml-matrix';
 
 function rotate3D(v, axis, angle) {
   const [x, y, z] = v;
@@ -247,23 +248,25 @@ export function reconstructAnchorsFromPairwiseDistances(distMatrix) {
   const B = numeric.rep([N, N], 0);
   for (let i = 0; i < N; i++) {
     for (let j = 0; j < N; j++) {
-      console.log("D2[i][j]: ", D2[i][j], "rowMeans[i]: ", rowMeans[i], "colMeans[j]: ", colMeans[j], "totalMean: ", totalMean);
+      //console.log("D2[i][j]: ", D2[i][j], "rowMeans[i]: ", rowMeans[i], "colMeans[j]: ", colMeans[j], "totalMean: ", totalMean);
       B[i][j] = -0.5 * (D2[i][j] - rowMeans[i] - colMeans[j] + totalMean);
     }
   }
 
-  // Step 3: Eigen-decomposition
+  // Step 3: Eigen-decomposition (using ml-matrix)
   console.log("B: ", B);
-  const eig = numeric.eig(B);
+  const Bmat = new Matrix(B);
+  const eig = new EigenvalueDecomposition(Bmat);
+  const eigenvalues = eig.realEigenvalues;
+  const eigenvectors = eig.eigenvectorMatrix.to2DArray();
   // Sort eigenvalues/vectors by descending eigenvalue
-  console.log("Eigenvalues: ", eig.lambda.x);
-  const idx = eig.lambda.x
+  const idx = eigenvalues
     .map((val, i) => [val, i])
     .sort((a, b) => b[0] - a[0])
     .map(pair => pair[1]);
   // Take top 3
-  const L = idx.slice(0, 3).map(i => eig.lambda.x[i]);
-  const V = idx.slice(0, 3).map(i => eig.E.x.map(row => row[i]));
+  const L = idx.slice(0, 3).map(i => eigenvalues[i]);
+  const V = idx.slice(0, 3).map(i => eigenvectors.map(row => row[i]));
 
   // Step 4: Compute coordinates
   const coords = [];
@@ -313,24 +316,23 @@ export function trilaterate4Dynamic(name, anchors, targetDistances) {
  * @param {Array<number>} distances - Array of measured distances to the unknown point
  * @returns {[number, number, number]} Estimated [x, y, z] position
  */
-export function multilaterate(anchors, distances) {
-  if (anchors.length !== distances.length) {
+export function multilaterate(anchorPos, origin, distances) {
+  if (anchorPos.length !== distances.length) {
     throw new Error('Number of anchors and distances must match');
   }
-  if (anchors.length < 4) {
+  if (anchorPos.length < 4) {
     throw new Error('At least 4 anchors are required for 3D multilateration');
   }
 
   // Initial guess: centroid of anchors
-  const centroid = anchors.reduce((acc, p) => [acc[0]+p[0], acc[1]+p[1], acc[2]+p[2]], [0,0,0])
-    .map(x => x/anchors.length);
+  const centroid = origin
 
   function errorFunc(pos) {
     let sum = 0;
-    for (let i = 0; i < anchors.length; i++) {
-      const dx = pos[0] - anchors[i][0];
-      const dy = pos[1] - anchors[i][1];
-      const dz = pos[2] - anchors[i][2];
+    for (let i = 0; i < anchorPos.length; i++) {
+      const dx = pos[0] - anchorPos[i][0];
+      const dy = pos[1] - anchorPos[i][1];
+      const dz = pos[2] - anchorPos[i][2];
       const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
       sum += (dist - distances[i]) ** 2;
     }
@@ -352,6 +354,7 @@ export function multilaterate(anchors, distances) {
 export function extractAnchorsAndDistances(system, anchorList) {
   const positions = [];
   const distances = [];
+
   for (const anchor of anchorList) {
     // Try to get distance by anchor name or id
     let d = system[anchor.anchor_id];
@@ -360,33 +363,50 @@ export function extractAnchorsAndDistances(system, anchorList) {
     positions.push(anchor.position);
     distances.push(d);
   }
+  console.log("Extracted positions: ", positions, " and distances: ", distances);
   return { positions, distances };
 }
 
-function buildBasis(P1, P2, P3) {
-  console.log("Building basis for ", P1, P2, P3);
-  // Unit vector of side BA
-  const ex = numeric.div(numeric.sub(P2, P1), numeric.norm2(numeric.sub(P2, P1)));
-  // Projection of AC onto BA (its x-component)
-  const i = numeric.dot(ex, numeric.sub(P3, P1));
-  const aux = numeric.sub(P3, numeric.add(P1, numeric.mul(ex, i)));
-  // Unit vector for y-axis
-  const ey = numeric.div(aux, numeric.norm2(aux));
-  // Projection of AC onto y axis (the y component)
-  const j = numeric.dot(ey, numeric.sub(P3, P1));
-
-  // z axis will just be cross product of x and y unit vectors
-  const ez = math.cross(ex, ey);
-
-  const OGbasis = [ex, ey, ez];
-  const basis = OGbasis.map(vec => rotate3D(vec, 'y', 180));
-
-  // Ensure right-handed system
-  if (numeric.dot(math.cross(basis[0], basis[1]), basis[2]) < 0) {
-    basis[2] = numeric.mul(-1, basis[2]);
+/**
+ * Refine the coordinate basis using N anchor positions via PCA.
+ * @param {Array<[number, number, number]>} anchors - Array of anchor positions
+ * @returns {{origin: number[], basis: number[][]}} - Centroid and orthonormal basis vectors
+ */
+export function buildBasis(anchors) {
+  if (!Array.isArray(anchors) || anchors.length < 3) {
+    throw new Error('Need at least 3 anchor positions for basis');
   }
-
-  return {ex: basis[0], ey: basis[1], ez: basis[2], i: i, j: j};
+  // Compute centroid
+  const N = anchors.length;
+  const centroid = anchors.reduce((acc, p) => [acc[0]+p[0], acc[1]+p[1], acc[2]+p[2]], [0,0,0]).map(x => x/N);
+  // Center the points
+  const centered = anchors.map(p => [p[0]-centroid[0], p[1]-centroid[1], p[2]-centroid[2]]);
+  // Build covariance matrix
+  const cov = [ [0,0,0], [0,0,0], [0,0,0] ];
+  for (const p of centered) {
+    for (let i=0; i<3; ++i) for (let j=0; j<3; ++j) cov[i][j] += p[i]*p[j];
+  }
+  for (let i=0; i<3; ++i) for (let j=0; j<3; ++j) cov[i][j] /= N;
+  // Eigen-decomposition (ml-matrix)
+  //const { Matrix, EigenvalueDecomposition } = require('ml-matrix');
+  const covMat = new Matrix(cov);
+  const eig = new EigenvalueDecomposition(covMat);
+  // Sort eigenvectors by descending eigenvalue
+  const eigenvalues = eig.realEigenvalues;
+  const eigenvectors = eig.eigenvectorMatrix.to2DArray();
+  const idx = eigenvalues.map((val, i) => [val, i]).sort((a, b) => b[0] - a[0]).map(pair => pair[1]);
+  const basis = idx.map(i => eigenvectors.map(row => row[i])); // [ex, ey, ez]
+  // Ensure right-handed system
+  const cross = [
+    basis[0][1]*basis[1][2] - basis[0][2]*basis[1][1],
+    basis[0][2]*basis[1][0] - basis[0][0]*basis[1][2],
+    basis[0][0]*basis[1][1] - basis[0][1]*basis[1][0]
+  ];
+  const dot = cross[0]*basis[2][0] + cross[1]*basis[2][1] + cross[2]*basis[2][2];
+  if (dot < 0) {
+    basis[2] = basis[2].map(x => -x);
+  }
+  return { origin: centroid, basis };
 }
 
 
@@ -400,12 +420,12 @@ export function trilaterate4(name, anchors, distances) {
 
   console.log("Trilaterating ", name, " with distances ", r1, r2, r3, r4);
   
-  const basis = buildBasis(P1, P2, P3);
-  const ex = basis.ex;
-  const ey = basis.ey;
-  const ez = basis.ez;
-  const i = basis.i;
-  const j = basis.j;
+  const basis = buildBasis(anchors);
+  const ex = basis.basis[0];
+  const ey = basis.basis[1];
+  const ez = basis.basis[2];
+  const i = basis.basis[0][0] * (P3[0] - P1[0]) + basis.basis[0][1] * (P3[1] - P1[1]) + basis.basis[0][2] * (P3[2] - P1[2]);
+  const j = basis.basis[1][0] * (P3[0] - P1[0]) + basis.basis[1][1] * (P3[1] - P1[1]) + basis.basis[1][2] * (P3[2] - P1[2]);
 
   const d = numeric.norm2(numeric.sub(P2, P1));
   const x = (r1**2 - r2**2 + d**2) / (2 * d);
@@ -435,12 +455,12 @@ export function trilaterate4(name, anchors, distances) {
 // Trilateration function - only used to get cooridinates of fourth anchor point
 // TODO: Generalize to n-lateration for arbitrary anchor points
 export function trilateratePoint(name, anchors, distance) {
-  const basis = buildBasis(anchors[0], anchors[1], anchors[2]);
-  const ex = basis.ex;
-  const ey = basis.ey;
-  const ez = basis.ez;
-  const i = basis.i;
-  const j = basis.j;
+  const basis = buildBasis(anchors);
+  const ex = basis.basis[0];
+  const ey = basis.basis[1];
+  const ez = basis.basis[2];
+  const i = basis.basis[0][0] * (anchors[2][0] - anchors[0][0]) + basis.basis[0][1] * (anchors[2][1] - anchors[0][1]) + basis.basis[0][2] * (anchors[2][2] - anchors[0][2]);
+  const j = basis.basis[1][0] * (anchors[2][0] - anchors[0][0]) + basis.basis[1][1] * (anchors[2][1] - anchors[0][1]) + basis.basis[1][2] * (anchors[2][2] - anchors[0][2]);
   const d = numeric.norm2(numeric.sub(anchors[1], anchors[0]));
 
   // Algorithm for trilateration
