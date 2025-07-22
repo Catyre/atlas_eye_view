@@ -47,7 +47,7 @@ function initializeDatabase() {
       
       // Check for coordinate columns
       const existingColumns = columns.map(col => col.name);
-      const neededColumns = ['ghc_x', 'ghc_y', 'ghc_z'];
+      const neededColumns = ['id', 'name', 'A', 'B', 'C', 'D', 'E', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'confidence'];
       const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
       
       if (missingColumns.length === 0) {
