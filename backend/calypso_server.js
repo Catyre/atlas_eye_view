@@ -27,11 +27,60 @@ try {
   process.exit(1);
 }
 
+// Ensure systems table exists, or create it if not
+function ensureSystemsTable() {
+  return new Promise((resolve, reject) => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='systems'", (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (row) {
+        // Table exists
+        resolve();
+      } else {
+        // Table does not exist, create it
+        const createSql = `CREATE TABLE systems (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          A REAL,
+          B REAL,
+          C REAL,
+          D REAL,
+          E REAL,
+          ghc_x REAL,
+          ghc_y REAL,
+          ghc_z REAL,
+          color TEXT,
+          is_anchor INTEGER,
+          confidence REAL
+        )`;
+        db.run(createSql, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log('Created systems table');
+            resolve();
+          }
+        });
+      }
+    });
+  });
+}
+
 // Initialize database with coordinate columns if they don't exist
 function initializeDatabase() {
   console.log('Initializing database...');
   
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureSystemsTable();
+    } catch (err) {
+      console.error('Error ensuring systems table:', err.message);
+      reject(err);
+      return;
+    }
+    
     // Check if coordinate columns exist
     db.all("PRAGMA table_info(systems)", (err, columns) => {
       if (err) {
