@@ -22,9 +22,10 @@ function convertSystems(rows) {
     B: parseFloat(r.B),
     C: parseFloat(r.C),
     D: parseFloat(r.D),
-    ghc_x: parseFloat(r.ghc_x),
-    ghc_y: parseFloat(r.ghc_y),
-    ghc_z: parseFloat(r.ghc_z),
+    E: parseFloat(r.E),
+    ghc_x: parseFloat(r.ghc_x) || null,
+    ghc_y: parseFloat(r.ghc_y) || null,
+    ghc_z: parseFloat(r.ghc_z) || null,
     color: r.color,
     is_anchor: r.is_anchor === '1' || r.is_anchor === 'true',
     confidence: parseFloat(r.confidence || 0)

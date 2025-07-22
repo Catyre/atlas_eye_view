@@ -13,26 +13,30 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
     return null;
   }
   
-  // Use first 3 anchors to build coordinate system
-  const anchors = tri.reconstructAnchorsFromDistances(
-    anchorSystems[0].B,  // distance from A to B
-    anchorSystems[0].C,  // distance from A to C  
-    anchorSystems[1].C   // distance from B to C
-  );
-  
-  // Use 4th anchor for disambiguation
-  const P4 = tri.trilateratePoint(
-    anchorSystems[3].name, 
-    [anchors.A, anchors.B, anchors.C], 
-    [anchorSystems[3].A, anchorSystems[3].B, anchorSystems[3].C]
-  );
-  
+  // Use first 4 anchors to build coordinate system
+  // Get all six pairwise distances between the four anchors
+  const dAB = anchorSystems[0].B;
+  const dAC = anchorSystems[0].C;
+  const dAD = anchorSystems[0].D;
+  const dBC = anchorSystems[1].C;
+  const dBD = anchorSystems[1].D;
+  const dCD = anchorSystems[2].D;
+
+  // Reconstruct all four anchor positions
+  let anchors;
+  try {
+    anchors = tri.reconstructAnchorsFromDistances(dAB, dAC, dAD, dBC, dBD, dCD);
+  } catch (e) {
+    console.error("Failed to reconstruct anchor positions for validation:", e);
+    return null;
+  }
+
   const validationResults = {
     anchorPositions: {
       A: anchors.A,
       B: anchors.B, 
       C: anchors.C,
-      P4: P4
+      D: anchors.D
     },
     calculatedPositions: {},
     validationErrors: [],
@@ -56,14 +60,14 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
   systemPositions[anchorSystems[0].name] = anchors.A;
   systemPositions[anchorSystems[1].name] = anchors.B;
   systemPositions[anchorSystems[2].name] = anchors.C;
-  systemPositions[anchorSystems[3].name] = P4;
+  systemPositions[anchorSystems[3].name] = anchors.D;
   
   // Calculate positions for non-anchor systems
   nonAnchorSystems.forEach(system => {
     try {
       const calculatedPosition = tri.trilaterate4(
         system.name,
-        [anchors.A, anchors.B, anchors.C, P4],
+        [anchors.A, anchors.B, anchors.C, anchors.D],
         [system.A, system.B, system.C, system.D]
       );
       

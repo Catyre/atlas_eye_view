@@ -163,7 +163,7 @@ async function processAstrometrics() {
       // Sort by the key name (A, B, C, D, ...)
       return aKey.localeCompare(bKey);
     });
-  
+  console.log("All anchors: ", all_anchors);
   // Load validation data
   let validationData = [];
   try {
@@ -172,11 +172,7 @@ async function processAstrometrics() {
   } catch (error) {
     console.warn("Could not load validation_data.json:", error);
   }
-  
-  const dAB = stars[0].B;
-  const dAC = stars[0].C;
-  const dBC = stars[1].C;
-  
+
 
   //const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
   
@@ -190,50 +186,62 @@ async function processAstrometrics() {
   stars.forEach(system => {
     systemData[system.name] = system;
   });
+ 
 
+  // Reconstruct anchor positions from pairwise distances
+  // Build N x N pairwise distance matrix for anchors
+  const N = all_anchors.length;
+  const distMatrix = [];
+  for (let i = 0; i < N; i++) {
+    distMatrix[i] = [];
+    for (let j = 0; j < N; j++) {
+      if (i === j) {
+        distMatrix[i][j] = 0;
+      } else {
+        // Try to get the distance from anchor i to anchor j
+        // Use anchor_id as key
+        let d = all_anchors[i][all_anchors[j].anchor_id];
+        if (d === undefined) d = all_anchors[i][all_anchors[j].name];
+        if (typeof d !== 'number') {
+          // Try the reverse direction
+          d = all_anchors[j][all_anchors[i].anchor_id];
+          if (d === undefined) d = all_anchors[j][all_anchors[i].name];
+        }
+        distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
+      }
+    }
+  }
+
+  // Now reconstruct anchor positions
+  console.log("Dist matrix: ", distMatrix);
+  const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
+  console.log('Reconstructed anchor positions:', anchorPositions);
 
   // Use the loaded star data
   let processedCount = 0;
   for (const system of stars) {
-    console.log("anchors: ", all_anchors);
-    // TEMPORARY: Use first 4 anchors and reconstruct their positions
-    const selectedAnchors = all_anchors.slice(0, 4);
-    
-    // Get distances between the first 3 anchors
-    const dAB = selectedAnchors[0].B || 0;
-    const dAC = selectedAnchors[0].C || 0;
-    const dBC = selectedAnchors[1].C || 0;
-    
-    // Reconstruct the first 3 anchor positions
-    const primaryAnchors = tri.reconstructAnchorsFromDistances(dAB, dAC, dBC);
-    
-    // Get distances from 4th anchor to the first 3
-    const d4A = selectedAnchors[3].A || 0;
-    const d4B = selectedAnchors[3].B || 0;
-    const d4C = selectedAnchors[3].C || 0;
-    
-    // Calculate position of 4th anchor
-    const P4 = tri.trilateratePoint(selectedAnchors[3].name, [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C], [d4A, d4B, d4C]);
-    
-    // Create the anchor positions array
-    const anchorPositions = [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C, P4];
-    
-    // Get distances from this system to the selected anchors
-    const distances = [system.A, system.B, system.C, system.D];
+    // Collect all anchors with known positions
+    const anchorList = all_anchors.map((anchor, idx) => ({
+      name: anchor.name,
+      anchor_id: anchor.anchor_id,
+      position: anchorPositions[idx]
+    }));
 
-    // Trilaterate point using properly reconstructed anchor positions
-    const star_pos = tri.trilaterate4(
-      system.name, 
-      anchorPositions,
-      distances
-    );
+    // Extract anchor positions and distances for this system
+    const { positions, distances } = tri.extractAnchorsAndDistances(system, anchorList);
+    if (positions.length < 4) {
+      console.warn(`Skipping system ${system.name}: not enough anchors with known positions.`);
+      continue;
+    }
 
-    // Update coordinates of the system in the database
-    /*if (system.ghc_x === 0 || system.ghc_y === 0 || system.ghc_z === 0) {
-      console.log("System ", system.name, " has no coordinates - updating");
-      
-      await updateSystemCoordinates(system.name, star_pos);
-    }*/
+    // Estimate star position using multilateration
+    let star_pos;
+    try {
+      star_pos = tri.multilaterate(positions, distances);
+    } catch (e) {
+      console.warn(`Failed to multilaterate position for system ${system.name}:`, e);
+      continue;
+    }
 
     // Material for stars
     const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
