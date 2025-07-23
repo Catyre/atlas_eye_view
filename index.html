@@ -16,6 +16,10 @@
 </head>
 <body>
   <canvas id="atlas_view"></canvas>
+  <form id="anchor-snap-form" style="position:fixed;top:20px;right:20px;background:rgba(30,30,30,0.95);padding:12px 16px;border-radius:8px;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;">
+    <select id="anchor-select" style="font-size:1rem;padding:4px 8px;border-radius:4px;border:1px solid #444;background:#222;color:#fff;"></select>
+    <button id="snap-anchor-btn" type="button" style="font-size:1rem;padding:4px 12px;border-radius:4px;border:none;background:#3a7afe;color:#fff;cursor:pointer;transition:background 0.2s;">Snap to Anchor</button>
+  </form>
   <div class="info">
     <p><a href="https://thesoideosinterface.vercel.app/galactic-hub-cartography-project/hubspace-n-lateration/">Galactic Hub Cartography Project</a></p>
   <script type="module" src="viewer.js"></script>

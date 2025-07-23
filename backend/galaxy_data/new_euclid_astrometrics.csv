@@ -1,2 +1,32 @@
-id,name,A,B,C,D,color,is_anchor,confidence
-[NAV],Compass,2934,3354,4161,3224,yellow,false,0
+id,name,anchors,color,is_anchor,anchor_id,confidence
+[HUB12-416],Lion Shield,{"A": 0, "B": 691, "C": 1334, "D": 967},purple,true,A,0
+[HUB1-74],Sun Tzu,{"A": 691, "B": 0, "C": 875, "D": 435},yellow,true,B,0
+[HUB7-3FE],Aniwani,{"A": 1334, "B": 875, "C": 0, "D": 1148},purple,true,C,0
+[HUB22-406],Legods,{"A": 967, "B": 435, "C": 1148, "D": 0},purple,true,D,0
+[HUB1-3FB],Wellspring,{"A": 767, "B": 91, "C": 858, "D": 372},purple,false,,0
+[HUB1-13B],Penultimate Peak,{"A": 821, "B": 191, "C": 734, "D": 457},blue,false,0
+[HUB1-1F4],Ifthendang,{"A": 728, "B": 65, "C": 879, "D": 381},green,false,0
+[HUB1-1F7],Astra Mae,{"A": 756, "B": 67, "C": 835 "D": 415},yellow,false,0
+[HUB4-BD],Usi Uybi Sequence,{"A": 734, "B": 55, "C": 889, "D": 396},blue,false,0
+[HUB4-87],Iwan,{"A": 782, "B": 106, "C": 847, "D": 432},blue,false,0
+[HUB1-1F8],Enthrareos,{"A": 698, "B": 47, "C": 871, "D": 414},green,false,0
+[HUB4-97],Roezen,{"A": 683, "B": 47, "C": 906, "D": 401},blue,false,0
+[HUB1-402],Rhea,{"A": 727, "B": 46, "C": 861, "D": 436},blue,false,0
+[HUB1-27],Deacon's Rest,{"A": 696, "B": 12, "C": 879, "D": 424},yellow,false,0
+[HUB4-86],Latwhis,{"A": 669, "B": 55, "C": 912, "D": 407},yellow,false,0
+[HUB4-88],Erusan,{"A": 648, "B": 83, "C": 930, "D": 407},yellow,false,0
+[HUB4-89],Prouder Mary,{"A": 645, "B": 71, "C": 921, "D": 420},yellow,false,0
+[HUB4-AF],Neushooorn,{"A": 655, "B": 55, "C": 920, "D": 419},yellow,false,0
+[HUB4-98],Wunyano,{"A": 658, "B": 67, "C": 925, "D": 406},red,false,0
+[HUB5-2],Lilith,{"A": 843, "B": 340, "C": 783, "D": 555},yellow,false,0
+[HUB5-6B],Hecate,{"A": 852, "B": 353, "C": 804, "D": 547},yellow,false,0
+[HUB5-146],Assembly - Hecate's Belt,{"A": 833, "B": 306, "C": 750, "D": 538},blue,false,0
+[HUB5-1AB],Scytha - Hecate's Belt,{"A": 845, "B": 339, "C": 783, "D": 551},blue,false,0
+[HUB5-1AF],Ridung - Hecate's Belt,{"A": 852, "B": 344, "C": 786, "D": 552},blue,false,0
+[HUB5-40A],Six Queens,{"A": 868, "B": 312, "C": 752, "D": 513},purple,false,0
+[HUB5-429],Ver Sacrum,{"A": 850, "B": 353, "C": 808, "D": 542},purple,false,0
+[HUB1-69],Flexibility's Edge,{"A": 771, "B": 162, "C": 730, "D": 499},yellow,false,0
+[HUB4-99],Whis,{"A": 747, "B": 75, "C": 832, "D": 458},red,false,0
+[HUB1-1E4],Pained Symphonea,{"A": 758, "B": 76, "C": 815, "D": 446},yellow,false,0
+[NAV],Compass,{"A": 2934, "B": 3354, "C": 4161, "D": 3224},yellow,false,0
+

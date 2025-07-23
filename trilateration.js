@@ -254,7 +254,7 @@ export function reconstructAnchorsFromPairwiseDistances(distMatrix) {
   }
 
   // Step 3: Eigen-decomposition (using ml-matrix)
-  console.log("B: ", B);
+  //console.log("B: ", B);
   const Bmat = new Matrix(B);
   const eig = new EigenvalueDecomposition(Bmat);
   const eigenvalues = eig.realEigenvalues;
@@ -313,10 +313,25 @@ export function trilaterate4Dynamic(name, anchors, targetDistances) {
 /**
  * Multilateration for N anchors in 3D using nonlinear least squares.
  * @param {Array<[number, number, number]>} anchors - Array of anchor positions [[x, y, z], ...]
- * @param {Array<number>} distances - Array of measured distances to the unknown point
+ * @param {Object} anchorDistancesObj - Object mapping anchor IDs to distances to the unknown point
  * @returns {[number, number, number]} Estimated [x, y, z] position
  */
-export function multilaterate(anchorPos, origin, distances) {
+export function multilaterate(coordinate_system, anchorDistancesObj) {
+  const anchors = coordinate_system.anchors;
+  // Build arrays in the same order
+  const anchorPos = [];
+  const distances = [];
+  for (let i = 0; i < anchors.length; i++) {
+    const anchor = anchors[i];
+    anchorPos.push([anchor.ghc_x, anchor.ghc_y, anchor.ghc_z]);
+    // Use anchor_id as key
+    const d = anchorDistancesObj[anchor.anchor_id];
+    if (typeof d !== 'number' || isNaN(d)) {
+      throw new Error(`Missing or invalid distance for anchor ${anchor.anchor_id}`);
+    }
+    distances.push(d);
+  }
+
   if (anchorPos.length !== distances.length) {
     throw new Error('Number of anchors and distances must match');
   }
@@ -325,7 +340,7 @@ export function multilaterate(anchorPos, origin, distances) {
   }
 
   // Initial guess: centroid of anchors
-  const centroid = origin
+  const centroid = coordinate_system.origin;
 
   function errorFunc(pos) {
     let sum = 0;

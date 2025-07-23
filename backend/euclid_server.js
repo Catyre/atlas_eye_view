@@ -6,8 +6,7 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = 3000;
 
-const EUCLID = './galaxy_data/euclid_astrometrics.sqlite';
-const CALYPSO = './galaxy_data/calypso_astrometrics.sqlite';
+const GALAXY_DATA = './galaxy_data/euclid_astrometrics.sqlite';
 
 // Middleware
 app.use(cors());
@@ -16,7 +15,7 @@ app.use(express.json());
 // Database connection
 let db;
 try {
-  db = new sqlite3.Database(EUCLID, (err) => {
+  db = new sqlite3.Database(GALAXY_DATA, (err) => {
     if (err) {
       console.error('Error opening database:', err.message);
       process.exit(1);
@@ -28,11 +27,57 @@ try {
   process.exit(1);
 }
 
+// Ensure systems table exists, or create it if not
+function ensureSystemsTable() {
+  return new Promise((resolve, reject) => {
+    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='systems'", (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      if (row) {
+        // Table exists
+        resolve();
+      } else {
+        // Table does not exist, create it
+        const createSql = `CREATE TABLE systems (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          anchors TEXT,
+          ghc_x REAL,
+          ghc_y REAL,
+          ghc_z REAL,
+          color TEXT,
+          is_anchor INTEGER,
+          anchor_id TEXT,
+          confidence REAL
+        )`;
+        db.run(createSql, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            console.log('Created systems table');
+            resolve();
+          }
+        });
+      }
+    });
+  });
+}
+
 // Initialize database with coordinate columns if they don't exist
 function initializeDatabase() {
   console.log('Initializing database...');
   
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      await ensureSystemsTable();
+    } catch (err) {
+      console.error('Error ensuring systems table:', err.message);
+      reject(err);
+      return;
+    }
+    
     // Check if coordinate columns exist
     db.all("PRAGMA table_info(systems)", (err, columns) => {
       if (err) {
@@ -48,7 +93,7 @@ function initializeDatabase() {
       
       // Check for coordinate columns
       const existingColumns = columns.map(col => col.name);
-      const neededColumns = ['ghc_x', 'ghc_y', 'ghc_z'];
+      const neededColumns = ['id', 'name', 'anchors', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'anchor_id', 'confidence'];
       const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
       
       if (missingColumns.length === 0) {
@@ -274,6 +319,49 @@ app.post('/batch-update-coordinates', (req, res) => {
     
   } catch (error) {
     console.error('Error in /batch-update-coordinates endpoint:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /upload-systems - Upload or update multiple systems
+app.post('/upload', (req, res) => {
+  try {
+    const { systems } = req.body;
+    if (!Array.isArray(systems)) {
+      return res.status(400).json({ error: 'systems must be an array' });
+    }
+    if (systems.length === 0) {
+      return res.status(400).json({ error: 'systems array is empty' });
+    }
+    // Validate each system minimally
+    for (const sys of systems) {
+      if (!sys.id || !sys.name) {
+        return res.status(400).json({ error: 'Each system must have at least id and name' });
+      }
+    }
+    // Prepare upsert (insert or replace)
+    const fields = ['id','name','anchors','ghc_x','ghc_y','ghc_z','color','is_anchor','anchor_id', 'confidence'];
+    const placeholders = fields.map(() => '?').join(',');
+    const sql = `INSERT OR REPLACE INTO systems (${fields.join(',')}) VALUES (${placeholders})`;
+    let inserted = 0;
+    db.serialize(() => {
+      const stmt = db.prepare(sql);
+      for (const sys of systems) {
+        const values = fields.map(f => sys[f] !== undefined ? sys[f] : null);
+        stmt.run(values, function(err) {
+          if (!err) inserted++;
+        });
+      }
+      stmt.finalize((err) => {
+        if (err) {
+          res.status(500).json({ error: 'Database error', details: err.message });
+        } else {
+          res.json({ success: true, inserted, total: systems.length });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error in /upload-systems:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -28,6 +28,82 @@ document.body.appendChild(renderer.domElement);
 
 window.htmlVars = {cameraControls: cameraControls, camera: camera, renderer: renderer, scene: scene}//, pivot: pivot}
 
+// --- Anchor Snap UI Logic --- //
+// Store anchor data for snapping
+let anchorList = [];
+const anchorSelect = document.getElementById('anchor-select');
+const snapButton = document.getElementById('snap-anchor-btn');
+
+function updateAnchorDropdown() {
+  console.log(anchorList)
+  anchorSelect.innerHTML = '';
+  if (!anchorList || anchorList.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No anchors';
+    anchorSelect.appendChild(opt);
+    snapButton.disabled = true;
+    return;
+  }
+  for (const anchor of anchorList) {
+    const opt = document.createElement('option');
+    opt.value = anchor.anchor_id;
+    opt.textContent = anchor.name || anchor.anchor_id;
+    anchorSelect.appendChild(opt);
+  }
+  snapButton.disabled = false;
+}
+
+function snapToSelectedAnchor() {
+  const anchorId = anchorSelect.value;
+  const anchor = anchorList.find(a => a.anchor_id === anchorId);
+  if (!anchor) return;
+  // Camera offset for better view
+  const offset = 20;
+  const pos = [anchor.ghc_x, anchor.ghc_y, anchor.ghc_z];
+  cameraControls.setLookAt(
+    pos[0] + offset,
+    pos[1] + offset,
+    pos[2] + offset,
+    pos[0],
+    pos[1],
+    pos[2],
+    true
+  );
+}
+
+// --- Coordinate System Overlay --- //
+let axesHelper = null;
+function addCoordinateSystemOverlay(size = 20) {
+  if (!axesHelper) {
+    axesHelper = new THREE.AxesHelper(size);
+    axesHelper.name = 'CoordinateSystemOverlay';
+    scene.add(axesHelper);
+  }
+}
+function removeCoordinateSystemOverlay() {
+  if (axesHelper) {
+    scene.remove(axesHelper);
+    axesHelper = null;
+  }
+}
+function toggleCoordinateSystemOverlay() {
+  if (axesHelper) {
+    removeCoordinateSystemOverlay();
+  } else {
+    addCoordinateSystemOverlay();
+  }
+}
+// Keyboard shortcut: 'C' to toggle coordinate system overlay
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'c' || e.key === 'C') {
+    console.log("C pressed!")
+    toggleCoordinateSystemOverlay();
+  }
+});
+// Optionally, add overlay by default:
+addCoordinateSystemOverlay();
+
 // Add lights
 const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(500, 500, 500);
@@ -145,7 +221,7 @@ async function updateSystemCoordinates(systemName, coordinates) {
 async function processAstrometrics() {
   let stars = [];
   try {
-    const res = await fetch("http://192.168.1.96:4000/systems"); // Port 3000 for Euclid
+    const res = await fetch("http://192.168.1.96:3000/systems"); // Port 3000 for Euclid
     if (!res.ok) throw new Error("Failed to fetch systems: " + res.status);
     stars = await res.json();
   } catch (err) {
@@ -154,16 +230,9 @@ async function processAstrometrics() {
     return; // Stop further processing
   }
 
-  const all_anchors = stars
-    .filter(obj => obj.is_anchor)
-    .sort((a, b) => {
-      // Find the key in a whose value is 0
-      const aKey = Object.keys(a).find(key => a[key] === 0);
-      const bKey = Object.keys(b).find(key => b[key] === 0);
-      // Sort by the key name (A, B, C, D, ...)
-      return aKey.localeCompare(bKey);
-    });
-  console.log("All anchors: ", all_anchors);
+  const all_anchors = stars.filter(obj => obj.is_anchor).sort((a, b) => { return a.anchor_id.localeCompare(b.anchor_id)});
+  anchorList = all_anchors; // Save for UI
+  //console.log("All anchors: ", all_anchors); 
   // Load validation data
   let validationData = [];
   try {
@@ -177,19 +246,22 @@ async function processAstrometrics() {
     const N = all_anchors.length;
     const distMatrix = [];
     for (let i = 0; i < N; i++) {
+      const i_id = all_anchors[i].anchor_id;
+
       distMatrix[i] = [];
       for (let j = 0; j < N; j++) {
+        const j_id = all_anchors[j].anchor_id;
         if (i === j) {
           distMatrix[i][j] = 0;
         } else {
           // Try to get the distance from anchor i to anchor j
           // Use anchor_id as key
-          let d = all_anchors[i][all_anchors[j].anchor_id];
-          if (d === undefined) d = all_anchors[i][all_anchors[j].anchor_id];
+          let d = JSON.parse(all_anchors[i].anchors)[j_id];
+          if (d === undefined) d = all_anchors[i].anchors[j_id];
           if (typeof d !== 'number') {
             // Try the reverse direction
-            d = all_anchors[j][all_anchors[i].anchor_id];
-            if (d === undefined) d = all_anchors[j][all_anchors[i].anchor_id];
+            d = all_anchors[j].anchors[i_id];
+            if (d === undefined) d = all_anchors[j].anchors[i_id];
           }
           distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
         }
@@ -197,20 +269,29 @@ async function processAstrometrics() {
     }
 
     // Now reconstruct anchor positions
-    console.log("Dist matrix: ", distMatrix);
+    //console.log("Dist matrix: ", distMatrix);
     const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
-    console.log('Reconstructed anchor positions:', anchorPositions);
+    //console.log('Reconstructed anchor positions:', anchorPositions);
+
+    for (let i = 0; i < anchorPositions.length; i++) {
+        all_anchors[i].ghc_x = anchorPositions[i][0];
+        all_anchors[i].ghc_y = anchorPositions[i][1];
+        all_anchors[i].ghc_z = anchorPositions[i][2];
+    }
+
+    //console.log("Anchor positions:", all_anchors);
 
     const {origin, basis} = tri.buildBasis(anchorPositions);
-    console.log("Origin: ", origin, "Basis: ", basis);
+    //console.log("Origin: ", origin, "Basis: ", basis);
 
     const GHUB_COORDINATE_SYSTEM = {
       origin: origin,
       basis: basis,
-      anchorPositions: anchorPositions
+      anchors: all_anchors
+      //anchor_ids: all_anchors.map((anchor) => anchor.anchor_id).sort()
     }
 
-
+    //console.log("IDs:", GHUB_COORDINATE_SYSTEM.anchor_ids);
 
 
   //const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
@@ -230,10 +311,14 @@ async function processAstrometrics() {
   // Use the loaded star data
   let processedCount = 0;
   for (const system of stars) {
+    //console.log("System", system)
+    const sys_anchors = JSON.parse(system.anchors);
+    //console.log("distance", sys_anchors)
     // Estimate star position using multilateration
     let star_pos;
     try {
-      star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM.anchorPositions, GHUB_COORDINATE_SYSTEM.origin, []);
+      star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
+      console.log(star_pos)
     } catch (e) {
       console.warn(`Failed to multilaterate position for system ${system.name}:`, e);
       continue;
@@ -259,7 +344,7 @@ async function processAstrometrics() {
   
   // Position camera offset from origin looking at it
   camera.position.set(50, 50, 50); // Offset from origin
-  cameraControls.setTarget(0, 0, 0, false); // Look at origin where Sun Tzu now is
+  cameraControls.setTarget(all_anchors[0].ghc_x, all_anchors[0].ghc_y, all_anchors[0].ghc_z, false); // Look at origin where first anchor now is
   
   // Run validation on the loaded data
   //const validationResults = validateCalculatedPositions(stars, validationData);
@@ -270,6 +355,10 @@ async function processAstrometrics() {
   
   // Add click event listener after scene is loaded
   window.addEventListener('click', onMouseClick);
+
+  snapButton.addEventListener('click', snapToSelectedAnchor);
+
+  updateAnchorDropdown();
 }
 
 processAstrometrics();

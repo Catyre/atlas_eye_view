@@ -9,7 +9,7 @@ const RPI_ADDRESS_CAL = 'http://192.168.1.96:4000/upload';  // replace with your
 const CAL_SYSTEMS_CSV = './backend/galaxy_data/new_calypso_astrometrics.csv';
 const EUCLID_SYSTEMS_CSV = './backend/galaxy_data/new_euclid_astrometrics.csv';
 
-const SYSTEMS_CSV = CAL_SYSTEMS_CSV;
+const SYSTEMS_CSV = EUCLID_SYSTEMS_CSV;
 
 // Load and parse CSVs
 function loadCSV(filepath) {
