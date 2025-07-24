@@ -10,6 +10,7 @@ const CAL_SYSTEMS_CSV = './backend/galaxy_data/new_calypso_astrometrics.csv';
 const EUCLID_SYSTEMS_CSV = './backend/galaxy_data/new_euclid_astrometrics.csv';
 
 const SYSTEMS_CSV = EUCLID_SYSTEMS_CSV;
+const RPI_ADDRESS = RPI_ADDRESS_EUCLID;
 
 // Load and parse CSVs
 function loadCSV(filepath) {
@@ -39,7 +40,7 @@ async function uploadData() {
 
   console.log(JSON.stringify(systems));
 
-  const response = await fetch(RPI_ADDRESS_CAL, {
+  const response = await fetch(RPI_ADDRESS, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({systems})

@@ -2,31 +2,107 @@ import * as THREE from 'three';
 import CameraControls from 'camera-controls';
 import $ from 'jquery';
 import * as tri from './trilateration.js';
+import * as debug from './debug.js';
 import { validateCalculatedPositions } from './validation.js';
 import './popup.css';
 window.jQuery = $;
 import 'jquery-csv';
 
+var clock = null;
+var scene = null;
+var camera = null;
+var cameraControls = null;
+var renderer = null;
+var popup = null;
+var mouse = null;
+var raycaster = null;
+
 // ---------------------Basic setup - TESTING HMR------------------------------- //
-// Set up scene, camera, and renderer
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+function initializeScene() { 
+  return new Promise(function(resolve, reject) {
+    // Set up scene, camera, and renderer
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
 
-CameraControls.install({THREE: THREE});
+    CameraControls.install({THREE: THREE});
 
-const width = window.innerWidth;
-const height = window.innerHeight;
-const clock = new THREE.Clock();
-const camera = new THREE.PerspectiveCamera( 60, width / height, 0.01, 5000 );
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-const cameraControls = new CameraControls( camera, renderer.domElement );
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.domElement.style.position = 'absolute';
-renderer.domElement.style.top = '0px';
-renderer.domElement.style.left = '0px';
-document.body.appendChild(renderer.domElement);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    var clock = new THREE.Clock();
+    var camera = new THREE.PerspectiveCamera( 60, width / height, 0.01, 5000 );
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    var cameraControls = new CameraControls( camera, renderer.domElement );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0px';
+    renderer.domElement.style.left = '0px';
+    document.body.appendChild(renderer.domElement);
 
-window.htmlVars = {cameraControls: cameraControls, camera: camera, renderer: renderer, scene: scene}//, pivot: pivot}
+    // Add lights
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(500, 500, 500);
+    scene.add(light);
+
+    // Add raycaster for click detection
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // Create popup element
+    const popup = document.createElement('div');
+    popup.className = 'system-popup';
+    document.body.appendChild(popup);
+
+    // Exclusive control for user dragging
+    let userDragging = false;
+    let disableAutoRotate = false;
+    const onRest = () => {
+      cameraControls.removeEventListener('rest', onRest);
+      userDragging = false;
+      disableAutoRotate = false;
+    }
+
+    cameraControls.addEventListener('controlstart', () => {
+      cameraControls.removeEventListener('rest', onRest);
+      userDragging = true;
+      disableAutoRotate = true;
+    });
+
+    cameraControls.addEventListener('controlend', () => {
+      if (cameraControls.active) {
+        cameraControls.addEventListener('rest', onRest);
+      } else {
+        onRest();
+      }
+    });
+
+    cameraControls.addEventListener('transitionstart', () => {
+      if (userDragging) return;
+
+      disableAutoRotate = true;
+      cameraControls.addEventListener('rest', onRest);
+
+    });
+
+    //console.log("blah",scene)
+    var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, scene: scene, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};//, pivot: pivot}
+    //console.log(htmlVars);
+    
+    if (data) {
+      resolve(data);
+    }
+  });
+}
+
+
+
+
+export async function getScene() {
+  const sceneData = await initializeScene();
+  //console.log(window.htmlVars)
+  return sceneData.scene;
+}
+
+
 
 // --- Anchor Snap UI Logic --- //
 // Store anchor data for snapping
@@ -35,7 +111,7 @@ const anchorSelect = document.getElementById('anchor-select');
 const snapButton = document.getElementById('snap-anchor-btn');
 
 function updateAnchorDropdown() {
-  console.log(anchorList)
+  //console.log(anchorList)
   anchorSelect.innerHTML = '';
   if (!anchorList || anchorList.length === 0) {
     const opt = document.createElement('option');
@@ -54,75 +130,34 @@ function updateAnchorDropdown() {
   snapButton.disabled = false;
 }
 
-function snapToSelectedAnchor() {
-  const anchorId = anchorSelect.value;
-  const anchor = anchorList.find(a => a.anchor_id === anchorId);
-  if (!anchor) return;
-  // Camera offset for better view
-  const offset = 20;
-  const pos = [anchor.ghc_x, anchor.ghc_y, anchor.ghc_z];
-  cameraControls.setLookAt(
-    pos[0] + offset,
-    pos[1] + offset,
-    pos[2] + offset,
-    pos[0],
-    pos[1],
-    pos[2],
-    true
-  );
-}
-
-// --- Coordinate System Overlay --- //
-let axesHelper = null;
-function addCoordinateSystemOverlay(size = 20) {
-  if (!axesHelper) {
-    axesHelper = new THREE.AxesHelper(size);
-    axesHelper.name = 'CoordinateSystemOverlay';
-    scene.add(axesHelper);
+  function snapToSelectedAnchor() {
+    //const cameraControls = sceneSetup.cameraControls;
+    const anchorId = anchorSelect.value;
+    const anchor = anchorList.find(a => a.anchor_id === anchorId);
+    if (!anchor) return;
+    // Camera offset for better view
+    const offset = 20;
+    const pos = [anchor.ghc_x, anchor.ghc_y, anchor.ghc_z];
+    cameraControls.setLookAt(
+      pos[0] + offset,
+      pos[1] + offset,
+      pos[2] + offset,
+      pos[0],
+      pos[1],
+      pos[2],
+      true
+    );
   }
-}
-function removeCoordinateSystemOverlay() {
-  if (axesHelper) {
-    scene.remove(axesHelper);
-    axesHelper = null;
-  }
-}
-function toggleCoordinateSystemOverlay() {
-  if (axesHelper) {
-    removeCoordinateSystemOverlay();
-  } else {
-    addCoordinateSystemOverlay();
-  }
-}
-// Keyboard shortcut: 'C' to toggle coordinate system overlay
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'c' || e.key === 'C') {
-    console.log("C pressed!")
-    toggleCoordinateSystemOverlay();
-  }
-});
-// Optionally, add overlay by default:
-addCoordinateSystemOverlay();
 
-// Add lights
-const light = new THREE.PointLight(0xffffff, 1);
-light.position.set(500, 500, 500);
-scene.add(light);
 
-// Add raycaster for click detection
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
 
-// Create popup element
-const popup = document.createElement('div');
-popup.className = 'system-popup';
-document.body.appendChild(popup);
 
 // Store system data for popup
 let systemData = {};
 
 // Click handler for snapping to systems
 function onMouseClick(event) {
+ // const cameraControls = cameraControls;
   // Prevent default behavior and stop propagation
   event.preventDefault();
   event.stopPropagation();
@@ -271,6 +306,7 @@ async function processAstrometrics() {
     // Now reconstruct anchor positions
     //console.log("Dist matrix: ", distMatrix);
     const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
+    //console.log("blah",anchorPositions)
     //console.log('Reconstructed anchor positions:', anchorPositions);
 
     for (let i = 0; i < anchorPositions.length; i++) {
@@ -290,7 +326,8 @@ async function processAstrometrics() {
       anchors: all_anchors
       //anchor_ids: all_anchors.map((anchor) => anchor.anchor_id).sort()
     }
-
+    //console.log(axesHelper);
+    //axesHelper.position = GHUB_COORDINATE_SYSTEM.origin;
     //console.log("IDs:", GHUB_COORDINATE_SYSTEM.anchor_ids);
 
 
@@ -344,7 +381,7 @@ async function processAstrometrics() {
   
   // Position camera offset from origin looking at it
   camera.position.set(50, 50, 50); // Offset from origin
-  cameraControls.setTarget(all_anchors[0].ghc_x, all_anchors[0].ghc_y, all_anchors[0].ghc_z, false); // Look at origin where first anchor now is
+  cameraControls.setTarget(all_anchors[1].ghc_x, all_anchors[1].ghc_y, all_anchors[1].ghc_z, false); // Look at origin where first anchor now is
   
   // Run validation on the loaded data
   //const validationResults = validateCalculatedPositions(stars, validationData);
@@ -353,10 +390,6 @@ async function processAstrometrics() {
     console.log("Position validation completed. Check console for detailed results.");
   }
   
-  // Add click event listener after scene is loaded
-  window.addEventListener('click', onMouseClick);
-
-  snapButton.addEventListener('click', snapToSelectedAnchor);
 
   updateAnchorDropdown();
 }
@@ -364,36 +397,7 @@ async function processAstrometrics() {
 processAstrometrics();
 
 // -----------------------Begin render------------------------------- //
-// Exclusive control for user dragging
-let userDragging = false;
-let disableAutoRotate = false;
-const onRest = () => {
-	cameraControls.removeEventListener('rest', onRest);
-	userDragging = false;
-	disableAutoRotate = false;
-}
 
-cameraControls.addEventListener('controlstart', () => {
-	cameraControls.removeEventListener('rest', onRest);
-	userDragging = true;
-	disableAutoRotate = true;
-});
-
-cameraControls.addEventListener('controlend', () => {
-	if (cameraControls.active) {
-		cameraControls.addEventListener('rest', onRest);
-	} else {
-		onRest();
-	}
-});
-
-cameraControls.addEventListener('transitionstart', () => {
-	if (userDragging) return;
-
-	disableAutoRotate = true;
-	cameraControls.addEventListener('rest', onRest);
-
-});
 
 // Animation loop
 function animate() {
@@ -402,10 +406,10 @@ function animate() {
 	const updated = cameraControls.update(delta);
 
 
-  if (!disableAutoRotate) {
+  //if (!disableAutoRotate) {
       //cameraControls.azimuthAngle += -10 * delta * THREE.MathUtils.DEG2RAD;
       //cameraControls.polarAngle += 10 * delta * THREE.MathUtils.DEG2RAD;
-  }
+  //}
 
   requestAnimationFrame(animate);
 
@@ -413,22 +417,54 @@ function animate() {
 		renderer.render( scene, camera );
 	}
 }
+let firstPass = true;
+initializeScene().then(function(data) {
+  clock = data.clock;
+  scene = data.scene;
+  camera = data.camera;
+  cameraControls = data.cameraControls;
+  renderer = data.renderer;
+  mouse = data.mouse;
+  popup = data.popup;
+  raycaster = data.raycaster;
 
-animate();
-
-// Handle window resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// Add click outside popup to close it
-document.addEventListener('click', (event) => {
-  if (!popup.contains(event.target)) {
-    hidePopup();
+  if (firstPass) {
+    firstPass = false;
+    
+  debug.addCoordinateSystemOverlay(scene);
   }
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Keyboard shortcut: 'C' to toggle coordinate system overlay
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'c' || e.key === 'C') {
+      console.log("C pressed!")
+      debug.toggleCoordinateSystemOverlay(scene);
+    }
+  });
+
+  // Optionally, add overlay by default:
+
+  // Add click outside popup to close it
+  document.addEventListener('click', (event) => {
+    if (!popup.contains(event.target)) {
+      hidePopup();
+    }
+  });
+
+  // Add click event listener after scene is loaded
+  window.addEventListener('click', onMouseClick);
+  snapButton.addEventListener('click', snapToSelectedAnchor);
+  animate();
 });
+
+
 
 // Create unsnap button
 const unsnapButton = document.createElement('button');

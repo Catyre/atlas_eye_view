@@ -1,0 +1,138 @@
+/* Fonts */
+@font-face {
+    font-family: "NMS-Glyphs-Mono";
+    src:
+      local("NMS-Glyphs-Mono"),
+      url("/fonts/nms-glyphs-mono-webfont.woff") format("woff"),
+      url("/fonts/nms-glyphs-mono-webfont.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: 'NMSFuturaProBook';
+    src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot');
+    src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot?#iefix') format('embedded-opentype'),
+        url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.woff') format('woff'),
+        url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.ttf') format('truetype');
+}
+
+/* Make everything use the NMSFuturaProBook font */
+* {
+    font-family: 'NMSFuturaProBook';
+}
+  
+
+.glyphs {
+    font-family: "NMS-Glyphs-Mono", monospace;
+}
+
+
+/* Popup Styles */
+.system-popup {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  font-size: 18px;
+  max-width: 450px;
+  max-height: 600px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  line-height: 1.4;
+}
+
+.system-popup .system-name {
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+.system-popup .loading-container {
+  display: flex;
+  align-items: center;
+  color: #888;
+  font-style: italic;
+}
+
+.system-popup .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #444;
+  border-top: 2px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+.system-popup .wiki-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #444;
+}
+
+.system-popup .wiki-title {
+  margin-bottom: 8px;
+}
+
+.system-popup .wiki-title a {
+  color: #4CAF50;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.system-popup .wiki-summary {
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.system-popup .wiki-info {
+  font-size: 15px;
+  color: #ccc;
+}
+
+.system-popup .wiki-info strong {
+  color: #fff;
+}
+
+.system-popup .error-message {
+  color: #ff6b6b;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.system-popup .error-text {
+  color: #888;
+  font-size: 11px;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Unsnap Button Styles */
+.unsnap-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border: 1px solid #444;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 1000;
+  display: none;
+}
+
+.unsnap-button:hover {
+  background: rgba(0, 0, 0, 0.9);
+  border-color: #666;
+} 
