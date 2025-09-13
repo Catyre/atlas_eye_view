@@ -4,8 +4,8 @@ const fetch = require('node-fetch').default;
 const Papa = require('papaparse');
 
 // Config
-const RPI_ADDRESS_EUCLID = 'http://192.168.1.96:3000/upload';  // replace with your Pi's IP
-const RPI_ADDRESS_CAL = 'http://192.168.1.96:4000/upload';  // replace with your Pi's IP
+const RPI_ADDRESS_EUCLID = 'http://10.0.0.218:3000/upload';
+const RPI_ADDRESS_CAL = 'http://10.0.0.218:4000/upload';
 const CAL_SYSTEMS_CSV = './backend/galaxy_data/new_calypso_astrometrics.csv';
 const EUCLID_SYSTEMS_CSV = './backend/galaxy_data/new_euclid_astrometrics.csv';
 

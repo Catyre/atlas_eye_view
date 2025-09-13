@@ -3,6 +3,7 @@ import CameraControls from 'camera-controls';
 import $ from 'jquery';
 import * as tri from './trilateration.js';
 import * as debug from './debug.js';
+import * as astro from './astrometry.js';
 import { validateCalculatedPositions } from './validation.js';
 import './popup.css';
 window.jQuery = $;
@@ -16,6 +17,7 @@ var renderer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
+const GALAXY = "euclid";
 
 // ---------------------Basic setup - TESTING HMR------------------------------- //
 function initializeScene() { 
@@ -83,6 +85,10 @@ function initializeScene() {
 
     });
 
+    // Start camera centered on Sun Tzu system at origin
+    camera.position.set(20, 20, 20); // Offset from origin
+    cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
+
     //console.log("blah",scene)
     var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, scene: scene, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};//, pivot: pivot}
     //console.log(htmlVars);
@@ -93,15 +99,11 @@ function initializeScene() {
   });
 }
 
-
-
-
 export async function getScene() {
   const sceneData = await initializeScene();
   //console.log(window.htmlVars)
   return sceneData.scene;
 }
-
 
 
 // --- Anchor Snap UI Logic --- //
@@ -110,7 +112,7 @@ let anchorList = [];
 const anchorSelect = document.getElementById('anchor-select');
 const snapButton = document.getElementById('snap-anchor-btn');
 
-function updateAnchorDropdown() {
+export function updateAnchorDropdown() {
   //console.log(anchorList)
   anchorSelect.innerHTML = '';
   if (!anchorList || anchorList.length === 0) {
@@ -149,11 +151,7 @@ function updateAnchorDropdown() {
     );
   }
 
-
-
-
 // Store system data for popup
-let systemData = {};
 
 // Click handler for snapping to systems
 function onMouseClick(event) {
@@ -220,184 +218,6 @@ function onMouseClick(event) {
   }
 }
 
-// Function to update system coordinates on the backend
-async function updateSystemCoordinates(systemName, coordinates) {
-  try {
-    const updateData = {
-      name: systemName,
-      ghc_x: coordinates[0],
-      ghc_y: coordinates[1],
-      ghc_z: coordinates[2]
-    };
-
-    const response = await fetch('http://192.168.1.96:4000/update-coordinates', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updateData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log(`Updated coordinates for ${systemName}: [${coordinates[0].toFixed(2)}, ${coordinates[1].toFixed(2)}, ${coordinates[2].toFixed(2)}]`);
-    return result;
-  } catch (error) {
-    console.error(`Failed to update coordinates for ${systemName}:`, error.message);
-    return null;
-  }
-}
-
-// -----------------------Functions------------------------------- //
-// Fetch system database and process the data
-async function processAstrometrics() {
-  let stars = [];
-  try {
-    const res = await fetch("http://192.168.1.96:3000/systems"); // Port 3000 for Euclid
-    if (!res.ok) throw new Error("Failed to fetch systems: " + res.status);
-    stars = await res.json();
-  } catch (err) {
-    console.error("Could not fetch systems from backend:", err);
-    alert("Could not load star systems from backend. Is the server running?");
-    return; // Stop further processing
-  }
-
-  const all_anchors = stars.filter(obj => obj.is_anchor).sort((a, b) => { return a.anchor_id.localeCompare(b.anchor_id)});
-  anchorList = all_anchors; // Save for UI
-  //console.log("All anchors: ", all_anchors); 
-  // Load validation data
-  let validationData = [];
-  try {
-    const validationRes = await fetch("./validation_data.json");
-    validationData = await validationRes.json();
-  } catch (error) {
-    console.warn("Could not load validation_data.json:", error);
-  }
-
-    // Build N x N pairwise distance matrix for anchors
-    const N = all_anchors.length;
-    const distMatrix = [];
-    for (let i = 0; i < N; i++) {
-      const i_id = all_anchors[i].anchor_id;
-
-      distMatrix[i] = [];
-      for (let j = 0; j < N; j++) {
-        const j_id = all_anchors[j].anchor_id;
-        if (i === j) {
-          distMatrix[i][j] = 0;
-        } else {
-          // Try to get the distance from anchor i to anchor j
-          // Use anchor_id as key
-          let d = JSON.parse(all_anchors[i].anchors)[j_id];
-          if (d === undefined) d = all_anchors[i].anchors[j_id];
-          if (typeof d !== 'number') {
-            // Try the reverse direction
-            d = all_anchors[j].anchors[i_id];
-            if (d === undefined) d = all_anchors[j].anchors[i_id];
-          }
-          distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
-        }
-      }
-    }
-
-    // Now reconstruct anchor positions
-    //console.log("Dist matrix: ", distMatrix);
-    const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
-    //console.log("blah",anchorPositions)
-    //console.log('Reconstructed anchor positions:', anchorPositions);
-
-    for (let i = 0; i < anchorPositions.length; i++) {
-        all_anchors[i].ghc_x = anchorPositions[i][0];
-        all_anchors[i].ghc_y = anchorPositions[i][1];
-        all_anchors[i].ghc_z = anchorPositions[i][2];
-    }
-
-    //console.log("Anchor positions:", all_anchors);
-
-    const {origin, basis} = tri.buildBasis(anchorPositions);
-    //console.log("Origin: ", origin, "Basis: ", basis);
-
-    const GHUB_COORDINATE_SYSTEM = {
-      origin: origin,
-      basis: basis,
-      anchors: all_anchors
-      //anchor_ids: all_anchors.map((anchor) => anchor.anchor_id).sort()
-    }
-    //console.log(axesHelper);
-    //axesHelper.position = GHUB_COORDINATE_SYSTEM.origin;
-    //console.log("IDs:", GHUB_COORDINATE_SYSTEM.anchor_ids);
-
-
-  //const basis = tri.buildBasis(anchors.A, anchors.B, anchors.C);
-  
-  // Start camera centered on Sun Tzu system at origin
-  camera.position.set(20, 20, 20); // Offset from origin
-  cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
-
-  //const P4 = tri.trilateratePoint(stars[3].name, anchors.A, anchors.B, anchors.C, stars[3].A, stars[3].B, stars[3].C)
-  
-  // Store system data for popup
-  stars.forEach(system => {
-    //updateSystemCoordinates(system.name, [system.ghc_x, system.ghc_y, system.ghc_z]);
-    systemData[system.name] = system;
-  });
-
-  // Use the loaded star data
-  let processedCount = 0;
-  for (const system of stars) {
-    //console.log("System", system)
-    const sys_anchors = JSON.parse(system.anchors);
-    //console.log("distance", sys_anchors)
-    // Estimate star position using multilateration
-    let star_pos;
-    try {
-      star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
-      console.log(star_pos)
-    } catch (e) {
-      console.warn(`Failed to multilaterate position for system ${system.name}:`, e);
-      continue;
-    }
-
-    // Material for stars
-    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
-    const geometry = new THREE.SphereGeometry(.8, 16, 16);
-    const star = new THREE.Mesh(geometry, starMaterial);
-    
-    star.position.set(star_pos[0], star_pos[1], star_pos[2]);
-    star.name = system.name;
-    scene.add(star);
-    
-    // Update progress
-    processedCount++;
-    if (processedCount % 10 === 0 || processedCount === stars.length) {
-      console.log(`Processed ${processedCount}/${stars.length} systems (${((processedCount/stars.length)*100).toFixed(1)}%)`);
-    }
-  }
-
-  console.log(`${stars.length} systems mapped!`)
-  
-  // Position camera offset from origin looking at it
-  camera.position.set(50, 50, 50); // Offset from origin
-  cameraControls.setTarget(all_anchors[1].ghc_x, all_anchors[1].ghc_y, all_anchors[1].ghc_z, false); // Look at origin where first anchor now is
-  
-  // Run validation on the loaded data
-  //const validationResults = validateCalculatedPositions(stars, validationData);
-  const validationResults = false;
-  if (validationResults) {
-    console.log("Position validation completed. Check console for detailed results.");
-  }
-  
-
-  updateAnchorDropdown();
-}
-
-processAstrometrics();
-
-// -----------------------Begin render------------------------------- //
-
 
 // Animation loop
 function animate() {
@@ -417,7 +237,29 @@ function animate() {
 		renderer.render( scene, camera );
 	}
 }
+
+function placeStars(starData, scene) {
+  console.log('placestars', starData);
+  for (const system in starData) {
+    console.log("system", system);
+    const starPos = [system.ghc_x,system.ghc_y,system.ghc_z];
+console.log(system.color);
+    // Material for stars
+    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+    const geometry = new THREE.SphereGeometry(.8, 16, 16);
+    const star = new THREE.Mesh(geometry, starMaterial);
+    
+    star.position.set(starPos[0], starPos[1], starPos[2]);
+    star.name = system.name;
+    console.log('star',star);
+    scene.add(star);
+  }
+  console.log('scene',scene)
+return 0;
+}
+
 let firstPass = true;
+let stars = {};
 initializeScene().then(function(data) {
   clock = data.clock;
   scene = data.scene;
@@ -428,10 +270,16 @@ initializeScene().then(function(data) {
   popup = data.popup;
   raycaster = data.raycaster;
 
+  astro.processAstrometrics(GALAXY).then(function(data2) {
+    //console.log('data',data2);
+    stars = data2;
+    console.log('stars',stars);
+    placeStars(stars, scene);
+  });
+
   if (firstPass) {
     firstPass = false;
-    
-  debug.addCoordinateSystemOverlay(scene);
+    debug.addCoordinateSystemOverlay(scene);
   }
 
   // Handle window resize
@@ -541,6 +389,9 @@ async function fetchWikiData(systemName) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     
+  // Start camera centered on Sun Tzu system at origin
+  camera.position.set(20, 20, 20); // Offset from origin
+  cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
     // Extract key information
     const wikiData = {
       title: pageTitle,
