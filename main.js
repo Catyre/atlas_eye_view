@@ -18,12 +18,24 @@ var popup = null;
 var mouse = null;
 var raycaster = null;
 const GALAXY = "euclid";
+// Don't forget to also change what backend is running
+
+// Keyboard controls state
+var keys = {
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+  q: false, // Up
+  e: false  // Down
+};
+const CAMERA_MOVE_SPEED = 75; // units per second
 
 // ---------------------Basic setup - TESTING HMR------------------------------- //
 function initializeScene() { 
   return new Promise(function(resolve, reject) {
     // Set up scene, camera, and renderer
-    var scene = new THREE.Scene();
+    scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
     CameraControls.install({THREE: THREE});
@@ -90,7 +102,7 @@ function initializeScene() {
     cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
 
     //console.log("blah",scene)
-    var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, scene: scene, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};//, pivot: pivot}
+    var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};//, pivot: pivot}
     //console.log(htmlVars);
     
     if (data) {
@@ -100,9 +112,9 @@ function initializeScene() {
 }
 
 export async function getScene() {
-  const sceneData = await initializeScene();
+  await initializeScene();
   //console.log(window.htmlVars)
-  return sceneData.scene;
+  return scene;
 }
 
 
@@ -112,10 +124,14 @@ let anchorList = [];
 const anchorSelect = document.getElementById('anchor-select');
 const snapButton = document.getElementById('snap-anchor-btn');
 
-export function updateAnchorDropdown() {
-  //console.log(anchorList)
+export function updateAnchorDropdown(anchors = null) {
+  // Use provided anchors or fall back to stored anchorList
+  const anchorsToUse = anchors || anchorList;
+  
+  console.log('Updating anchor dropdown with:', anchorsToUse);
   anchorSelect.innerHTML = '';
-  if (!anchorList || anchorList.length === 0) {
+  
+  if (!anchorsToUse || anchorsToUse.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
     opt.textContent = 'No anchors';
@@ -123,7 +139,11 @@ export function updateAnchorDropdown() {
     snapButton.disabled = true;
     return;
   }
-  for (const anchor of anchorList) {
+  
+  // Store anchors for later use
+  anchorList = anchorsToUse;
+  
+  for (const anchor of anchorsToUse) {
     const opt = document.createElement('option');
     opt.value = anchor.anchor_id;
     opt.textContent = anchor.name || anchor.anchor_id;
@@ -219,12 +239,159 @@ function onMouseClick(event) {
 }
 
 
+// Keyboard event handlers
+function onKeyDown(event) {
+  const key = event.key.toLowerCase();
+  //console.log("KEY PRESSED: ", key, "Event:", event);
+  if (key in keys) {
+    keys[key] = true;
+    //console.log('Key pressed:', key, 'Keys state:', keys);
+    event.preventDefault();
+  } else {
+    console.log('Key not in keys object:', key);
+  }
+}
+
+function onKeyUp(event) {
+  const key = event.key.toLowerCase();
+  if (key in keys) {
+    keys[key] = false;
+    //console.log('Key released:', key, 'Keys state:', keys);
+    event.preventDefault();
+  }
+}
+
+// Handle camera movement based on keyboard input
+function handleCameraMovement(delta) {
+  if (!cameraControls) return;
+  
+  // Check if any keys are pressed
+  const anyKeyPressed = keys.w || keys.a || keys.s || keys.d || keys.q || keys.e;
+  if (!anyKeyPressed) return;
+  
+  const moveDistance = CAMERA_MOVE_SPEED * delta;
+  const moveVector = new THREE.Vector3();
+  
+  // Get camera direction vectors (forward direction)
+  const cameraDirection = new THREE.Vector3();
+  camera.getWorldDirection(cameraDirection);
+  
+  // Calculate right vector (perpendicular to camera direction and up)
+  const rightVector = new THREE.Vector3();
+  rightVector.crossVectors(cameraDirection, camera.up).normalize();
+  
+  // Debug: Check if right vector is valid
+  if (rightVector.length() < 0.1) {
+    console.warn('Right vector is too small, using fallback');
+    rightVector.set(1, 0, 0); // Fallback to world X axis
+  }
+  
+  // Use world up vector for vertical movement
+  const upVector = new THREE.Vector3(0, 1, 0);
+  
+  // Debug: Log camera vectors
+  console.log('Camera vectors:', {
+    direction: cameraDirection.toArray(),
+    right: rightVector.toArray(),
+    up: upVector.toArray(),
+    moveDistance: moveDistance
+  });
+  
+  // Calculate movement based on pressed keys
+  if (keys.w) {
+    moveVector.add(cameraDirection.clone().multiplyScalar(moveDistance));
+  }
+  if (keys.s) {
+    moveVector.add(cameraDirection.clone().multiplyScalar(-moveDistance));
+  }
+  if (keys.a) {
+    moveVector.add(rightVector.clone().multiplyScalar(-moveDistance));
+  }
+  if (keys.d) {
+    const rightMovement = rightVector.clone().multiplyScalar(moveDistance);
+    moveVector.add(rightMovement);
+    console.log('D pressed - adding right movement:', rightMovement.toArray());
+    console.log('D key - rightVector:', rightVector.toArray(), 'moveDistance:', moveDistance);
+    console.log('D key - rightVector length:', rightVector.length());
+  }
+  if (keys.q) {
+    moveVector.add(upVector.clone().multiplyScalar(moveDistance));
+  }
+  if (keys.e) {
+    moveVector.add(upVector.clone().multiplyScalar(-moveDistance));
+  }
+  
+  // Debug: Test with a simple movement if no keys are working
+  if (moveVector.length() === 0 && (keys.w || keys.a || keys.s || keys.d)) {
+    console.log('No movement calculated, testing with simple forward movement');
+    moveVector.set(0, 0, -moveDistance); // Simple forward movement
+  }
+  
+  // Debug: Test D key specifically with simple right movement
+  if (keys.d && moveVector.length() === 0) {
+    console.log('D key pressed but no movement, using simple right movement');
+    moveVector.set(moveDistance, 0, 0); // Simple right movement along X axis
+  }
+  
+  // Apply movement to camera target only
+  if (moveVector.length() > 0) {
+    const oldPos = cameraControls.getPosition();
+    const oldTarget = cameraControls.getTarget();
+
+    const newPos = oldPos.clone().add(moveVector);
+    
+    const newTarget = {
+      x: oldTarget.x + moveVector.x,
+      y: oldTarget.y + moveVector.y,
+      z: oldTarget.z + moveVector.z
+    };
+    
+    // Move only the target, let camera controls handle camera positioning
+    //cameraControls.setTarget(newTarget.x, newTarget.y, newTarget.z, false);
+    //camera.position.set(newTarget.x, newTarget.y, newTarget.z)
+    cameraControls.setPosition(newPos.x, newPos.y, newPos.z);
+    cameraControls.setTarget(newTarget.x, newTarget.y, newTarget.z);
+    
+    // Debug logging (can be removed later)
+    
+  }
+}
+
+// Function to update camera position display
+function updateCameraPositionDisplay() {
+  const camX = document.getElementById('cam-x');
+  const camY = document.getElementById('cam-y');
+  const camZ = document.getElementById('cam-z');
+  const keyW = document.getElementById('key-w');
+  const keyA = document.getElementById('key-a');
+  const keyS = document.getElementById('key-s');
+  const keyD = document.getElementById('key-d');
+  
+  if (camX && camY && camZ && camera) {
+    camX.textContent = camera.position.x.toFixed(2);
+    camY.textContent = camera.position.y.toFixed(2);
+    camZ.textContent = camera.position.z.toFixed(2);
+  }
+  
+  if (keyW && keyA && keyS && keyD) {
+    keyW.textContent = keys.w ? 'true' : 'false';
+    keyA.textContent = keys.a ? 'true' : 'false';
+    keyS.textContent = keys.s ? 'true' : 'false';
+    keyD.textContent = keys.d ? 'true' : 'false';
+  }
+}
+
 // Animation loop
 function animate() {
   const delta = clock.getDelta();
 	const elapsed = clock.getElapsedTime();
 	const updated = cameraControls.update(delta);
 
+  // Handle keyboard camera movement
+  handleCameraMovement(delta);
+  
+  // Update camera position display
+  updateCameraPositionDisplay();
 
   //if (!disableAutoRotate) {
       //cameraControls.azimuthAngle += -10 * delta * THREE.MathUtils.DEG2RAD;
@@ -239,30 +406,39 @@ function animate() {
 }
 
 function placeStars(starData, scene) {
-  console.log('placestars', starData);
+  console.log("placeStars called with", Object.keys(starData).length, "systems");
+  let starsPlaced = 0;
+  
   for (const system in starData) {
-    console.log("system", system);
-    const starPos = [system.ghc_x,system.ghc_y,system.ghc_z];
-console.log(system.color);
+    const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
+    
+    // Skip if position data is missing
+    if (starPos[0] === null || starPos[0] === undefined || 
+        starPos[1] === null || starPos[1] === undefined || 
+        starPos[2] === null || starPos[2] === undefined) {
+      console.warn(`Skipping system ${system} - missing position data:`, starPos);
+      continue;
+    }
+
     // Material for stars
-    const starMaterial = new THREE.MeshBasicMaterial({ color: system.color});
+    const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(.8, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
     star.position.set(starPos[0], starPos[1], starPos[2]);
-    star.name = system.name;
-    console.log('star',star);
+    star.name = starData[system].name;
+    
     scene.add(star);
+    starsPlaced++;
   }
-  console.log('scene',scene)
-return 0;
+  
+  console.log(`Placed ${starsPlaced} stars in scene. Scene now has ${scene.children.length} children.`);
 }
 
 let firstPass = true;
 let stars = {};
 initializeScene().then(function(data) {
   clock = data.clock;
-  scene = data.scene;
   camera = data.camera;
   cameraControls = data.cameraControls;
   renderer = data.renderer;
@@ -273,51 +449,135 @@ initializeScene().then(function(data) {
   astro.processAstrometrics(GALAXY).then(function(data2) {
     //console.log('data',data2);
     stars = data2;
-    console.log('stars',stars);
+    console.log('stars data received:', stars);
+    //console.log('Sample star data:', Object.keys(stars).slice(0, 3).map(key => ({ name: key, data: stars[key] })));
     placeStars(stars, scene);
-  });
-
-  if (firstPass) {
-    firstPass = false;
-    debug.addCoordinateSystemOverlay(scene);
-  }
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  // Keyboard shortcut: 'C' to toggle coordinate system overlay
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'c' || e.key === 'C') {
-      console.log("C pressed!")
-      debug.toggleCoordinateSystemOverlay(scene);
+    
+    // Start animation only after stars are placed
+    if (firstPass) {
+      firstPass = false;
+      //debug.addCoordinateSystemOverlay(scene);
     }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Keyboard controls: WASD for movement, C for coordinate overlay
+    console.log('Adding keyboard event listeners');
+    
+    // Test if event listeners are working at all
+    window.addEventListener('keydown', (e) => {
+      console.log('WINDOW KEYDOWN EVENT:', e.key, e.code, e.type);
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      console.log('DOCUMENT KEYDOWN EVENT:', e.key, e.code, e.type);
+    });
+    
+    renderer.domElement.addEventListener('keydown', (e) => {
+      console.log('CANVAS KEYDOWN EVENT:', e.key, e.code, e.type);
+    });
+    
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    
+    // Ensure the canvas can receive focus for keyboard events
+    renderer.domElement.setAttribute('tabindex', '0');
+    renderer.domElement.style.outline = 'none';
+    
+    // Add click handler to focus canvas when clicked
+    renderer.domElement.addEventListener('click', () => {
+      renderer.domElement.focus();
+      console.log('Canvas focused for keyboard input');
+      console.log('Canvas has focus:', document.activeElement === renderer.domElement);
+    });
+    
+    // Auto-focus canvas on load
+    setTimeout(() => {
+      renderer.domElement.focus();
+      console.log('Auto-focused canvas');
+    }, 1000);
+    
+    // Keyboard shortcut: 'C' to toggle coordinate system overlay
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'c' || e.key === 'C') {
+        console.log("C pressed!")
+        debug.toggleCoordinateSystemOverlay(scene);
+      }
+    });
+
+    // Optionally, add overlay by default:
+
+    // Add click outside popup to close it
+    document.addEventListener('click', (event) => {
+      if (!popup.contains(event.target)) {
+        hidePopup();
+      }
+    });
+
+    // Add click event listener after scene is loaded
+    window.addEventListener('click', onMouseClick);
+    snapButton.addEventListener('click', snapToSelectedAnchor);
+    animate();
   });
-
-  // Optionally, add overlay by default:
-
-  // Add click outside popup to close it
-  document.addEventListener('click', (event) => {
-    if (!popup.contains(event.target)) {
-      hidePopup();
-    }
-  });
-
-  // Add click event listener after scene is loaded
-  window.addEventListener('click', onMouseClick);
-  snapButton.addEventListener('click', snapToSelectedAnchor);
-  animate();
 });
 
 
+
+// Create camera position display box
+const cameraPositionBox = document.createElement('div');
+cameraPositionBox.className = 'camera-position-box';
+cameraPositionBox.style.cssText = `
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(30, 30, 30, 0.95);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid #444;
+`;
+cameraPositionBox.innerHTML = `
+  <div style="font-weight: bold; margin-bottom: 4px;">Camera Position</div>
+  <div>X: <span id="cam-x">0.00</span></div>
+  <div>Y: <span id="cam-y">0.00</span></div>
+  <div>Z: <span id="cam-z">0.00</span></div>
+  <div style="margin-top: 8px; font-size: 12px;">
+    <div>W: <span id="key-w">false</span></div>
+    <div>A: <span id="key-a">false</span></div>
+    <div>S: <span id="key-s">false</span></div>
+    <div>D: <span id="key-d">false</span></div>
+  </div>
+`;
+document.body.appendChild(cameraPositionBox);
 
 // Create unsnap button
 const unsnapButton = document.createElement('button');
 unsnapButton.textContent = 'Unsnap Camera';
 unsnapButton.className = 'unsnap-button';
+unsnapButton.style.cssText = `
+  position: fixed;
+  top: 30px;
+  right: 250px;
+  font-size: 1rem;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+  background: #ff4757;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 1000;
+  display: none;
+`;
 document.body.appendChild(unsnapButton);
 
 // Function to unsnap camera
@@ -389,9 +649,6 @@ async function fetchWikiData(systemName) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     
-  // Start camera centered on Sun Tzu system at origin
-  camera.position.set(20, 20, 20); // Offset from origin
-  cameraControls.setTarget(0, 0, 0, true); // Look at origin where Sun Tzu should be
     // Extract key information
     const wikiData = {
       title: pageTitle,
@@ -461,7 +718,12 @@ async function fetchWikiData(systemName) {
 // Function to show system popup
 async function showSystemPopup(systemName, worldPosition) {
   // Find system data
-  const system = systemData[systemName];
+
+  const system = Object.fromEntries(
+    Object.entries(stars)
+      .filter(([key, value]) => value.name === systemName) // Filter entries where value is a string
+  )[systemName];
+  
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
     return;
@@ -513,6 +775,8 @@ async function showSystemPopup(systemName, worldPosition) {
   if (wikiData.error) {
     wikiSection = `
       <div class="wiki-section">
+        <div class="wiki-title"> ${systemName} </div>
+        ${JSON.parse(system.anchors).B}LY from Capital
         <div class="error-message">Wiki Data</div>
         <div class="error-text">${wikiData.error}</div>
       </div>
@@ -523,6 +787,7 @@ async function showSystemPopup(systemName, worldPosition) {
         <div class="wiki-title">
           <a href="${wikiData.url}">${wikiData.title}</a>
         </div>
+        ${JSON.parse(system.anchors).B}LY from Capital
         ${wikiData.summary ? `<div class="wiki-summary">${wikiData.summary}</div>` : ''}
         ${wikiData.galaxy ? `<div class="wiki-info"><strong>Galaxy:</strong> ${wikiData.galaxy}</div>` : ''}
         ${wikiData.region ? `<div class="wiki-info"><strong>Region:</strong> ${wikiData.region}</div>` : ''}
@@ -543,11 +808,7 @@ async function showSystemPopup(systemName, worldPosition) {
   }
   
   // Update popup content with both system data
-  popup.innerHTML = `
-    <div class="system-name">${systemName}</div>
-    <div class="wiki-info">${system.B}LY from Capital</div>
-    ${wikiSection}
-  `;
+  popup.innerHTML = `${wikiSection}`;
   
   // Update popup size based on content
   const newHeight = Math.min(600, popup.scrollHeight);

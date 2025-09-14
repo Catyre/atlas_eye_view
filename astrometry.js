@@ -169,7 +169,8 @@ export async function processAstrometrics(galaxy) {
       console.log("Position validation completed. Check console for detailed results.");
     }
 
-    updateAnchorDropdown();
+    // Update anchor dropdown with the processed anchors
+    updateAnchorDropdown(all_anchors);
 
     if (systemData) {
       console.log("systemdata", systemData)

@@ -6,11 +6,11 @@ const Papa = require('papaparse');
 // Config
 const RPI_ADDRESS_EUCLID = 'http://10.0.0.218:3000/upload';
 const RPI_ADDRESS_CAL = 'http://10.0.0.218:4000/upload';
-const CAL_SYSTEMS_CSV = './backend/galaxy_data/new_calypso_astrometrics.csv';
+const CAL_SYSTEMS_CSV = './backend/galaxy_data/calypso_astrometrics.csv';
 const EUCLID_SYSTEMS_CSV = './backend/galaxy_data/new_euclid_astrometrics.csv';
 
-const SYSTEMS_CSV = EUCLID_SYSTEMS_CSV;
-const RPI_ADDRESS = RPI_ADDRESS_EUCLID;
+const SYSTEMS_CSV = CAL_SYSTEMS_CSV;
+const RPI_ADDRESS = RPI_ADDRESS_CAL;
 
 // Load and parse CSVs
 function loadCSV(filepath) {

@@ -312,34 +312,41 @@ export function trilaterate4Dynamic(name, anchors, targetDistances) {
 
 /**
  * Multilateration for N anchors in 3D using nonlinear least squares.
- * @param {Array<[number, number, number]>} anchors - Array of anchor positions [[x, y, z], ...]
+ * Works with any number of anchors >= 4, gracefully handling missing data.
+ * @param {Object} coordinate_system - Object containing anchors and origin
  * @param {Object} anchorDistancesObj - Object mapping anchor IDs to distances to the unknown point
  * @returns {[number, number, number]} Estimated [x, y, z] position
  */
 export function multilaterate(coordinate_system, anchorDistancesObj) {
   const anchors = coordinate_system.anchors;
-  // Build arrays in the same order
+  
+  // Build arrays, filtering out anchors with missing or invalid distance data
   const anchorPos = [];
   const distances = [];
+  const validAnchors = [];
+  
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
-    anchorPos.push([anchor.ghc_x, anchor.ghc_y, anchor.ghc_z]);
-    // Use anchor_id as key
     const d = anchorDistancesObj[anchor.anchor_id];
-    if (typeof d !== 'number' || isNaN(d)) {
-      throw new Error(`Missing or invalid distance for anchor ${anchor.anchor_id}`);
+    
+    // Check if distance data is valid
+    if (typeof d === 'number' && !isNaN(d)) {
+      anchorPos.push([anchor.ghc_x, anchor.ghc_y, anchor.ghc_z]);
+      distances.push(d);
+      validAnchors.push(anchor.anchor_id);
+    } else {
+      console.warn(`Skipping anchor ${anchor.anchor_id} - missing or invalid distance data:`, d);
     }
-    distances.push(d);
   }
 
-  if (anchorPos.length !== distances.length) {
-    throw new Error('Number of anchors and distances must match');
-  }
-  if (anchorPos.length < 4) {
-    throw new Error('At least 4 anchors are required for 3D multilateration');
+  // Check if we have enough valid anchors
+  if (validAnchors.length < 4) {
+    throw new Error(`Insufficient valid anchors for multilateration. Found ${validAnchors.length}, need at least 4. Valid anchors: ${validAnchors.join(', ')}`);
   }
 
-  // Initial guess: centroid of anchors
+  console.log(`Multilateration using ${validAnchors.length} valid anchors: ${validAnchors.join(', ')}`);
+
+  // Initial guess: centroid of valid anchors
   const centroid = coordinate_system.origin;
 
   function errorFunc(pos) {
@@ -349,13 +356,20 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
       const dy = pos[1] - anchorPos[i][1];
       const dz = pos[2] - anchorPos[i][2];
       const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      sum += (dist - distances[i]) ** 2;
+      const error = dist - distances[i];
+      sum += error * error;
     }
     return sum;
   }
 
   // Use numeric.js's uncmin for minimization
   const result = numeric.uncmin(errorFunc, centroid);
+  
+  if (!result || !result.solution) {
+    throw new Error('Multilateration optimization failed');
+  }
+  
+  console.log(`Multilateration result: [${result.solution[0].toFixed(2)}, ${result.solution[1].toFixed(2)}, ${result.solution[2].toFixed(2)}]`);
   return result.solution;
 }
 
