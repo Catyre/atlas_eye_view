@@ -17,7 +17,7 @@ var renderer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
-const GALAXY = "euclid";
+const GALAXY = "calypso";
 // Don't forget to also change what backend is running
 
 // Keyboard controls state
@@ -29,7 +29,7 @@ var keys = {
   q: false, // Up
   e: false  // Down
 };
-const CAMERA_MOVE_SPEED = 75; // units per second
+const CAMERA_MOVE_SPEED = 125; // units per second
 
 // ---------------------Basic setup - TESTING HMR------------------------------- //
 function initializeScene() { 
@@ -124,7 +124,7 @@ let anchorList = [];
 const anchorSelect = document.getElementById('anchor-select');
 const snapButton = document.getElementById('snap-anchor-btn');
 
-export function updateAnchorDropdown(anchors = null) {
+export function updateSystemDropdown(anchors = null) {
   // Use provided anchors or fall back to stored anchorList
   const anchorsToUse = anchors || anchorList;
   
@@ -310,27 +310,12 @@ function handleCameraMovement(delta) {
   if (keys.d) {
     const rightMovement = rightVector.clone().multiplyScalar(moveDistance);
     moveVector.add(rightMovement);
-    console.log('D pressed - adding right movement:', rightMovement.toArray());
-    console.log('D key - rightVector:', rightVector.toArray(), 'moveDistance:', moveDistance);
-    console.log('D key - rightVector length:', rightVector.length());
   }
   if (keys.q) {
     moveVector.add(upVector.clone().multiplyScalar(moveDistance));
   }
   if (keys.e) {
     moveVector.add(upVector.clone().multiplyScalar(-moveDistance));
-  }
-  
-  // Debug: Test with a simple movement if no keys are working
-  if (moveVector.length() === 0 && (keys.w || keys.a || keys.s || keys.d)) {
-    console.log('No movement calculated, testing with simple forward movement');
-    moveVector.set(0, 0, -moveDistance); // Simple forward movement
-  }
-  
-  // Debug: Test D key specifically with simple right movement
-  if (keys.d && moveVector.length() === 0) {
-    console.log('D key pressed but no movement, using simple right movement');
-    moveVector.set(moveDistance, 0, 0); // Simple right movement along X axis
   }
   
   // Apply movement to camera target only
@@ -422,7 +407,7 @@ function placeStars(starData, scene) {
 
     // Material for stars
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
-    const geometry = new THREE.SphereGeometry(.8, 16, 16);
+    const geometry = new THREE.SphereGeometry(2, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
     star.position.set(starPos[0], starPos[1], starPos[2]);

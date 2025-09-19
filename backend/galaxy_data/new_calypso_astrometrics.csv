@@ -1,6 +1,11 @@
 id,name,anchors,color,is_anchor,anchor_id,confidence
-[HUB44-A],Tashat,"{"A": 0, "B": 1473, "C": 1136, "D": 1368, "E": 946}",yellow,true,A,0
-[HUB45-A],Nasfiel-Nit,"{"A": 1473, "B": 0, "C": 1127, "D": 1134, "E": 1016}",yellow,true,B,0
-[HUB17-A],Ochleac,"{"A": 1136, "B": 1127, "C": 0, "D": 1848, "E": 1043}",yellow,true,C,0
-[HUB25-A],Snezhna,"{"A": 1368, "B": 1134, "C": 1848, "D": 0, "E": 1390}",yellow,true,D,0
-[HUB21-1E],Sidusius,"{"A": 946, "B": 1016, "C": 1043, "D": 1390, "E": 0}",yellow,true,E,0
+[HUB33-D2],Mamotsug,"{"A": 747, "B": 1332, "C": 1581, "D": 806, "E": 937}",red,false,0,0
+[HUB33-A6],Sekinag-Elon,"{"A": 744, "B": 1352, "C": 1595, "D": 804, "E": 966}",yellow,false,0,0
+[HUB33-8D],Etouchi,"{"A": 787, "B": 1318, "C": 1599, "D": 772, "E": 944}",red,false,0,0
+[HUB33-A5],Damagoyab,"{"A": 789, "B": 1312, "C": 1544, "D": 784, "E": 923}",red,false,0,0
+[HUB33-8A],Ojiyak-Guyp,"{"A": 808, "B": 1309, "C": 1602, "D": 788, "E": 912}",yellow,false,0,0
+[HUB33-A7],Goboribe,"{"A": 795, "B": 1330, "C": 1606, "D": 811, "E": 917}",yellow,false,0,0
+[HUB33-A2],Noborib,"{"A": 779, "B": 1299, "C": 1572, "D": 815, "E": 880}",yellow,false,0,0
+[HUB33-8B],Baritto,"{"A": 777, "B": 1316, "C": 1581, "D": 825, "E": 889}",yellow,false,0,0
+[HUB33-90],Gajorgei,"{"A": 793, "B": 1343, "C": 1601, "D": 869, "E": 876}",yellow,false,0,0
+[HUB33-A8],Echino,"{"A": 733, "B": 1281, "C": 1530, "D": 816, "E": 868}",blue,false,0,0

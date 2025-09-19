@@ -1,5 +1,5 @@
 import * as tri from './trilateration.js';
-import { updateAnchorDropdown } from './main.js';
+import { updateSystemDropdown } from './main.js';
 
 const BACKEND = "http://10.0.0.218"
 
@@ -170,7 +170,7 @@ export async function processAstrometrics(galaxy) {
     }
 
     // Update anchor dropdown with the processed anchors
-    updateAnchorDropdown(all_anchors);
+    updateSystemDropdown(stars);
 
     if (systemData) {
       console.log("systemdata", systemData)
