@@ -1,7 +1,7 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = "http://10.0.0.218"
+const BACKEND = "http://localhost"
 
 // Function to update system coordinates on the backend
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
