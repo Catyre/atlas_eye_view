@@ -1,11 +1,50 @@
 id,name,anchors,color,is_anchor,anchor_id,confidence
-[HUB33-D2],Mamotsug,"{"A": 747, "B": 1332, "C": 1581, "D": 806, "E": 937}",red,false,0,0
-[HUB33-A6],Sekinag-Elon,"{"A": 744, "B": 1352, "C": 1595, "D": 804, "E": 966}",yellow,false,0,0
-[HUB33-8D],Etouchi,"{"A": 787, "B": 1318, "C": 1599, "D": 772, "E": 944}",red,false,0,0
-[HUB33-A5],Damagoyab,"{"A": 789, "B": 1312, "C": 1544, "D": 784, "E": 923}",red,false,0,0
-[HUB33-8A],Ojiyak-Guyp,"{"A": 808, "B": 1309, "C": 1602, "D": 788, "E": 912}",yellow,false,0,0
-[HUB33-A7],Goboribe,"{"A": 795, "B": 1330, "C": 1606, "D": 811, "E": 917}",yellow,false,0,0
-[HUB33-A2],Noborib,"{"A": 779, "B": 1299, "C": 1572, "D": 815, "E": 880}",yellow,false,0,0
-[HUB33-8B],Baritto,"{"A": 777, "B": 1316, "C": 1581, "D": 825, "E": 889}",yellow,false,0,0
-[HUB33-90],Gajorgei,"{"A": 793, "B": 1343, "C": 1601, "D": 869, "E": 876}",yellow,false,0,0
-[HUB33-A8],Echino,"{"A": 733, "B": 1281, "C": 1530, "D": 816, "E": 868}",blue,false,0,0
+[HUB14-10F],Onawaj-Spask,"{"A":1308,"B":1146,"C":1099,"D":1380,"E":1591}",green,false,0,0
+[HUB14-D9],Hofuna-Nadri,"{"A":1289,"B":1142,"C":1115,"D":1367,"E":1597}",blue,false,0,0
+[HUB14-F1],AkadachiI,"{"A":1281,"B":1138,"C":1100,"D":1373,"E":1588}",yellow,false,0,0
+[HUB14-DC],Uttsukih,"{"A":1268,"B":1139,"C":1090,"D":1373,"E":1579}",yellow,false,0,0
+[HUB14-12A],Inuyameg,"{"A":1257,"B":1135,"C":1069,"D":1382,"E":1567}",yellow,false,0,0
+[HUB14-EC],Notakeha,"{"A":1269,"B":1124,"C":1076,"D":1375,"E":1570}",green,false,0,0
+[HUB14-F0],Maezak,"{"A":1265,"B":1117,"C":1083,"D":1359,"E":1565}",red,false,0,0
+[HUB14-10D],Sahara,"{"A":1240,"B":1101,"C":1075,"D":1333,"E":1540}",yellow,false,0,0
+[HUB14-10C],Gaharao-UbnVI,"{"A":1272,"B":1113,"C":1071,"D":1371,"E":1564}",yellow,false,0,0
+[HUB14-D6],Enoheruks,"{"A":1306,"B":1154,"C":1114,"D":1394,"E":1613}",yellow,false,0,0
+[HUB24-2B],Nasuginam,"{"A":1069,"B":1153,"C":1653,"D":716,"E":852}",yellow,false,0,0
+[HUB24-A3],Mibosori,"{"A":1351,"B":1283,"C":1928,"D":641,"E":1132}",yellow,false,0,0
+[HUB24-C5],Itsuyam,"{"A":1389,"B":1008,"C":1778,"D":582,"E":1049}",yellow,false,0,0
+[HUB24-3EF],Domach,"{"A":1081,"B":1075,"C":1639,"D":522,"E":950}",purple,false,0,0
+[HUB24-163],Iidera-Ubar,"{"A":1052,"B":1055,"C":1601,"D":557,"E":905}",red,false,0,0
+[HUB24-428],Hofunak-Iki,"{"A":1082,"B":1115,"C":1665,"D":543,"E":960}",purple,false,0,0
+[HUB24-13F],Gusukih,"{"A":1093,"B":1130,"C":1686,"D":497,"E":1005}",red,false,0,0
+[HUB24-161],Joyosh-AgoenXI,"{"A":1082,"B":1071,"C":1634,"D":538,"E":936}",yellow,false,0,0
+[HUB24-12D],Aisaha-Ireri,"{"A":1030,"B":1062,"C":1597,"D":520,"E":934}",green,false,0,0
+[HUB35-234],EspasiliXIV,"{"A":737,"B":1345,"C":1388,"D":943,"E":1343}",yellow,false,0,0
+[HUB35-207],Bestof-Hibe,"{"A":773,"B":1355,"C":1431,"D":910,"E":1366}",blue,false,0,0
+[HUB35-416],Qedalte-AjimaXIX,"{"A":779,"B":1350,"C":1432,"D":905,"E":1368}",purple,false,0,0
+[HUB35-202],Lakema-Laiy,"{"A":769,"B":1331,"C":1423,"D":886,"E":1345}",yellow,false,0,0
+[HUB35-21A],Ithathl-Yom,"{"A":741,"B":1314,"C":1361,"D":938,"E":1329}",yellow,false,0,0
+[HUB35-1EE],Tavirgin,"{"A":736,"B":1296,"C":1360,"D":912,"E":1309}",yellow,false,0,0
+[HUB35-218],Havand,"{"A":728,"B":1302,"C":1354,"D":926,"E":1310}",yellow,false,0,0
+[HUB35-22E],Pitiunt,"{"A":723,"B":1300,"C":1352,"D":923,"E":1303}",yellow,false,0,0
+[HUB35-232],Deviathmi,"{"A":719,"B":1333,"C":1365,"D":950,"E":1325}",yellow,false,0,0
+[HUB35-1FF],Olcuse-Gedui,"{"A":793,"B":1320,"C":1414,"D":891,"E":1360}",yellow,false,0,0
+[HUB28-8D],Shnyev-Otav,"{"A":710,"B":1342,"C":1213,"D":1148,"E":1351}",blue,false,0,0
+[HUB28-B6],Letambay,"{"A":667,"B":1317,"C":1170,"D":1152,"E":1304}",yellow,false,0,0
+[HUB28-8C],Hakovdor,"{"A":681,"B":1309,"C":1186,"D":1129,"E":1308}",green,false,0,0
+[HUB28-85],Bezhdut,"{"A":688,"B":1307,"C":1176,"D":1139,"E":1312}",yellow,false,0,0
+[HUB28-91],Evichuso,"{"A":731,"B":1319,"C":1176,"D":1168,"E":1350}",yellow,false,0,0
+[HUB28-A2],Yunskop,"{"A":716,"B":1292,"C":1165,"D":1143,"E":1322}",yellow,false,0,0
+[HUB28-B4],Innikino,"{"A":694,"B":1288,"C":1163,"D":1132,"E":1303}",green,false,0,0
+[HUB28-95],Korabu-Yosv,"{"A":723,"B":1321,"C":1173,"D":1171,"E":1346}",yellow,false,0,0
+[HUB28-CD],Yukalin-Anan,"{"A":713,"B":1340,"C":1194,"D":1168,"E":1352}",yellow,false,0,0
+[HUB28-B7],Uyskyvi,"{"A":701,"B":1353,"C":1184,"D":1192,"E":1353}",red,false,0,0
+[HUB29-403],Dawakiza,"{"A":710,"B":1344,"C":737,"D":1573,"E":1233}",purple,false,0,0
+[HUB29-2F],Myokosh,"{"A":715,"B":1334,"C":736,"D":1565,"E":1233}",yellow,false,0,0
+[HUB29-51],Roshir,"{"A":703,"B":1324,"C":737,"D":1550,"E":1221}",yellow,false,0,0
+[HUB29-77],Joetsun-Hudenp,"{"A":710,"B":1327,"C":751,"D":1546,"E":1233}",yellow,false,0,0
+[HUB29-229],Ukihar-Puch,"{"A":733,"B":1326,"C":720,"D":1572,"E":1235}",yellow,false,0,0
+[HUB29-215],Ichiha,"{"A":726,"B":1322,"C":736,"D":1556,"E":1236}",yellow,false,0,0
+[HUB29-3F2],Sakurasa,"{"A":731,"B":1331,"C":748,"D":1558,"E":1249}",purple,false,0,0
+[HUB29-30],Kuyama-Duny,"{"A":696,"B":1323,"C":753,"D":1536,"E":1223}",yellow,false,0,0
+[HUB29-1EC],Noichi-Boy,"{"A":739,"B":1343,"C":774,"D":1554,"E":1271}",yellow,false,0,0
+[HUB29-1D1],Chinem-Kazix,"{"A":730,"B":1309,"C":757,"D":1528,"E":1244}",green,false,0,0
