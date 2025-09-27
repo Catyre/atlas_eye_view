@@ -22,6 +22,7 @@ function loadCSV(filepath) {
 
 // Convert values
 function convertSystems(rows) {
+  console.log(r.anchors)
   return rows.map(r => ({
     id: r.id,
     name: r.name || null,
