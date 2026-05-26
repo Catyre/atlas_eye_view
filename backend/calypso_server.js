@@ -4,14 +4,14 @@ const sqlite3 = require('sqlite3').verbose();
 
 // Create Express app
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 const CALYPSO = './backend/galaxy_data/calypso_astrometrics.sqlite';
 
 // Middleware
 // Configure CORS to only accept requests from your deployed frontend
 app.use(cors({
-  origin: 'https://gh-cartography.onrender.com', // Replace this with your exact frontend URL
+  origin: 'https://gh-cartography.onrender.com',
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -403,7 +403,7 @@ async function startServer() {
     
     // Start server
     const server = app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`Server running on http://atlas-eye-view.onrender.com:${PORT}`);
       console.log('Available endpoints:');
       console.log('  GET  /systems                    - Get all systems');
       console.log('  GET  /system/:name               - Get specific system');
