@@ -1,15 +1,15 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 // Function to update system coordinates on the backend
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
   let address = "";
   if (galaxy === "euclid"){
-    address = BACKEND + ":3000/update-coordinates";
+    address = BACKEND + "update-coordinates";
   } else if (galaxy === "calypso") {
-    address = BACKEND + ":4000/update-coordinates";
+    address = BACKEND + "update-coordinates";
   }
   try {
     const updateData = {
@@ -44,9 +44,9 @@ async function updateSystemCoordinates(galaxy, systemName, coordinates) {
 export async function processAstrometrics(galaxy) {
   let address = "";
   if (galaxy === "euclid"){
-    address = BACKEND + ":3000/systems";
+    address = BACKEND + "systems";
   } else if (galaxy === "calypso") {
-    address = BACKEND + ":4000/systems";
+    address = BACKEND + "systems";
   }
 
   // Get system data from backend

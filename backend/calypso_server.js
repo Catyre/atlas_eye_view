@@ -4,7 +4,7 @@ const sqlite3 = require('sqlite3').verbose();
 
 // Create Express app
 const app = express();
-const PORT = 4000;
+const PORT = 3000;
 
 const CALYPSO = './galaxy_data/calypso_astrometrics.sqlite';
 
