@@ -11,7 +11,8 @@ const CALYPSO = './backend/galaxy_data/calypso_astrometrics.sqlite';
 // Middleware
 // Configure CORS to only accept requests from your deployed frontend
 app.use(cors({
-  origin: 'https://gh-cartography.onrender.com', // Replace this with your exact frontend URL
+  origin: 'https://gh-cartography.onrender.com',
+  //origin: 'http://localhost:5173',
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -69,6 +70,40 @@ function ensureSystemsTable() {
     });
   });
 }
+
+app.post('/add-system', (req, res) => {
+  const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
+  
+  if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined, || color === undefined) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Create valid JSON string for the anchors
+  const anchorsObj = { 
+    A: new_a, 
+    B: new_b, 
+    C: new_c, 
+    D: new_d, 
+    E: new_e 
+  };
+  const anchors = JSON.stringify(anchorsObj);
+
+  // Only list the columns you are actively inserting data into
+  const query = `INSERT INTO systems (id, name, anchors, color) VALUES (?, ?, ?, ?)`;
+  
+  // Pass exactly 4 variables to match the 4 question marks
+  db.run(query, [id, name, anchors, color], function(err) {
+    if (err) {
+      console.error('Database insert error:', err);
+      return res.status(500).json({ error: 'Failed to write to database' });
+    }
+    
+    res.status(201).json({ 
+      message: 'System successfully added', 
+      id: this.lastID 
+    });
+  });
+});
 
 // Initialize database with coordinate columns if they don't exist
 function initializeDatabase() {
