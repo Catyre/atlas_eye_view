@@ -21,9 +21,19 @@ const allowedOrigins = [
 ];
 
 // Middleware
+//app.use(cors({
+//  origin: allowedOrigins,
+//  methods: ['GET', 'POST'],
+//  credentials: true
+//}));
+//app.use(express.json());
+// Middleware (TEST)
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST'],
+  // Dynamically allow the requesting origin
+  origin: function (origin, callback) {
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true
 }));
 app.use(express.json());
