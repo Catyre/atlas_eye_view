@@ -16,8 +16,7 @@ if (PORT === undefined) {
 const DB_PATH = process.env.DB_PATH || './backend/galaxy_data/astrometrics.sqlite';
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL + "systems?galaxy=calypso",
-  process.env.FRONTEND_URL + "systems?galaxy=euclid",
+  process.env.FRONTEND_URL, 
   'http://localhost:5173'
 ];
 
