@@ -16,12 +16,12 @@
     "camera-controls": "^2.10.1",
     "jquery": "^3.7.1",
     "jquery-csv": "^1.0.40",
-    "mathjs": "^14.7.0",
+    "mathjs": "^15.2.0",
     "ml-matrix": "^6.12.1",
     "node-fetch": "^3.3.2",
     "numeric": "^1.2.6",
     "papaparse": "^5.5.3",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "sqljs": "^0.0.0-6",
     "three": "^0.178.0"
   }

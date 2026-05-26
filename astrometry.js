@@ -1,7 +1,7 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = "http://10.0.0.218"
+const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Function to update system coordinates on the backend
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
