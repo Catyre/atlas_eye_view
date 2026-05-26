@@ -16,27 +16,18 @@ if (PORT === undefined) {
 const DB_PATH = process.env.DB_PATH || './backend/galaxy_data/astrometrics.sqlite';
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL, 
+  'https://gh-cartography.onrender.com', 
   'http://localhost:5173'
 ];
 
 // Middleware
-//app.use(cors({
-//  origin: allowedOrigins,
-//  methods: ['GET', 'POST'],
-//  credentials: true
-//}));
-//app.use(express.json());
-// Middleware (TEST)
 app.use(cors({
-  // Dynamically allow the requesting origin
-  origin: function (origin, callback) {
-    callback(null, true);
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
+  origin: allowedOrigins,
+  methods: ['GET', 'POST'],
   credentials: true
 }));
 app.use(express.json());
+
 
 // Database connection
 let db;
