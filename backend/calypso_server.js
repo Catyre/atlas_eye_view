@@ -74,7 +74,7 @@ function ensureSystemsTable() {
 app.post('/add-system', (req, res) => {
   const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
   
-  if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined, || color === undefined) {
+  if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined || color === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
