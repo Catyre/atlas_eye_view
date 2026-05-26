@@ -1,18 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
+import express from 'express';
+import cors from 'cors';
+import sqlite3 from 'sqlite3';
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT;
-
+let PORT = process.env.PORT;
+let CURR_ENV = "Production"
+if (PORT === undefined) {
+  CURR_ENV = "Development";
+  PORT = 10000;
+}
 const CALYPSO = './backend/galaxy_data/calypso_astrometrics.sqlite';
+const allowedOrigins = [
+  process.env.FRONTEND_URL, 
+  'http://localhost:5173'
+];
 
 // Middleware
-// Configure CORS to only accept requests from your deployed frontend
+// Configure CORS to only accept requests from deployed frontend or locahost
 app.use(cors({
-  origin: 'https://gh-cartography.onrender.com',
-  //origin: 'http://localhost:5173',
+  origin: allowedOrigins,
   methods: ['GET', 'POST'],
   credentials: true
 }));
@@ -438,7 +445,7 @@ async function startServer() {
     
     // Start server
     const server = app.listen(PORT, () => {
-      console.log(`Server running on http://atlas-eye-view.onrender.com:${PORT}`);
+      console.log(`Server running on ${CURR_ENV}`);
       console.log('Available endpoints:');
       console.log('  GET  /systems                    - Get all systems');
       console.log('  GET  /system/:name               - Get specific system');
@@ -447,6 +454,7 @@ async function startServer() {
       console.log('  GET  /systems-with-coordinates   - Get systems with coordinates');
       console.log('  GET  /coordinates-status         - Get coordinate update status');
       console.log('  GET  /health                     - Health check');
+      console.log('  POST /add-system                 - Submit a new system to the database')
     });
     
     // Add server error handling

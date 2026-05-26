@@ -1,5 +1,4 @@
 
-
 // Function to fetch data from No Man's Sky Miraheze wiki
 async function fetchWikiData(systemName) {
   try {
@@ -212,4 +211,31 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   const newHeight = Math.min(600, popup.scrollHeight);
   popup.style.height = `${newHeight}px`;
 }
+
+
+
+
+
+
+// Crosshair
+const crosshair = document.createElement('div');
+crosshair.id = 'viewport-crosshair';
+crosshair.style.cssText = `
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1000;
+`;
+crosshair.innerHTML = `
+  <div class="crosshair-line" style="top: 14px; left: 0; width: 10px; height: 2px;"></div>
+  <div class="crosshair-line" style="top: 14px; right: 0; width: 10px; height: 2px;"></div>
+  <div class="crosshair-line" style="top: 0; left: 14px; width: 2px; height: 10px;"></div>
+  <div class="crosshair-line" style="bottom: 0; left: 14px; width: 2px; height: 10px;"></div>
+  <div class="crosshair-line" style="top: 14px; left: 14px; width: 2px; height: 2px;"></div>
+`;
+document.body.appendChild(crosshair);
 

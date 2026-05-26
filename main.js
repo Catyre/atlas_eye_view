@@ -19,8 +19,7 @@ var popup = null;
 var mouse = null;
 var raycaster = null;
 const GALAXY = "calypso";
-const BACKEND = 'https://atlas-eye-view.onrender.com/'
-//const BACKEND = 'http://localhost:4000/'
+const BACKEND = import.meta.env.VITE_BACKEND_URL;
 // Don't forget to also change what backend is running
 
 // Keyboard controls state
@@ -51,7 +50,8 @@ function initializeScene() {
     var clock = new THREE.Clock();
     var camera = new THREE.PerspectiveCamera( 60, width / height, 0.01, 5000 );
     var renderer = new THREE.WebGLRenderer({ antialias: true });
-    var cameraControls = new CameraControls( camera, renderer.domElement );
+    window.cameraControls = new CameraControls( camera, renderer.domElement );
+    cameraControls = window.cameraControls;
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0px';
@@ -126,61 +126,102 @@ export async function getScene() {
   return scene;
 }
 
+// Reset Button
+const resetButton = document.createElement('button');
+resetButton.id = 'reset-btn';
+resetButton.className = 'hud-button';
+resetButton.textContent = 'Reset View';
+document.body.appendChild(resetButton);
 
-// --- Anchor Snap UI Logic --- //
-// Store anchor data for snapping
-let anchorList = [];
-const anchorSelect = document.getElementById('anchor-select');
+function resetCamera() {
+  cameraControls.setLookAt(
+    20, 20, 20,  // Initial camera position
+    0, 0, 0,     // Look at origin
+    true         // Smooth transition
+  );
+  
+  hidePopup();
+  unsnapButton.style.display = 'none';
+}
+
+// Unsnap Button
+const unsnapButton = document.createElement('button');
+unsnapButton.id = 'unsnap-btn';
+unsnapButton.className = 'hud-button warning';
+unsnapButton.textContent = 'Unsnap Camera';
+document.body.appendChild(unsnapButton);
+
+// Function to unsnap camera
+function unsnapCamera() {
+  // Hide popup
+  hidePopup();
+  
+  // Hide unsnap button
+  unsnapButton.style.display = 'none';
+}
+
+// Add click handler for unsnap button
+unsnapButton.addEventListener('click', unsnapCamera);
+resetButton.addEventListener('click', resetCamera);
+
+function snapToSelectedAnchor() {
+  const targetName = systemSelect.value;
+  
+  // Search the list using the unique system name
+  const targetSystem = systemList.find(sys => sys.name === targetName);
+  
+  if (!targetSystem) return;
+  
+  const offset = 20;
+  const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
+  
+  cameraControls.setLookAt(
+    pos[0] + offset,
+    pos[1] + offset,
+    pos[2] + offset,
+    pos[0],
+    pos[1],
+    pos[2],
+    true
+  );
+
+  unsnapButton.style.display = 'block';
+}
+
+
+let systemList = [];
+const systemSelect = document.getElementById('anchor-select');
 const snapButton = document.getElementById('snap-anchor-btn');
+snapButton.addEventListener('click', snapToSelectedAnchor);
 
-export function updateSystemDropdown(anchors = null) {
-  // Use provided anchors or fall back to stored anchorList
-  const anchorsToUse = anchors || anchorList;
+export function updateSystemDropdown(systems = null) {
+  const systemsToUse = systems || systemList;
   
-  console.log('Updating anchor dropdown with:', anchorsToUse);
-  anchorSelect.innerHTML = '';
+  systemSelect.innerHTML = '';
   
-  if (!anchorsToUse || anchorsToUse.length === 0) {
+  if (!systemsToUse || systemsToUse.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = 'No anchors';
-    anchorSelect.appendChild(opt);
+    opt.textContent = 'No systems available';
+    systemSelect.appendChild(opt);
     snapButton.disabled = true;
     return;
   }
   
-  // Store anchors for later use
-  anchorList = anchorsToUse;
+  systemList = systemsToUse;
   
-  for (const anchor of anchorsToUse) {
+  for (const sys of systemsToUse) {
     const opt = document.createElement('option');
-    opt.value = anchor.anchor_id;
-    opt.textContent = anchor.name || anchor.anchor_id;
-    anchorSelect.appendChild(opt);
+    
+    // Use the system's unique name as the value instead of anchor_id
+    opt.value = sys.name; 
+    
+    // Fallback text content just in case a name is missing
+    opt.textContent = sys.name || sys.anchor_id;
+    systemSelect.appendChild(opt);
   }
   snapButton.disabled = false;
 }
-
-  function snapToSelectedAnchor() {
-    //const cameraControls = sceneSetup.cameraControls;
-    const anchorId = anchorSelect.value;
-    const anchor = anchorList.find(a => a.anchor_id === anchorId);
-    if (!anchor) return;
-    // Camera offset for better view
-    const offset = 20;
-    const pos = [anchor.ghc_x, anchor.ghc_y, anchor.ghc_z];
-    cameraControls.setLookAt(
-      pos[0] + offset,
-      pos[1] + offset,
-      pos[2] + offset,
-      pos[0],
-      pos[1],
-      pos[2],
-      true
-    );
-  }
-
-// Store system data for popup
 
 
 
@@ -486,138 +527,24 @@ initializeScene().then(function(data) {
 
     // Add click event listener after scene is loaded
     window.addEventListener('click', onMouseClick);
-    snapButton.addEventListener('click', snapToSelectedAnchor);
     animate();
   });
 });
 
-
-
-// Create camera position display box
+// Camera Position Box
 const cameraPositionBox = document.createElement('div');
-cameraPositionBox.className = 'camera-position-box';
-cameraPositionBox.style.cssText = `
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  background: rgba(30, 30, 30, 0.95);
-  color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid #444;
-`;
+cameraPositionBox.id = 'camera-position-box';
+cameraPositionBox.className = 'hud-panel';
 cameraPositionBox.innerHTML = `
-  <div style="font-weight: bold; margin-bottom: 4px;">Camera Position</div>
+  <div style="color: #00ffff; margin-bottom: 6px;">[ SENSOR TELEMETRY ]</div>
   <div>X: <span id="cam-x">0.00</span></div>
   <div>Y: <span id="cam-y">0.00</span></div>
   <div>Z: <span id="cam-z">0.00</span></div>
 `;
 document.body.appendChild(cameraPositionBox);
 
-// Create unsnap button
-const unsnapButton = document.createElement('button');
-unsnapButton.textContent = 'Unsnap Camera';
-unsnapButton.className = 'unsnap-button';
-unsnapButton.style.cssText = `
-  position: fixed;
-  top: 80px;
-  right: 155px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #ff4757;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s;
-  z-index: 1000;
-  display: none;
-`;
-document.body.appendChild(unsnapButton);
 
-const resetButton = document.createElement('button');
-resetButton.textContent = 'Reset Camera';
-resetButton.className = 'reset-button';
-resetButton.style.cssText = `
-  position: fixed;
-  top: 80px;
-  right: 15px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #4b6584;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s;
-  z-index: 1000;
-`;
-document.body.appendChild(resetButton);
 
-function resetCamera() {
-  cameraControls.setLookAt(
-    20, 20, 20,  // Initial camera position
-    0, 0, 0,     // Look at origin
-    true         // Smooth transition
-  );
-  
-  hidePopup();
-  unsnapButton.style.display = 'none';
-}
-
-resetButton.addEventListener('click', resetCamera);
-
-// Function to unsnap camera
-function unsnapCamera() {
-  // Hide popup
-  hidePopup();
-  
-  // Hide unsnap button
-  unsnapButton.style.display = 'none';
-}
-
-const crosshair = document.createElement('div');
-crosshair.id = 'viewport-crosshair';
-crosshair.style.cssText = `
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  transform: translate(-50%, -50%);
-  pointer-events: none; /* Crucial: allows clicks to pass through to the canvas */
-  z-index: 1000;
-`;
-
-/* Using two nested divs to create a plus shape with a slight shadow for visibility against light stars */
-crosshair.innerHTML = `
-  <div style="
-    position: absolute; 
-    top: 9px; 
-    left: 0; 
-    width: 20px; 
-    height: 2px; 
-    background: rgba(255, 255, 255, 0.9); 
-    box-shadow: 0 0 2px rgba(0,0,0,0.8);
-  "></div>
-  <div style="
-    position: absolute; 
-    top: 0; 
-    left: 9px; 
-    width: 2px; 
-    height: 20px; 
-    background: rgba(255, 255, 255, 0.9); 
-    box-shadow: 0 0 2px rgba(0,0,0,0.8);
-  "></div>
-`;
-document.body.appendChild(crosshair);
-
-// Add click handler for unsnap button
-unsnapButton.addEventListener('click', unsnapCamera);
 
 // Function to hide popup
 function hidePopup() {
@@ -630,71 +557,53 @@ if (oldBtn) oldBtn.remove();
 
 const oldPanel = document.getElementById('add-system-panel');
 if (oldPanel) oldPanel.remove();
-
-// 2. Create button with an ID
+// Add System Button
 const toggleAddButton = document.createElement('button');
 toggleAddButton.id = 'add-system-btn';
-toggleAddButton.textContent = '+ Add System';
-toggleAddButton.style.cssText = `
-  position: fixed;
-  top: 30px;
-  right: 350px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #20bf6b;
-  color: #fff;
-  cursor: pointer;
-  z-index: 1000;
-`;
+toggleAddButton.className = 'hud-button';
+toggleAddButton.textContent = '+ Initialize Target';
+toggleAddButton.state === "On"
 document.body.appendChild(toggleAddButton);
 
-// 3. Create panel with an ID
+// Add System Panel
 const addSystemPanel = document.createElement('div');
 addSystemPanel.id = 'add-system-panel';
-addSystemPanel.style.cssText = `
-  position: fixed;
-  top: 70px;
-  right: 350px;
-  background: rgba(30, 30, 30, 0.95);
-  color: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  font-family: monospace;
-  z-index: 1000;
-  display: none;
-  border: 1px solid #444;
-  width: 250px;
-`;
+addSystemPanel.className = 'hud-panel';
 
 addSystemPanel.innerHTML = `
-  <h3 style="margin-top: 0;">New Star System</h3>
+  <h3>New Star System</h3>
   <form style="display: flex; flex-direction: column; gap: 8px;">
-    <input type="text" id="new-hubtag" placeholder="Hubtag" required style="padding: 4px;">
-    <input type="text" id="new-name" placeholder="System Name" required style="padding: 4px;">
-    <input type="text" id="new-color" placeholder="Stellar class (blue, red, green, etc.)" required style="padding: 4px;">
-    <input type="number" step="any" id="new-a" placeholder="Distance from anchor A" required style="padding: 4px;">
-    <input type="number" step="any" id="new-b" placeholder="Distance from anchor B" required style="padding: 4px;">
-    <input type="number" step="any" id="new-c" placeholder="Distance from anchor C" required style="padding: 4px;">
-    <input type="number" step="any" id="new-d" placeholder="Distance from anchor D" required style="padding: 4px;">
-    <input type="number" step="any" id="new-e" placeholder="Distance from anchor E" required style="padding: 4px;">
-    <button type="submit" style="margin-top: 8px; padding: 6px; background: #4b6584; color: white; border: none; cursor: pointer;">Submit to Database</button>
+    <input type="text" id="new-hubtag" class="hud-input" placeholder="Hubtag" required>
+    <input type="text" id="new-name" class="hud-input" placeholder="System Name" required>
+    <input type="text" id="new-color" class="hud-input" placeholder="Stellar Class" required>
+    <input type="number" step="any" id="new-a" class="hud-input" placeholder="Dist: Anchor A" required>
+    <input type="number" step="any" id="new-b" class="hud-input" placeholder="Dist: Anchor B" required>
+    <input type="number" step="any" id="new-c" class="hud-input" placeholder="Dist: Anchor C" required>
+    <input type="number" step="any" id="new-d" class="hud-input" placeholder="Dist: Anchor D" required>
+    <input type="number" step="any" id="new-e" class="hud-input" placeholder="Dist: Anchor E" required>
+    <button type="submit" class="hud-button submit">Transmit Coordinates</button>
   </form>
-  <div id="add-status" style="margin-top: 8px; font-size: 12px;"></div>
+  <div id="add-status" style="margin-top: 12px; font-size: 12px; text-align: center;"></div>
 `;
 document.body.appendChild(addSystemPanel);
 
-// 4. Prevent UI clicks from triggering the raycaster
+
+// Prevent UI clicks from triggering the raycaster
 toggleAddButton.addEventListener('click', (event) => {
   event.stopPropagation();
   
   if (addSystemPanel.style.display !== 'block') {
     addSystemPanel.style.display = 'block';
+    toggleAddButton.textContent = '- Cancel';
+    toggleAddButton.style.cssText += "background: rgba(277, 2, 35, 0.95);"
     document.exitPointerLock(); 
   } else {
+    toggleAddButton.textContent = "+ Initialize Target";
+    toggleAddButton.style.cssText += "background: #20bf6b;"
     addSystemPanel.style.display = 'none';
   }
+
+  toggleAddButton.state = toggleAddButton.state === "On" ? "Off" : "On"
 });
 
 // 5. Prevent form clicks from triggering the raycaster
