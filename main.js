@@ -18,7 +18,7 @@ var renderer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
-const GALAXY = "calypso";
+let currentGalaxy = "calypso";
 const BACKEND = import.meta.env.VITE_BACKEND_URL;
 // Don't forget to also change what backend is running
 
@@ -399,22 +399,29 @@ function createBackgroundStarfield(scene) {
   scene.add(backgroundStars);
 }
 
+
 function placeStars(starData, scene) {
+  // 1. Ironclad cleanup using a custom data tag to prevent race conditions
+  const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
+  
+  starsToRemove.forEach(star => {
+    if (star.geometry) star.geometry.dispose();
+    if (star.material) star.material.dispose();
+    scene.remove(star);
+  });
+
   console.log("placeStars called with", Object.keys(starData).length, "systems");
   let starsPlaced = 0;
   
   for (const system in starData) {
     const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
     
-    // Skip if position data is missing
     if (starPos[0] === null || starPos[0] === undefined || 
         starPos[1] === null || starPos[1] === undefined || 
         starPos[2] === null || starPos[2] === undefined) {
-      console.warn(`Skipping system ${system} - missing position data:`, starPos);
       continue;
     }
 
-    // Material for stars
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(2, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
@@ -422,12 +429,16 @@ function placeStars(starData, scene) {
     star.position.set(starPos[0], starPos[1], starPos[2]);
     star.name = starData[system].name;
     
+    // 2. Apply the custom tag to the new star
+    star.userData.isSystemStar = true; 
+    
     scene.add(star);
     starsPlaced++;
   }
   
-  console.log(`Placed ${starsPlaced} stars in scene. Scene now has ${scene.children.length} children.`);
+  console.log(`Placed ${starsPlaced} stars in scene.`);
 }
+
 
 let firstPass = true;
 let stars = {};
@@ -440,7 +451,7 @@ initializeScene().then(function(data) {
   popup = data.popup;
   raycaster = data.raycaster;
 
-  astro.processAstrometrics(GALAXY).then(function(data2) {
+  astro.processAstrometrics(currentGalaxy).then(function(data2) {
     //console.log('data',data2);
     stars = data2;
     console.log('stars data received:', stars);
@@ -669,4 +680,86 @@ controlsTooltip.innerHTML = `
     Left-click any star to initialize telemetry readout.
   </div>
 `;
+
+// Galaxy selector
 document.body.appendChild(controlsTooltip);
+// Galaxy Selector UI
+const galaxySelector = document.createElement('div');
+galaxySelector.id = 'galaxy-selector';
+galaxySelector.className = 'hud-panel';
+
+const calypsoBtn = document.createElement('button');
+calypsoBtn.className = 'hud-tab active';
+calypsoBtn.textContent = 'Calypso';
+
+const euclidBtn = document.createElement('button');
+euclidBtn.className = 'hud-tab';
+euclidBtn.textContent = 'Euclid';
+
+galaxySelector.appendChild(calypsoBtn);
+galaxySelector.appendChild(euclidBtn);
+document.body.appendChild(galaxySelector);
+
+async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
+  if (currentGalaxy === newGalaxy) return;
+
+  activeBtn.classList.add('active');
+  inactiveBtn.classList.remove('active');
+  currentGalaxy = newGalaxy;
+
+  // Activate full-screen overlay
+  const overlay = document.getElementById('hyperspace-overlay');
+  const overlayText = document.getElementById('hyper-text-content');
+  overlayText.style.color = '#00ffff'; 
+  overlayText.textContent = `WARPING TO ${newGalaxy.toUpperCase()}...`;
+  overlay.classList.add('active');
+
+  const systemSelect = document.getElementById('anchor-select');
+  const snapButton = document.getElementById('snap-anchor-btn');
+  if (systemSelect) {
+    systemSelect.innerHTML = '<option value="">Connecting to Database...</option>';
+  }
+  if (snapButton) {
+    snapButton.disabled = true;
+  }
+
+  const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
+  starsToRemove.forEach(star => {
+    if (star.geometry) star.geometry.dispose();
+    if (star.material) star.material.dispose();
+    scene.remove(star);
+  });
+
+  const popupElement = document.querySelector('.system-popup');
+  if (popupElement) popupElement.classList.remove('open');
+  unsnapCamera();
+
+  try {
+    stars = await astro.processAstrometrics(currentGalaxy);
+    placeStars(stars, scene);
+  } catch (err) {
+    console.error("Failed to map new galaxy:", err);
+    overlayText.textContent = `WARP FAILED: ${newGalaxy.toUpperCase()} UNREACHABLE`;
+    overlayText.style.color = '#ff4757'; 
+    setTimeout(() => { overlay.classList.remove('active'); }, 3000);
+    return;
+  }
+
+  // Brief timeout ensures a smooth fade out after rendering
+  setTimeout(() => {
+    overlay.classList.remove('active');
+  }, 400);
+}
+
+// Hyperspace Overlay UI
+const hyperOverlay = document.createElement('div');
+hyperOverlay.id = 'hyperspace-overlay';
+hyperOverlay.innerHTML = `
+  <div class="hyper-spinner"></div>
+  <div class="hyper-text" id="hyper-text-content">INITIATING WARP...</div>
+`;
+document.body.appendChild(hyperOverlay);
+
+// Attach event listeners
+calypsoBtn.addEventListener('click', () => switchGalaxy('calypso', calypsoBtn, euclidBtn));
+euclidBtn.addEventListener('click', () => switchGalaxy('euclid', euclidBtn, calypsoBtn));

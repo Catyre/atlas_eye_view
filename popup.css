@@ -492,3 +492,112 @@
   margin: 0 2px;
   text-transform: uppercase;
 }
+
+/* Galaxy Selector */
+#galaxy-selector {
+  position: fixed;
+  bottom: 30px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  flex-direction: row;
+}
+
+.hud-tab {
+  background: rgba(10, 15, 25, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  color: rgba(224, 255, 255, 0.5);
+  padding: 6px 16px;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 3px;
+}
+
+.hud-tab:hover {
+  border-color: rgba(0, 255, 255, 0.5);
+}
+
+.hud-tab.active {
+  background: rgba(0, 255, 255, 0.15);
+  border-color: #00ffff;
+  color: #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2), inset 0 0 5px rgba(0, 255, 255, 0.1);
+}
+
+/* Hyperspace Transition Overlay */
+#hyperspace-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(5, 8, 15, 0.90);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease-in-out;
+}
+
+#hyperspace-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.hyper-spinner {
+  width: 120px;
+  height: 120px;
+  border: 3px solid transparent;
+  border-top-color: #00ffff;
+  border-bottom-color: #00ffff;
+  border-radius: 50%;
+  animation: hyper-spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.hyper-spinner::before {
+  content: '';
+  position: absolute;
+  top: 12px; left: 12px; right: 12px; bottom: 12px;
+  border: 2px solid transparent;
+  border-left-color: rgba(0, 255, 255, 0.6);
+  border-right-color: rgba(0, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: hyper-spin-reverse 2s linear infinite;
+}
+
+.hyper-text {
+  color: #00ffff;
+  font-family: 'Courier New', monospace;
+  font-size: 1.8rem;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
+  animation: hyper-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hyper-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes hyper-spin-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes hyper-pulse {
+  0%, 100% { opacity: 0.6; text-shadow: 0 0 8px rgba(0, 255, 255, 0.4); }
+  50% { opacity: 1; text-shadow: 0 0 25px rgba(0, 255, 255, 0.9); }
+}
