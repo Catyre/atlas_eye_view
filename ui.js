@@ -143,7 +143,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
       <div class="wiki-section">
         <div class="wiki-title"> ${systemName} </div>
         ${JSON.parse(system.anchors).B}LY from Capital
-        <div class="error-message">Wiki Data</div>
+        <div class="error-message">Galactic Hub Database</div>
         <div class="error-text">${wikiData.error}</div>
       </div>
     `;
