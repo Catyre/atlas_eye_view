@@ -1,7 +1,7 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const BACKEND = 'http://atlas-eye-view.onrender.com:10000';
 
 // Function to update system coordinates on the backend
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
