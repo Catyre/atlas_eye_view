@@ -4,9 +4,9 @@ const sqlite3 = require('sqlite3').verbose();
 
 // Create Express app
 const app = express();
-const PORT = 3000;
+const PORT = 4000;
 
-const CALYPSO = './galaxy_data/calypso_astrometrics.sqlite';
+const CALYPSO = './backend/galaxy_data/calypso_astrometrics.sqlite';
 
 // Middleware
 // Configure CORS to only accept requests from your deployed frontend
