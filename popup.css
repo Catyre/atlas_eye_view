@@ -460,3 +460,35 @@
 @keyframes hud-spin {
   to { transform: rotate(360deg); }
 }
+
+/* Controls Tooltip */
+#controls-tooltip {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 15, 25, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+  color: #e0ffff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  padding: 12px 24px;
+  border-radius: 4px;
+  z-index: 1000;
+  text-align: center;
+  pointer-events: none; /* Crucial: allows clicking stars behind the tooltip */
+  letter-spacing: 0.5px;
+}
+
+.hud-key {
+  color: #00ffff;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  background: rgba(0, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 0 2px;
+  text-transform: uppercase;
+}

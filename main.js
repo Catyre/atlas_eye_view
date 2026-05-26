@@ -651,3 +651,22 @@ form.addEventListener('submit', async (event) => {
     console.error('Failed to submit:', error);
   }
 });
+
+// Controls Tooltip Generation
+const controlsTooltip = document.createElement('div');
+controlsTooltip.id = 'controls-tooltip';
+controlsTooltip.innerHTML = `
+  <div style="margin-bottom: 8px;">
+    [ NAVIGATION ] 
+    <span class="hud-key">W</span>
+    <span class="hud-key">A</span>
+    <span class="hud-key">S</span>
+    <span class="hud-key">D</span>
+    <span class="hud-key">Space</span> Up 
+    <span class="hud-key">Shift</span> Down
+  </div>
+  <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.85rem;">
+    Left-click any star to initialize telemetry readout.
+  </div>
+`;
+document.body.appendChild(controlsTooltip);
