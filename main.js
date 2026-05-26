@@ -19,6 +19,8 @@ var popup = null;
 var mouse = null;
 var raycaster = null;
 const GALAXY = "calypso";
+const BACKEND = 'https://atlas-eye-view.onrender.com:10000/'
+//const BACKEND = 'http://localhost:4000/'
 // Don't forget to also change what backend is running
 
 // Keyboard controls state
@@ -244,11 +246,12 @@ function onMouseClick(event) {
 
 // Keyboard event handlers
 function onKeyDown(event) {
+  // Ignore key events if the user is typing in an input field
+  if (document.activeElement.tagName === 'INPUT') return;
+  
   const key = event.key.toLowerCase();
-  //console.log("KEY PRESSED: ", key, "Event:", event);
   if (key in keys) {
     keys[key] = true;
-    //console.log('Key pressed:', key, 'Keys state:', keys);
     event.preventDefault();
   } else {
     console.log('Key not in keys object:', key);
@@ -256,10 +259,12 @@ function onKeyDown(event) {
 }
 
 function onKeyUp(event) {
+  // Ignore key events if the user is typing in an input field
+  if (document.activeElement.tagName === 'INPUT') return;
+
   const key = event.key.toLowerCase();
   if (key in keys) {
     keys[key] = false;
-    //console.log('Key released:', key, 'Keys state:', keys);
     event.preventDefault();
   }
 }
@@ -619,3 +624,124 @@ function hidePopup() {
   popup.style.display = 'none';
 }
 
+// 1. Destroy old elements to prevent HMR ghost clicks
+const oldBtn = document.getElementById('add-system-btn');
+if (oldBtn) oldBtn.remove();
+
+const oldPanel = document.getElementById('add-system-panel');
+if (oldPanel) oldPanel.remove();
+
+// 2. Create button with an ID
+const toggleAddButton = document.createElement('button');
+toggleAddButton.id = 'add-system-btn';
+toggleAddButton.textContent = '+ Add System';
+toggleAddButton.style.cssText = `
+  position: fixed;
+  top: 30px;
+  right: 350px;
+  font-size: 1rem;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+  background: #20bf6b;
+  color: #fff;
+  cursor: pointer;
+  z-index: 1000;
+`;
+document.body.appendChild(toggleAddButton);
+
+// 3. Create panel with an ID
+const addSystemPanel = document.createElement('div');
+addSystemPanel.id = 'add-system-panel';
+addSystemPanel.style.cssText = `
+  position: fixed;
+  top: 70px;
+  right: 350px;
+  background: rgba(30, 30, 30, 0.95);
+  color: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  font-family: monospace;
+  z-index: 1000;
+  display: none;
+  border: 1px solid #444;
+  width: 250px;
+`;
+
+addSystemPanel.innerHTML = `
+  <h3 style="margin-top: 0;">New Star System</h3>
+  <form style="display: flex; flex-direction: column; gap: 8px;">
+    <input type="text" id="new-hubtag" placeholder="Hubtag" required style="padding: 4px;">
+    <input type="text" id="new-name" placeholder="System Name" required style="padding: 4px;">
+    <input type="text" id="new-color" placeholder="Stellar class (blue, red, green, etc.)" required style="padding: 4px;">
+    <input type="number" step="any" id="new-a" placeholder="Distance from anchor A" required style="padding: 4px;">
+    <input type="number" step="any" id="new-b" placeholder="Distance from anchor B" required style="padding: 4px;">
+    <input type="number" step="any" id="new-c" placeholder="Distance from anchor C" required style="padding: 4px;">
+    <input type="number" step="any" id="new-d" placeholder="Distance from anchor D" required style="padding: 4px;">
+    <input type="number" step="any" id="new-e" placeholder="Distance from anchor E" required style="padding: 4px;">
+    <button type="submit" style="margin-top: 8px; padding: 6px; background: #4b6584; color: white; border: none; cursor: pointer;">Submit to Database</button>
+  </form>
+  <div id="add-status" style="margin-top: 8px; font-size: 12px;"></div>
+`;
+document.body.appendChild(addSystemPanel);
+
+// 4. Prevent UI clicks from triggering the raycaster
+toggleAddButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  
+  if (addSystemPanel.style.display !== 'block') {
+    addSystemPanel.style.display = 'block';
+    document.exitPointerLock(); 
+  } else {
+    addSystemPanel.style.display = 'none';
+  }
+});
+
+// 5. Prevent form clicks from triggering the raycaster
+addSystemPanel.addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+
+const form = addSystemPanel.querySelector('form');
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  
+  const statusDiv = addSystemPanel.querySelector('#add-status');
+  statusDiv.textContent = 'Submitting...';
+  statusDiv.style.color = '#fff';
+  
+  const payload = {
+    id: addSystemPanel.querySelector('#new-hubtag').value,
+    name: addSystemPanel.querySelector('#new-name').value,
+    color: addSystemPanel.querySelector('#new-color').value,
+    new_a: parseFloat(addSystemPanel.querySelector('#new-a').value),
+    new_b: parseFloat(addSystemPanel.querySelector('#new-b').value),
+    new_c: parseFloat(addSystemPanel.querySelector('#new-c').value),
+    new_d: parseFloat(addSystemPanel.querySelector('#new-d').value),
+    new_e: parseFloat(addSystemPanel.querySelector('#new-e').value)
+  };
+
+  try {
+    const response = await fetch(BACKEND + 'add-system', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error('Server rejected request');
+    }
+
+    statusDiv.textContent = 'Success! System added.';
+    statusDiv.style.color = '#20bf6b';
+    event.target.reset();
+    
+  } catch (error) {
+    statusDiv.textContent = 'Error submitting data.';
+    statusDiv.style.color = '#fc5c65';
+    console.error('Failed to submit:', error);
+  }
+});
