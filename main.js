@@ -543,12 +543,9 @@ cameraPositionBox.innerHTML = `
 `;
 document.body.appendChild(cameraPositionBox);
 
-
-
-
 // Function to hide popup
 function hidePopup() {
-  popup.style.display = 'none';
+  popup.classList.remove('open');
 }
 
 // 1. Destroy old elements to prevent HMR ghost clicks

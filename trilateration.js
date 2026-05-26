@@ -279,36 +279,6 @@ export function reconstructAnchorsFromPairwiseDistances(distMatrix) {
   }
   return coords;
 }
-/*
-// Enhanced quadrilateration with dynamic anchor selection
-export function trilaterate4Dynamic(name, anchors, targetDistances) {
-  // Choose the 4 least coplanar anchor points
-  const selection = chooseLeastCoplanarAnchors(anchors);
-  const anchor_ids = anchors.map(a => (a.anchor_id !== "false") ? a.anchor_id : a.name);
-  
-  // Get the distances between the selected anchors
-  const dAB = selection.anchors[0][anchor_ids[1]] || selection.anchors[1][anchor_ids[0]];
-  const dAC = selection.anchors[0][anchor_ids[2]] || selection.anchors[2][anchor_ids[0]];
-  const dBC = selection.anchors[1][anchor_ids[2]] || selection.anchors[2][anchor_ids[1]];
-  
-  // Reconstruct the first 3 anchor positions
-  const primaryAnchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
-  
-  // Get distances from 4th anchor to the first 3
-  const d4A = selection.anchors[3][anchor_ids[0]] || selection.anchors[0][anchor_ids[3]];
-  const d4B = selection.anchors[3][anchor_ids[1]] || selection.anchors[1][anchor_ids[3]];
-  const d4C = selection.anchors[3][anchor_ids[2]] || selection.anchors[2][anchor_ids[3]];
-  
-  // Calculate position of 4th anchor
-  const P4 = trilateratePoint(selection.anchors[3].name, [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C], [d4A, d4B, d4C]);
-  
-  // Create the anchor positions array
-  const anchorPositions = [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C, P4];
-  
-  // Use the original trilaterate4 function with the selected anchors
-  return trilaterate4(name, anchorPositions, targetDistances);
-}
-*/
 
 /**
  * Multilateration for N anchors in 3D using nonlinear least squares.
@@ -439,46 +409,6 @@ export function buildBasis(anchors) {
 }
 
 
-// Quadrilateration (trilateration, but more!)
-// Assumes trilaterate4Dyanmic has already selected the best 4 anchors
-export function trilaterate4(name, anchors, distances) {
-  
-  const bestAnchors = chooseLeastCoplanarAnchors(anchors);
-  const [P1, P2, P3, P4] = reconstructAnchorsFromDistances(bestAnchors[0].B, bestAnchors[0].C, bestAnchors[0].D, bestAnchors[1].C, bestAnchors[1].D, bestAnchors[2].D);
-  const [r1, r2, r3, r4] = distances;
-
-  console.log("Trilaterating ", name, " with distances ", r1, r2, r3, r4);
-  
-  const basis = buildBasis(anchors);
-  const ex = basis.basis[0];
-  const ey = basis.basis[1];
-  const ez = basis.basis[2];
-  const i = basis.basis[0][0] * (P3[0] - P1[0]) + basis.basis[0][1] * (P3[1] - P1[1]) + basis.basis[0][2] * (P3[2] - P1[2]);
-  const j = basis.basis[1][0] * (P3[0] - P1[0]) + basis.basis[1][1] * (P3[1] - P1[1]) + basis.basis[1][2] * (P3[2] - P1[2]);
-
-  const d = numeric.norm2(numeric.sub(P2, P1));
-  const x = (r1**2 - r2**2 + d**2) / (2 * d);
-  const y = ((r1**2 - r3**2 + i**2 + j**2) / (2 * j)) - ((i / j) * x);
-
-  var zSquared = r1**2 - x**2 - y**2;
-  if (zSquared < 0) {
-    console.log("Invalid trilateration for ", name, "- Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, r4, "]");
-    zSquared *= -1;
-    //throw new Error("Trilateration failed: No real solution (z² < 0)");
-  }
-
-  const z = Math.sqrt(zSquared);
-
-  // Position relative to P1
-  const result1 = numeric.add(P1, numeric.add(numeric.mul(ex, x), numeric.add(numeric.mul(ey, y), numeric.mul(ez, z))));
-  const result2 = numeric.add(P1, numeric.add(numeric.mul(ex, x), numeric.add(numeric.mul(ey, y), numeric.mul(ez, -z)))); // mirrored solution
-
-  // Use P4 to disambiguate which of the two points is closer
-  const dist1 = Math.abs(Math.sqrt(numeric.dot(numeric.sub(P4, result1), numeric.sub(P4, result1))) - r4);
-  const dist2 = Math.abs(Math.sqrt(numeric.dot(numeric.sub(P4, result2), numeric.sub(P4, result2))) - r4);
-
-  return dist1 < dist2 ? result1 : result2;
-}
 
 
 // Trilateration function - only used to get cooridinates of fourth anchor point
