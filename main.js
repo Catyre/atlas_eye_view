@@ -19,7 +19,7 @@ var popup = null;
 var mouse = null;
 var raycaster = null;
 const GALAXY = "calypso";
-const BACKEND = 'https://atlas-eye-view.onrender.com:10000/'
+const BACKEND = 'https://atlas-eye-view.onrender.com/'
 //const BACKEND = 'http://localhost:4000/'
 // Don't forget to also change what backend is running
 
