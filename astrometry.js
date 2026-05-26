@@ -1,10 +1,8 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-//const BACKEND = 'http://localhost:4000/';
+const BACKEND = 'https://atlas-eye-view.onrender.com/';
 
-// Function to update system coordinates on the backend
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
   let address = "";
   if (galaxy === "euclid"){
@@ -41,7 +39,6 @@ async function updateSystemCoordinates(galaxy, systemName, coordinates) {
   }
 }
 
-// Fetch system database and process the data
 export async function processAstrometrics(galaxy) {
   let address = "";
   if (galaxy === "euclid"){
@@ -50,7 +47,6 @@ export async function processAstrometrics(galaxy) {
     address = BACKEND + "systems";
   }
 
-  // Get system data from backend
   let stars = [];
   try {
     const res = await fetch(address);
@@ -59,7 +55,7 @@ export async function processAstrometrics(galaxy) {
   } catch (err) {
     console.error("Could not fetch systems from backend:", err);
     alert("Could not load star systems from backend. Is the server running?");
-    return; // Stop further processing
+    return; 
   }
 
   let validationData = [];
@@ -77,33 +73,42 @@ export async function processAstrometrics(galaxy) {
     const all_anchors = stars.filter(obj => obj.is_anchor).sort((a, b) => { return a.anchor_id.localeCompare(b.anchor_id)});
     console.log("All anchors: ", all_anchors); 
 
-    // Build N x N pairwise distance matrix for anchors
     const N = all_anchors.length;
     const distMatrix = [];
     for (let i = 0; i < N; i++) {
       const i_id = all_anchors[i].anchor_id;
-
       distMatrix[i] = [];
+      
+      let parsedAnchorsI = {};
+      try {
+        parsedAnchorsI = typeof all_anchors[i].anchors === 'string' 
+          ? JSON.parse(all_anchors[i].anchors) 
+          : all_anchors[i].anchors;
+      } catch (e) {
+        console.warn(`Failed to parse anchors for anchor system ${i_id}`);
+      }
+
       for (let j = 0; j < N; j++) {
         const j_id = all_anchors[j].anchor_id;
         if (i === j) {
           distMatrix[i][j] = 0;
         } else {
-          // Try to get the distance from anchor i to anchor j
-          // Use anchor_id as key
-          let d = JSON.parse(all_anchors[i].anchors)[j_id];
-          if (d === undefined) d = all_anchors[i].anchors[j_id];
+          let d = parsedAnchorsI[j_id];
+          
           if (typeof d !== 'number') {
-            // Try the reverse direction
-            d = all_anchors[j].anchors[i_id];
-            if (d === undefined) d = all_anchors[j].anchors[i_id];
+            let parsedAnchorsJ = {};
+            try {
+              parsedAnchorsJ = typeof all_anchors[j].anchors === 'string'
+                ? JSON.parse(all_anchors[j].anchors)
+                : all_anchors[j].anchors;
+            } catch (e) {}
+            d = parsedAnchorsJ[i_id];
           }
-          distMatrix[i][j] = (typeof d === 'number') ? d : 0; // or NaN if you want to catch missing data
+          distMatrix[i][j] = (typeof d === 'number') ? d : 0; 
         }
       }
     }
 
-    // Now reconstruct anchor positions
     const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
 
     for (let i = 0; i < anchorPositions.length; i++) {
@@ -120,41 +125,36 @@ export async function processAstrometrics(galaxy) {
       anchors: all_anchors
     }
 
-    // Store system data for popup
     stars.forEach(system => {
       systemData[system.name] = system;
     });
 
-    // Use the loaded star data
     let processedCount = 0;
     for (const system of stars) {
-      const sys_anchors = JSON.parse(system.anchors);
-
-      // Estimate star position using multilateration (if the position does not already exist)
       let star_pos;
       try {
+        const sys_anchors = typeof system.anchors === 'string' 
+          ? JSON.parse(system.anchors) 
+          : system.anchors;
+
         if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null){
           star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
           updateSystemCoordinates(galaxy, system.name, star_pos);
-          // Store the calculated position in the system data
           systemData[system.name].ghc_x = star_pos[0];
           systemData[system.name].ghc_y = star_pos[1];
           systemData[system.name].ghc_z = star_pos[2];
         } else {
-          star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
-          //star_pos = [system.ghc_x, system.ghc_y, system.ghc_z];
+          star_pos = [system.ghc_x, system.ghc_y, system.ghc_z];
           starPosns.push(star_pos);
-          // Ensure position is stored in systemData
           systemData[system.name].ghc_x = star_pos[0];
           systemData[system.name].ghc_y = star_pos[1];
           systemData[system.name].ghc_z = star_pos[2];
         }
       } catch (e) {
-        console.warn(`Failed to multilaterate position for system ${system.name}:`, e);
+        console.warn(`Failed to process position for system ${system.name}:`, e);
         continue;
       }
 
-      // Update progress
       processedCount++;
       if (processedCount % 10 === 0 || processedCount === stars.length) {
         console.log(`Processed ${processedCount}/${stars.length} systems (${((processedCount/stars.length)*100).toFixed(1)}%)`);
@@ -163,18 +163,14 @@ export async function processAstrometrics(galaxy) {
 
     console.log(`${stars.length} systems mapped!`)
     
-    // Run validation on the loaded data
-    //const validationResults = validateCalculatedPositions(stars, validationData);
     const validationResults = false;
     if (validationResults) {
       console.log("Position validation completed. Check console for detailed results.");
     }
 
-    // Update anchor dropdown with the processed anchors
     updateSystemDropdown(stars);
 
     if (systemData) {
-      console.log("systemdata", systemData)
       resolve(systemData);
     } else {
       reject("Failed to process astrometrics");
