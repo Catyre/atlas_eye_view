@@ -11,7 +11,7 @@ const CALYPSO = './backend/galaxy_data/calypso_astrometrics.sqlite';
 // Middleware
 // Configure CORS to only accept requests from your deployed frontend
 app.use(cors({
-  origin: 'https://gh-cartography.onrender.com/',
+  origin: 'https://gh-cartography.onrender.com',
   methods: ['GET', 'POST'],
   credentials: true
 }));
