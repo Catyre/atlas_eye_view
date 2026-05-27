@@ -49,14 +49,6 @@ export async function processAstrometrics(galaxy) {
     return; 
   }
 
-  let validationData = [];
-  try {
-    const validationRes = await fetch("./validation_data.json");
-    validationData = await validationRes.json();
-  } catch (error) {
-    console.warn("Could not load validation_data.json:", error);
-  }
-
   return new Promise(function(resolve, reject) {
     let starPosns = [];
     let systemData = {};
