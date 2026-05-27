@@ -165,11 +165,42 @@ function unsnapCamera() {
 unsnapButton.addEventListener('click', unsnapCamera);
 resetButton.addEventListener('click', resetCamera);
 
+// Target Search Panel
+const targetNavPanel = document.createElement('div');
+targetNavPanel.id = 'target-nav-panel';
+targetNavPanel.className = 'hud-panel';
+
+// Enforce layout positioning to prevent it from hiding behind the canvas
+targetNavPanel.style.position = 'absolute';
+targetNavPanel.style.top = '20px';
+targetNavPanel.style.right = '20px';
+targetNavPanel.style.zIndex = '100';
+
+targetNavPanel.innerHTML = `
+  <h3 style="margin-top: 3px; margin-bottom: 10px; margin-left: 5px;">Target Navigation</h3>
+  <div style="display: flex; gap: 8px;">
+    <input type="text" id="anchor-search" class="hud-input" list="anchor-datalist" placeholder="Enter system name..." autocomplete="off" style="flex-grow: 1;">
+    <datalist id="anchor-datalist"></datalist>
+    <button id="snap-anchor-btn" class="hud-button">Warp</button>
+  </div>
+`;
+document.body.appendChild(targetNavPanel);
+
+let systemList = [];
+const systemSearchInput = document.getElementById('anchor-search');
+const systemDatalist = document.getElementById('anchor-datalist');
+const snapButton = document.getElementById('snap-anchor-btn');
+
 function snapToSelectedAnchor() {
-  const targetName = systemSelect.value;
+  const targetName = systemSearchInput.value;
   const targetSystem = systemList.find(sys => sys.name === targetName);
   
-  if (!targetSystem) return;
+  if (!targetSystem) {
+    // Flash red if the system is not found in the datalist
+    systemSearchInput.style.border = '1px solid #fc5c65';
+    setTimeout(() => { systemSearchInput.style.border = ''; }, 1000);
+    return;
+  }
   
   const offset = 20;
   const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
@@ -187,38 +218,52 @@ function snapToSelectedAnchor() {
   unsnapButton.style.display = 'block';
 }
 
-let systemList = [];
-const systemSelect = document.getElementById('anchor-select');
-const snapButton = document.getElementById('snap-anchor-btn');
 if (snapButton) {
   snapButton.addEventListener('click', snapToSelectedAnchor);
+}
+
+// Allow pressing Enter to warp and prevent keystrokes from moving the camera
+if (systemSearchInput) {
+  systemSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      snapToSelectedAnchor();
+    }
+  });
+  
+  systemSearchInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+  });
 }
 
 export function updateSystemDropdown(systems = null) {
   const systemsToUse = systems || systemList;
   
-  if (!systemSelect) return;
-  systemSelect.innerHTML = '';
+  if (!systemDatalist) return;
+  systemDatalist.innerHTML = '';
   
   if (!systemsToUse || systemsToUse.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'No systems available';
-    systemSelect.appendChild(opt);
     if (snapButton) snapButton.disabled = true;
+    if (systemSearchInput) systemSearchInput.disabled = true;
     return;
   }
   
   systemList = systemsToUse;
   
   for (const sys of systemsToUse) {
+    if (!sys.name) continue;
     const opt = document.createElement('option');
     opt.value = sys.name; 
-    opt.textContent = sys.name || sys.anchor_id;
-    systemSelect.appendChild(opt);
+    systemDatalist.appendChild(opt);
   }
+  
   if (snapButton) snapButton.disabled = false;
+  if (systemSearchInput) {
+    systemSearchInput.disabled = false;
+    systemSearchInput.placeholder = 'Enter system name...';
+  }
 }
+
 
 function onMouseClick(event) {
   event.preventDefault();
@@ -751,10 +796,13 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   overlayText.textContent = `WARPING TO ${newGalaxy.toUpperCase()}...`;
   overlay.classList.add('active');
 
-  const systemSelect = document.getElementById('anchor-select');
+  const systemSearchInput = document.getElementById('anchor-search');
   const snapButton = document.getElementById('snap-anchor-btn');
-  if (systemSelect) {
-    systemSelect.innerHTML = '<option value="">Connecting to Database...</option>';
+  
+  if (systemSearchInput) {
+    systemSearchInput.value = '';
+    systemSearchInput.placeholder = 'Connecting to Database...';
+    systemSearchInput.disabled = true;
   }
   if (snapButton) {
     snapButton.disabled = true;
