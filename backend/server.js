@@ -159,7 +159,7 @@ function initializeDatabase() {
 app.post('/add-system', (req, res) => {
   const galaxy = req.query.galaxy || 'calypso';
   const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
-  const ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence;
+  let ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence;
   ghc_x = null;
   ghc_y = null;
   ghc_z = null;
