@@ -505,12 +505,66 @@ function createBackgroundStarfield(scene) {
   scene.add(backgroundStars);
 }
 
+// Place hubtag on each system
+function createTextSprite(message) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  
+  // Set a high font size for a crisp texture
+  const fontSize = 24;
+  context.font = `${fontSize}px Arial`;
+
+  // Measure how wide the text is to size the canvas perfectly
+  const metrics = context.measureText(message);
+  const textWidth = metrics.width;
+
+  // Add padding to the canvas dimensions
+  canvas.width = textWidth + 10;
+  canvas.height = fontSize + 10;
+
+  // Resizing the canvas resets the context, so we must re-apply the font
+  context.font = `${fontSize}px Arial`;
+  
+  // HUD-style Cyan text with a slight glow effect
+  context.fillStyle = "rgba(0, 255, 255, 0.9)";
+  context.shadowColor = "rgba(0, 255, 255, 0.5)";
+  context.shadowBlur = 1;
+  
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  
+  // Draw the text in the dead center of the canvas
+  context.fillText(message, canvas.width / 2, canvas.height / 2);
+
+  // Convert canvas to a Three.js Texture
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  
+  // Create a Sprite Material
+  const spriteMaterial = new THREE.SpriteMaterial({ 
+    map: texture, 
+    transparent: true,
+    // depthTest: false prevents the text from clipping inside the star mesh
+    depthTest: false 
+  });
+  
+  const sprite = new THREE.Sprite(spriteMaterial);
+  
+  // Scale the sprite down from pixel-size to world-size units
+  const scaleMultiplier = 0.08; 
+  sprite.scale.set(canvas.width * scaleMultiplier, canvas.height * scaleMultiplier, 1);
+  
+  return sprite;
+}
 function placeStars(starData, scene) {
   const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
   
   starsToRemove.forEach(star => {
     if (star.geometry) star.geometry.dispose();
-    if (star.material) star.material.dispose();
+    if (star.material) {
+      if (star.material.map) star.material.map.dispose(); // Dispose of sprite textures to free memory
+      star.material.dispose();
+    }
     scene.remove(star);
   });
 
@@ -532,14 +586,30 @@ function placeStars(starData, scene) {
     
     star.position.set(starPos[0], starPos[1], starPos[2]);
     star.name = starData[system].name;
-    
     star.userData.isSystemStar = true; 
     
     scene.add(star);
+
+    // --- NEW: HUBTAG TEXT LABEL ---
+    // Use 'id' or 'hubtag' depending on exactly how your database payload is structured
+    const hubtag = starData[system].id  + " " + starData[system].name; 
+    
+    if (hubtag && hubtag.trim() !== '') {
+      const labelSprite = createTextSprite(hubtag);
+      
+      // Position the label slightly above the star (Y-axis offset)
+      labelSprite.position.set(starPos[0], starPos[1] + 3.5, starPos[2]);
+      
+      // Tag it with isSystemStar so it gets destroyed/cleaned up during galaxy swaps!
+      labelSprite.userData.isSystemStar = true; 
+      
+      scene.add(labelSprite);
+    }
+
     starsPlaced++;
   }
   
-  console.log(`Placed ${starsPlaced} stars in scene.`);
+  console.log(`Placed ${starsPlaced} stars and labels in scene.`);
 }
 
 let firstPass = true;
