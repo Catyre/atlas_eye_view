@@ -114,14 +114,12 @@ async function fetchWikiData(systemName) {
     return { error: `Failed to fetch wiki data for ${systemName}: ${error.message}` };
   }
 }
-
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
     return;
   }
   
-  // Show loading state immediately
   popup.innerHTML = `
     <div class="system-name">${systemName}</div>
     <div class="loading-container">
@@ -130,13 +128,10 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     </div>
   `;
   
-  // Slide the sidebar in
   popup.classList.add('open');
   
-  // Fetch wiki data
   const wikiData = await fetchWikiData(systemName);
   
-  // Create wiki data section
   let wikiSection = '';
   if (wikiData.error) {
     wikiSection = `
@@ -151,7 +146,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     wikiSection = `
       <div class="wiki-section">
         <div class="wiki-title">
-          <a href="${wikiData.url}" target="_blank">${wikiData.title}</a>
+          <a href="${wikiData.url}" target="_blank" style="color: inherit; text-decoration: none;">${wikiData.title}</a>
         </div>
         ${JSON.parse(system.anchors).B}LY from Capital
         ${wikiData.summary ? `<div class="wiki-summary">${wikiData.summary}</div>` : ''}
@@ -169,11 +164,16 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
         ${wikiData.wealth ? `<div class="wiki-info"><span>Wealth:</span> ${wikiData.wealth}</div>` : ''}
         ${wikiData.conflict ? `<div class="wiki-info"><span>Conflict:</span> ${wikiData.conflict}</div>` : ''}
         ${wikiData.discoveredBy ? `<div class="wiki-info"><span>Discovered by:</span> ${wikiData.discoveredBy}</div>` : ''}
+        
+        <div style="margin-top: 15px; text-align: center;">
+          <a href="${wikiData.url}" target="_blank" rel="noopener noreferrer" style="display: block; padding: 8px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 4px; font-size: 0.9em; transition: background 0.2s;">
+            Access Full Database Entry
+          </a>
+        </div>
       </div>
     `;
   }
   
-  // Update popup content
   popup.innerHTML = `${wikiSection}`;
 }
 

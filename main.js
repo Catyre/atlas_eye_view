@@ -267,6 +267,11 @@ export function updateSystemDropdown(systems = null) {
 
 
 function onMouseClick(event) {
+  // NEW: Let UI clicks behave normally and stop them from hitting the 3D canvas
+  if (event.target.closest('.system-popup') || event.target.closest('.hud-panel') || event.target.tagName.toLowerCase() === 'a') {
+    return;
+  }
+
   event.preventDefault();
   event.stopPropagation();
   
