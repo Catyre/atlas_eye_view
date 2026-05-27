@@ -824,6 +824,34 @@ form.addEventListener('submit', async (event) => {
     statusDiv.textContent = 'Success! System added.';
     statusDiv.style.color = '#20bf6b';
     event.target.reset();
+
+    try {
+      // Re-fetch the database and rebuild the map arrays
+      stars = await astro.processAstrometrics(currentGalaxy);
+      
+      // Clear old meshes and place the updated dataset
+      placeStars(stars, scene);
+      
+      // Run the validation sequence silently in the background
+      const knownSystemsArray = Object.values(stars);
+      if (knownSystemsArray.length > 0) {
+        validateCalculatedPositions(knownSystemsArray, validationData);
+      }
+      
+      statusDiv.textContent = 'Map synchronized.';
+      
+      // Optionally close the panel automatically after a short delay
+      setTimeout(() => {
+        if (addSystemPanel.style.display === 'block') {
+          toggleAddButton.click(); 
+        }
+      }, 2000);
+      
+    } catch (refreshError) {
+      console.error("Failed to refresh map:", refreshError);
+      statusDiv.textContent = 'System added (Refresh page to see).';
+      statusDiv.style.color = '#feca57'; 
+    }
     
   } catch (error) {
     statusDiv.textContent = 'Error submitting data.';
