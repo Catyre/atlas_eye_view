@@ -163,6 +163,8 @@
 
 /* Standard HUD Buttons */
 .hud-button {
+  top: 500px;
+  right: 30px;
   background: rgba(0, 255, 255, 0.1);
   border: 1px solid rgba(0, 255, 255, 0.4);
   color: #00ffff;
@@ -240,8 +242,8 @@
 
 #add-system-btn {
   position: fixed;
-  top: 30px;
-  right: 350px;
+  top: 865px;
+  right: 20px;
   padding: 6px 16px;
 }
 

@@ -1,35 +1,40 @@
 import * as tri from './trilateration.js';
 
-// Validation function that compares calculated positions with known distances
 export function validateCalculatedPositions(knownSystemsData, validationData) {
   console.log("Starting validation of calculated positions...");
-  
-  // Extract anchor systems (systems with is_anchor = true)
-  const anchorSystems = knownSystemsData.filter(system => JSON.parse(system.is_anchor));
-  const nonAnchorSystems = knownSystemsData.filter(system => !JSON.parse(system.is_anchor));
+    
+  const anchorSystems = knownSystemsData.filter(system => 
+    system.is_anchor === true || system.is_anchor === 'true' || system.is_anchor === 1
+  );
+  const nonAnchorSystems = knownSystemsData.filter(system => 
+    system.is_anchor !== true && system.is_anchor !== 'true' && system.is_anchor !== 1
+  );
   
   if (anchorSystems.length < 4) {
     console.error("Need at least 4 anchor systems for validation");
     return null;
   }
-  
-  // Use first 4 anchors to build coordinate system
-  // Get all six pairwise distances between the four anchors
-  const dAB = anchorSystems[0].B;
-  const dAC = anchorSystems[0].C;
-  const dAD = anchorSystems[0].D;
-  const dBC = anchorSystems[1].C;
-  const dBD = anchorSystems[1].D;
-  const dCD = anchorSystems[2].D;
 
-  // Reconstruct all four anchor positions
-  let anchors;
-  try {
-    anchors = tri.reconstructAnchorsFromDistances(dAB, dAC, dAD, dBC, dBD, dCD);
-  } catch (e) {
-    console.error("Failed to reconstruct anchor positions for validation:", e);
-    return null;
+  const optimalGeometry = tri.chooseLeastCoplanarAnchors(anchorSystems);
+  const selectedAnchors = optimalGeometry.anchors;
+  const selectedAnchorPositions = optimalGeometry.anchorPositions;
+
+  for (let i = 0; i < selectedAnchors.length; i++) {
+      selectedAnchors[i].ghc_x = selectedAnchorPositions[i][0];
+      selectedAnchors[i].ghc_y = selectedAnchorPositions[i][1];
+      selectedAnchors[i].ghc_z = selectedAnchorPositions[i][2];
   }
+
+  const {origin, basis} = tri.buildBasis(selectedAnchorPositions);
+
+  const GHUB_COORDINATE_SYSTEM = {
+    origin: origin,
+    basis: basis,
+    anchors: selectedAnchors
+  }
+  
+  const anchors = GHUB_COORDINATE_SYSTEM.anchors;
+  console.log("Anchors: " + Object.entries(anchors[0]));
 
   const validationResults = {
     anchorPositions: {
@@ -51,29 +56,25 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
   
   let totalError = 0;
   let errorCount = 0;
-  
-  // Calculate positions for all systems (both anchor and non-anchor)
-  const allSystems = [...anchorSystems, ...nonAnchorSystems];
+ 
+  // Position of each system in GHC
   const systemPositions = {};
   
-  // Store anchor positions
-  systemPositions[anchorSystems[0].name] = anchors.A;
-  systemPositions[anchorSystems[1].name] = anchors.B;
-  systemPositions[anchorSystems[2].name] = anchors.C;
-  systemPositions[anchorSystems[3].name] = anchors.D;
-  
-  // Calculate positions for non-anchor systems
   nonAnchorSystems.forEach(system => {
+    let usedAnchors = [];
+    let sysAnchors = JSON.parse(system.anchors);
     try {
-      const calculatedPosition = tri.trilaterate4(
-        system.name,
-        [anchors.A, anchors.B, anchors.C, anchors.D],
-        [system.A, system.B, system.C, system.D]
-      );
+      // Todo: does not use least coplanar anchors
+      // match up system's anchors with the ones that are used in GHUB_COORDINATE_SYSTEM
+      anchors.forEach(anchor => {
+        usedAnchors.push(sysAnchors[anchor.anchor_id]);
+      })
+      const sysDists = JSON.parse(system.anchors);
+      
+      const calculatedPosition = tri.multilaterate(GHUB_COORDINATE_SYSTEM, usedAnchors);
       
       systemPositions[system.name] = calculatedPosition;
       validationResults.calculatedPositions[system.name] = calculatedPosition;
-      
     } catch (error) {
       console.error(`Error calculating position for ${system.name}:`, error);
       validationResults.validationErrors.push({
@@ -83,12 +84,10 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
     }
   });
   
-  // Validate against the validation_data
   validationData.forEach(validationEntry => {
     const fromSystem = validationEntry.from;
     const toSystems = validationEntry.to;
     
-    // Check if we have the "from" system position
     if (!systemPositions[fromSystem]) {
       console.warn(`Missing position for system: ${fromSystem}`);
       return;
@@ -96,9 +95,7 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
     
     const fromPosition = systemPositions[fromSystem];
     
-    // Validate each "to" system distance
     Object.entries(toSystems).forEach(([toSystem, knownDistance]) => {
-      // Check if we have the "to" system position
       if (!systemPositions[toSystem]) {
         console.warn(`Missing position for system: ${toSystem}`);
         return;
@@ -120,8 +117,9 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
         validationResults.summary.minError = error;
       }
       
-      // Check if error exceeds threshold (e.g., 5% of known distance)
-      if (percentError > 5) {
+      const NOISE_FLOOR_LY = 2.0;
+
+      if (percentError > 5 && error > NOISE_FLOOR_LY) {
         validationResults.summary.comparisonsWithErrors++;
         validationResults.validationErrors.push({
           fromSystem: fromSystem,
@@ -132,19 +130,13 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
           percentError: percentError
         });
       }
-      
-      console.log(`Distance ${fromSystem} → ${toSystem}: Known=${knownDistance}, Calculated=${calculatedDistance.toFixed(2)}, Error=${error.toFixed(2)} (${percentError.toFixed(2)}%)`);
     });
   });
   
-  // Calculate summary statistics
   if (errorCount > 0) {
     validationResults.summary.averageError = totalError / errorCount;
   }
   
-  // Log validation results
   console.log("Validation Summary:", validationResults.summary);
-  console.log("Validation Results:", validationResults);
-  
   return validationResults;
 }

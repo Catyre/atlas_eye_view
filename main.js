@@ -6,6 +6,7 @@ import * as debug from './debug.js';
 import * as astro from './astrometry.js';
 import * as ui from './ui.js';
 import { validateCalculatedPositions } from './validation.js';
+import validationData from './validation_data.json';
 import './popup.css';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -557,6 +558,20 @@ initializeScene().then(function(data) {
     console.log('stars data received:', stars);
     placeStars(stars, scene);
     
+    // Transform the stars object into an array
+    const knownSystemsArray = Object.values(stars);
+    
+    // Execute the validation sequence using the imported JSON
+    if (knownSystemsArray.length > 0) {
+      const validationResults = validateCalculatedPositions(knownSystemsArray, validationData);
+      
+      if (validationResults && validationResults.summary.comparisonsWithErrors > 0) {
+        console.warn("Astrometric drift detected. Check validation logs for outliers.");
+      } else {
+        console.log("Astrometric validation passed within acceptable tolerances.");
+      }
+    }
+    
     if (firstPass) {
       firstPass = false;
     }
@@ -822,6 +837,11 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   try {
     stars = await astro.processAstrometrics(currentGalaxy);
     placeStars(stars, scene);
+
+    const knownSystemsArray = Object.values(stars);
+    if (knownSystemsArray.length > 0) {
+      validateCalculatedPositions(knownSystemsArray, validationData);
+    }
   } catch (err) {
     console.error("Failed to map new galaxy:", err);
     overlayText.textContent = `WARP FAILED: ${newGalaxy.toUpperCase()} UNREACHABLE`;

@@ -97,15 +97,14 @@ export function chooseLeastCoplanarAnchors(anchors) {
   }
 
   let bestVolume = 0;
-  let bestAnchors = [anchors[0], anchors[1], anchors[2], anchors[3]]; // Default selection
+  let bestAnchors = [anchors[0], anchors[1], anchors[2], anchors[3]]; 
   let bestPositions = [];
 
-  // Try all combinations of 4 anchor points
   for (let i = 0; i < numAnchors - 3; i++) {
     for (let j = i + 1; j < numAnchors - 2; j++) {
       for (let k = j + 1; k < numAnchors - 1; k++) {
         for (let l = k + 1; l < numAnchors; l++) {
-          // Get all six pairwise distances
+          
           const dAB = anchors[i][anchor_ids[j]] || anchors[j][anchor_ids[i]];
           const dAC = anchors[i][anchor_ids[k]] || anchors[k][anchor_ids[i]];
           const dAD = anchors[i][anchor_ids[l]] || anchors[l][anchor_ids[i]];
@@ -113,26 +112,37 @@ export function chooseLeastCoplanarAnchors(anchors) {
           const dBD = anchors[j][anchor_ids[l]] || anchors[l][anchor_ids[j]];
           const dCD = anchors[k][anchor_ids[l]] || anchors[l][anchor_ids[k]];
 
-          // Reconstruct all four anchor positions
+          if (
+            typeof dAB !== 'number' || typeof dAC !== 'number' || typeof dAD !== 'number' ||
+            typeof dBC !== 'number' || typeof dBD !== 'number' || typeof dCD !== 'number' ||
+            isNaN(dAB) || isNaN(dAC) || isNaN(dAD) || isNaN(dBC) || isNaN(dBD) || isNaN(dCD)
+          ) {
+            continue; 
+          }
+
+          const distMatrix = [
+            [0,   dAB, dAC, dAD],
+            [dAB, 0,   dBC, dBD],
+            [dAC, dBC, 0,   dCD],
+            [dAD, dBD, dCD, 0  ]
+          ];
+
           let positions;
           try {
-            positions = reconstructAnchorsFromDistances(dAB, dAC, dAD, dBC, dBD, dCD);
+            positions = reconstructAnchorsFromPairwiseDistances(distMatrix);
           } catch (e) {
-            // Invalid geometry, skip this combination
             continue;
           }
+          
           const [ P1, P2, P3, P4 ] = positions;
 
-          // Cayley-Menger volume
           const cmVolume = cayleyMengerVolume(dAB, dAC, dAD, dBC, dBD, dCD);
           if (cmVolume < 1e-6) {
             console.warn(`Cayley-Menger volume for anchors [${anchors[i].name}, ${anchors[j].name}, ${anchors[k].name}, ${anchors[l].name}] is too small: ${cmVolume}`);
           }
 
-          // Position-based volume
           const volume = calculateTetrahedronVolume(P1, P2, P3, P4);
 
-          // Check if this combination has better volume (less coplanar)
           if (volume > bestVolume) {
             bestVolume = volume;
             bestAnchors = [anchors[i], anchors[j], anchors[k], anchors[l]];
@@ -220,7 +230,7 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
   
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
-    const d = anchorDistancesObj[anchor.anchor_id];
+    const d = anchorDistancesObj[i];
     
     // Check if distance data is valid
     if (typeof d === 'number' && !isNaN(d)) {
