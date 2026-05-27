@@ -164,7 +164,7 @@ app.post('/add-system', (req, res) => {
   ghc_y = null;
   ghc_z = null;
   is_anchor = 0;
-  anchor_is = 0;
+  anchor_id = 0;
   confidence = 0;
   
   if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined || color === undefined) {
