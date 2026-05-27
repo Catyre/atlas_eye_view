@@ -159,6 +159,7 @@ function initializeDatabase() {
 app.post('/add-system', (req, res) => {
   const galaxy = req.query.galaxy || 'calypso';
   const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
+  const ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence = 0;
   
   if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined || color === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -173,9 +174,9 @@ app.post('/add-system', (req, res) => {
   };
   const anchors = JSON.stringify(anchorsObj);
 
-  const query = `INSERT INTO systems (id, name, anchors, color, galaxy) VALUES (?, ?, ?, ?, ?)`;
+  const query = `INSERT INTO systems (id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(query, [id, name, anchors, color, galaxy], function(err) {
+  db.run(query, [id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy], function(err) {
     if (err) {
       console.error('Database insert error:', err);
       return res.status(500).json({ error: 'Failed to write to database' });
