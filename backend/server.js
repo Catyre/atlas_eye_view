@@ -159,7 +159,13 @@ function initializeDatabase() {
 app.post('/add-system', (req, res) => {
   const galaxy = req.query.galaxy || 'calypso';
   const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
-  const ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence = 0;
+  const ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence;
+  ghc_x = null;
+  ghc_y = null;
+  ghc_z = null;
+  is_anchor = 0;
+  anchor_is = 0;
+  confidence = 0;
   
   if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined || color === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
