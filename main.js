@@ -6,7 +6,11 @@ import * as debug from './debug.js';
 import * as astro from './astrometry.js';
 import * as ui from './ui.js';
 import { validateCalculatedPositions } from './validation.js';
+import validationData from './validation_data.json';
 import './popup.css';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 window.jQuery = $;
 import 'jquery-csv';
 
@@ -15,13 +19,12 @@ var scene = null;
 var camera = null;
 var cameraControls = null;
 var renderer = null;
+var composer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
-const GALAXY = "calypso";
-const BACKEND = 'https://atlas-eye-view.onrender.com:10000/'
-//const BACKEND = 'http://localhost:4000/'
-// Don't forget to also change what backend is running
+let currentGalaxy = "calypso";
+const BACKEND = import.meta.env.VITE_BACKEND_URL;
 
 // Keyboard controls state
 var keys = {
@@ -29,50 +32,60 @@ var keys = {
   a: false,
   s: false,
   d: false,
-  ' ': false, // Space for Up
-  shift: false // Shift for Down
+  ' ': false, 
+  shift: false 
 };
-const CAMERA_MOVE_SPEED = 125; // units per second
+const CAMERA_MOVE_SPEED = 125; 
 
-// ---------------------Basic setup - TESTING HMR------------------------------- //
 function initializeScene() { 
   return new Promise(function(resolve, reject) {
-    // Set up scene, camera, and renderer
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
-    // Add the background starfield
     createBackgroundStarfield(scene);
 
     CameraControls.install({THREE: THREE});
-
     const width = window.innerWidth;
     const height = window.innerHeight;
     var clock = new THREE.Clock();
     var camera = new THREE.PerspectiveCamera( 60, width / height, 0.01, 5000 );
     var renderer = new THREE.WebGLRenderer({ antialias: true });
-    var cameraControls = new CameraControls( camera, renderer.domElement );
+    window.cameraControls = new CameraControls( camera, renderer.domElement );
+    cameraControls = window.cameraControls;
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0px';
     renderer.domElement.style.left = '0px';
     document.body.appendChild(renderer.domElement);
 
-    // Add lights
+    document.body.appendChild(renderer.domElement);
+
+    // Post-Processing Setup
+    const renderScene = new RenderPass(scene, camera);
+
+    // Parameters: resolution, strength, radius, threshold
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5, // Bloom strength (how bright it glows)
+      0.4, // Bloom radius (how far the glow spreads)
+      0.0  // Bloom threshold (what brightness level triggers the glow)
+    );
+
+    composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
     const light = new THREE.PointLight(0xffffff, 1);
     light.position.set(500, 500, 500);
     scene.add(light);
 
-    // Add raycaster for click detection
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    // Create popup element
     const popup = document.createElement('div');
     popup.className = 'system-popup';
     document.body.appendChild(popup);
 
-    // Exclusive control for user dragging
     let userDragging = false;
     let disableAutoRotate = false;
     const onRest = () => {
@@ -103,16 +116,13 @@ function initializeScene() {
 
     });
 
-    // Start camera centered on Sun Tzu system at origin
     cameraControls.setLookAt(
-      20, 20, 20, // Initial camera position
-      0, 0, 0,    // Target position (origin)
-      false       // Snap instantly on load without transition animation
+      20, 20, 20, 
+      0, 0, 0,    
+      false       
     );
 
-    //console.log("blah",scene)
-    var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};//, pivot: pivot}
-    //console.log(htmlVars);
+    var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};
     
     if (data) {
       resolve(data);
@@ -122,69 +132,146 @@ function initializeScene() {
 
 export async function getScene() {
   await initializeScene();
-  //console.log(window.htmlVars)
   return scene;
 }
 
+const resetButton = document.createElement('button');
+resetButton.id = 'reset-btn';
+resetButton.className = 'hud-button';
+resetButton.textContent = 'Reset View';
+document.body.appendChild(resetButton);
 
-// --- Anchor Snap UI Logic --- //
-// Store anchor data for snapping
-let anchorList = [];
-const anchorSelect = document.getElementById('anchor-select');
+function resetCamera() {
+  cameraControls.setLookAt(
+    20, 20, 20,  
+    0, 0, 0,     
+    true         
+  );
+  
+  hidePopup();
+  unsnapButton.style.display = 'none';
+}
+
+const unsnapButton = document.createElement('button');
+unsnapButton.id = 'unsnap-btn';
+unsnapButton.className = 'hud-button warning';
+unsnapButton.textContent = 'Unsnap Camera';
+document.body.appendChild(unsnapButton);
+
+function unsnapCamera() {
+  hidePopup();
+  unsnapButton.style.display = 'none';
+}
+
+unsnapButton.addEventListener('click', unsnapCamera);
+resetButton.addEventListener('click', resetCamera);
+
+// Target Search Panel
+const targetNavPanel = document.createElement('div');
+targetNavPanel.id = 'target-nav-panel';
+targetNavPanel.className = 'hud-panel';
+
+// Enforce layout positioning to prevent it from hiding behind the canvas
+targetNavPanel.style.position = 'absolute';
+targetNavPanel.style.top = '20px';
+targetNavPanel.style.right = '20px';
+targetNavPanel.style.zIndex = '100';
+
+targetNavPanel.innerHTML = `
+  <h3 style="margin-top: 3px; margin-bottom: 10px; margin-left: 5px;">Target Navigation</h3>
+  <div style="display: flex; gap: 8px;">
+    <input type="text" id="anchor-search" class="hud-input" list="anchor-datalist" placeholder="Enter system name..." autocomplete="off" style="flex-grow: 1;">
+    <datalist id="anchor-datalist"></datalist>
+    <button id="snap-anchor-btn" class="hud-button">Warp</button>
+  </div>
+`;
+document.body.appendChild(targetNavPanel);
+
+let systemList = [];
+const systemSearchInput = document.getElementById('anchor-search');
+const systemDatalist = document.getElementById('anchor-datalist');
 const snapButton = document.getElementById('snap-anchor-btn');
 
-export function updateSystemDropdown(anchors = null) {
-  // Use provided anchors or fall back to stored anchorList
-  const anchorsToUse = anchors || anchorList;
+function snapToSelectedAnchor() {
+  const targetName = systemSearchInput.value;
+  const targetSystem = systemList.find(sys => sys.name === targetName);
   
-  console.log('Updating anchor dropdown with:', anchorsToUse);
-  anchorSelect.innerHTML = '';
-  
-  if (!anchorsToUse || anchorsToUse.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = 'No anchors';
-    anchorSelect.appendChild(opt);
-    snapButton.disabled = true;
+  if (!targetSystem) {
+    // Flash red if the system is not found in the datalist
+    systemSearchInput.style.border = '1px solid #fc5c65';
+    setTimeout(() => { systemSearchInput.style.border = ''; }, 1000);
     return;
   }
   
-  // Store anchors for later use
-  anchorList = anchorsToUse;
+  const offset = 20;
+  const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
   
-  for (const anchor of anchorsToUse) {
-    const opt = document.createElement('option');
-    opt.value = anchor.anchor_id;
-    opt.textContent = anchor.name || anchor.anchor_id;
-    anchorSelect.appendChild(opt);
-  }
-  snapButton.disabled = false;
+  cameraControls.setLookAt(
+    pos[0] + offset,
+    pos[1] + offset,
+    pos[2] + offset,
+    pos[0],
+    pos[1],
+    pos[2],
+    true
+  );
+
+  unsnapButton.style.display = 'block';
 }
 
-  function snapToSelectedAnchor() {
-    //const cameraControls = sceneSetup.cameraControls;
-    const anchorId = anchorSelect.value;
-    const anchor = anchorList.find(a => a.anchor_id === anchorId);
-    if (!anchor) return;
-    // Camera offset for better view
-    const offset = 20;
-    const pos = [anchor.ghc_x, anchor.ghc_y, anchor.ghc_z];
-    cameraControls.setLookAt(
-      pos[0] + offset,
-      pos[1] + offset,
-      pos[2] + offset,
-      pos[0],
-      pos[1],
-      pos[2],
-      true
-    );
+if (snapButton) {
+  snapButton.addEventListener('click', snapToSelectedAnchor);
+}
+
+// Allow pressing Enter to warp and prevent keystrokes from moving the camera
+if (systemSearchInput) {
+  systemSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      snapToSelectedAnchor();
+    }
+  });
+  
+  systemSearchInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+  });
+}
+
+export function updateSystemDropdown(systems = null) {
+  const systemsToUse = systems || systemList;
+  
+  if (!systemDatalist) return;
+  systemDatalist.innerHTML = '';
+  
+  if (!systemsToUse || systemsToUse.length === 0) {
+    if (snapButton) snapButton.disabled = true;
+    if (systemSearchInput) systemSearchInput.disabled = true;
+    return;
   }
-
-// Store system data for popup
-
+  
+  systemList = systemsToUse;
+  
+  for (const sys of systemsToUse) {
+    if (!sys.name) continue;
+    const opt = document.createElement('option');
+    opt.value = sys.name; 
+    systemDatalist.appendChild(opt);
+  }
+  
+  if (snapButton) snapButton.disabled = false;
+  if (systemSearchInput) {
+    systemSearchInput.disabled = false;
+    systemSearchInput.placeholder = 'Enter system name...';
+  }
+}
 
 
 function onMouseClick(event) {
+  // NEW: Let UI clicks behave normally and stop them from hitting the 3D canvas
+  if (event.target.closest('.system-popup') || event.target.closest('.hud-panel') || event.target.tagName.toLowerCase() === 'a') {
+    return;
+  }
+
   event.preventDefault();
   event.stopPropagation();
   
@@ -206,7 +293,6 @@ function onMouseClick(event) {
     
     if (clickedObject.name) {
       const targetPosition = clickedObject.position;
-      
       const cameraOffset = 20;
       const cameraPosition = {
         x: targetPosition.x + cameraOffset,
@@ -233,7 +319,6 @@ function onMouseClick(event) {
         ui.showSystemPopup(clickedObject.name, clickedObject.position, system, camera, popup);
         
         document.exitPointerLock();
-        
         unsnapButton.style.display = 'block';
       };
       
@@ -244,9 +329,7 @@ function onMouseClick(event) {
   }
 }
 
-// Keyboard event handlers
 function onKeyDown(event) {
-  // Ignore key events if the user is typing in an input field
   if (document.activeElement.tagName === 'INPUT') return;
   
   const key = event.key.toLowerCase();
@@ -259,7 +342,6 @@ function onKeyDown(event) {
 }
 
 function onKeyUp(event) {
-  // Ignore key events if the user is typing in an input field
   if (document.activeElement.tagName === 'INPUT') return;
 
   const key = event.key.toLowerCase();
@@ -269,29 +351,97 @@ function onKeyUp(event) {
   }
 }
 
-function handleCameraMovement(delta) {
-  if (!cameraControls) return;
+let velocity = new THREE.Vector3(0, 0, 0);
+let holdTime = 0;
+let lookVelocity = new THREE.Vector2(0, 0);
+
+const lookSensitivity = 0.0001; // Lowered because velocity accumulates
+const lookFriction = 0.9; // Closer to 1.0 = more cinematic glide
+const baseSpeed = 10.0;
+const maxSpeed = 500.0;
+const timeToMax = 1.5; 
+const friction = 0.92;
+
+document.addEventListener('mousemove', function(event) {
+  if (document.pointerLockElement === renderer.domElement) {
+    lookVelocity.x -= event.movementX * lookSensitivity;
+    lookVelocity.y -= event.movementY * lookSensitivity;
+  }
+});
+
+function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
+  if (!cameraObj || !controlsObj) return;
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraObj.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraObj.quaternion);
+  const up = new THREE.Vector3(0, 1, 0); 
   
-  const anyKeyPressed = keys.w || keys.a || keys.s || keys.d || keys.q || keys.e || keys[' '] || keys.shift;
-  if (!anyKeyPressed) return;
-  
-  const moveDistance = CAMERA_MOVE_SPEED * delta;
-  
-  // forward() translates both the camera and target along the line of sight
-  if (keys.w) cameraControls.forward(moveDistance);
-  if (keys.s) cameraControls.forward(-moveDistance);
-  
-  // truck() translates both the camera and target parallel to the screen plane
-  if (keys.a) cameraControls.truck(-moveDistance, 0);
-  if (keys.d) cameraControls.truck(moveDistance, 0);
-  
-  // elevate() translates both the camera and target along the global up/down Y axis
-  if (keys.q || keys[' ']) cameraControls.elevate(moveDistance);
-  if (keys.e || keys.shift) cameraControls.elevate(-moveDistance);
+  forward.y = 0; forward.normalize();
+  right.y = 0; right.normalize();
+
+  const moveDir = new THREE.Vector3(0, 0, 0);
+  let isMoving = false;
+
+  if (keysPressed.w) { moveDir.add(forward); isMoving = true; }
+  if (keysPressed.s) { moveDir.sub(forward); isMoving = true; }
+  if (keysPressed.a) { moveDir.sub(right); isMoving = true; }
+  if (keysPressed.d) { moveDir.add(right); isMoving = true; }
+  if (keysPressed[' ']) { moveDir.add(up); isMoving = true; } 
+  if (keysPressed.shift) { moveDir.sub(up); isMoving = true; } 
+
+  if (isMoving) {
+    holdTime += delta;
+    
+    const rampUp = Math.min(holdTime / timeToMax, 1.0);
+    const currentSpeedLimit = baseSpeed + ((maxSpeed - baseSpeed) * rampUp);
+    
+    // Convert speed limit to maximum distance per frame
+    const maxFrameSpeed = currentSpeedLimit * delta;
+    
+    // 1. Additive Acceleration
+    // We multiply by an acceleration rate so the camera steers smoothly
+    const accelerationRate = maxFrameSpeed * 4.0; 
+    moveDir.normalize().multiplyScalar(accelerationRate * delta);
+    velocity.add(moveDir); 
+    
+    // 2. Active Drag
+    // Bleeds off the old trajectory while keys are held to allow curved cornering
+    velocity.multiplyScalar(0.95);
+    
+    // 3. Speed Clamp
+    // Ensures the vector sum does not exceed the allowed sprint limit
+    if (velocity.length() > maxFrameSpeed) {
+      velocity.setLength(maxFrameSpeed);
+    }
+    
+  } else {
+    // 4. Coasting
+    // Sprint charge dissipates quickly if you release the keys completely
+    holdTime -= delta * 3.0; 
+    if (holdTime < 0) holdTime = 0;
+    
+    velocity.multiplyScalar(friction); 
+  }
+
+  // Update position if the velocity is mathematically significant
+  if (velocity.lengthSq() > 0.000001) {
+    const currentPos = new THREE.Vector3();
+    const currentTarget = new THREE.Vector3();
+    
+    controlsObj.getPosition(currentPos);
+    controlsObj.getTarget(currentTarget);
+    
+    currentPos.add(velocity);
+    currentTarget.add(velocity);
+    
+    controlsObj.setLookAt(
+      currentPos.x, currentPos.y, currentPos.z,
+      currentTarget.x, currentTarget.y, currentTarget.z,
+      false 
+    );
+  }
 }
 
-
-// Function to update camera position display
 function updateCameraPositionDisplay() {
   const camX = document.getElementById('cam-x');
   const camY = document.getElementById('cam-y');
@@ -304,28 +454,33 @@ function updateCameraPositionDisplay() {
   }
 }
 
-// Animation loop
 function animate() {
   const delta = clock.getDelta();
-	const elapsed = clock.getElapsedTime();
-	const updated = cameraControls.update(delta);
+  const elapsed = clock.getElapsedTime();
 
-  // Handle keyboard camera movement
-  handleCameraMovement(delta);
+  if (Math.abs(lookVelocity.x) > 0.00001 || Math.abs(lookVelocity.y) > 0.00001) {
+    cameraControls.azimuthAngle += lookVelocity.x;
+    cameraControls.polarAngle += lookVelocity.y;
+    lookVelocity.multiplyScalar(lookFriction);
+  }
+  // The library updates its internal state (damping, transitions, etc.)
+  const updated = cameraControls.update(delta);
+
+  // We immediately override it with our momentum
+  handleCameraMovement(keys, camera, cameraControls, delta);
   
-  // Update camera position display
   updateCameraPositionDisplay();
-
-  //if (!disableAutoRotate) {
-      //cameraControls.azimuthAngle += -10 * delta * THREE.MathUtils.DEG2RAD;
-      //cameraControls.polarAngle += 10 * delta * THREE.MathUtils.DEG2RAD;
-  //}
 
   requestAnimationFrame(animate);
 
-  if (updated) {
-		renderer.render( scene, camera );
-	}
+  // Render if the controls naturally updated OR if our momentum is still sliding the camera
+  if (updated || velocity.lengthSq() > 0.001) {
+    if (composer) {
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
+  }
 }
 
 function createBackgroundStarfield(scene) {
@@ -341,7 +496,6 @@ function createBackgroundStarfield(scene) {
   const starVertices = [];
   const particleCount = 8000;
   
-  // Create a massive sphere of stars far beyond your interactive elements
   for (let i = 0; i < particleCount; i++) {
     const x = (Math.random() - 0.5) * 4000;
     const y = (Math.random() - 0.5) * 4000;
@@ -351,41 +505,116 @@ function createBackgroundStarfield(scene) {
 
   starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
   const backgroundStars = new THREE.Points(starGeometry, starMaterial);
-  
-  // Optional: prevent background stars from interfering with raycasting
   backgroundStars.name = "BackgroundStarfield"; 
   
   scene.add(backgroundStars);
 }
 
+// Place hubtag on each system
+function createTextSprite(message) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  
+  // Set a high font size for a crisp texture
+  const fontSize = 24;
+  context.font = `${fontSize}px Arial`;
+
+  // Measure how wide the text is to size the canvas perfectly
+  const metrics = context.measureText(message);
+  const textWidth = metrics.width;
+
+  // Add padding to the canvas dimensions
+  canvas.width = textWidth + 10;
+  canvas.height = fontSize + 10;
+
+  // Resizing the canvas resets the context, so we must re-apply the font
+  context.font = `${fontSize}px Arial`;
+  
+  // HUD-style Cyan text with a slight glow effect
+  context.fillStyle = "rgba(0, 255, 255, 0.9)";
+  context.shadowColor = "rgba(0, 255, 255, 0.5)";
+  context.shadowBlur = 1;
+  
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  
+  // Draw the text in the dead center of the canvas
+  context.fillText(message, canvas.width / 2, canvas.height / 2);
+
+  // Convert canvas to a Three.js Texture
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  
+  // Create a Sprite Material
+  const spriteMaterial = new THREE.SpriteMaterial({ 
+    map: texture, 
+    transparent: true,
+    // depthTest: false prevents the text from clipping inside the star mesh
+    depthTest: false 
+  });
+  
+  const sprite = new THREE.Sprite(spriteMaterial);
+  
+  // Scale the sprite down from pixel-size to world-size units
+  const scaleMultiplier = 0.08; 
+  sprite.scale.set(canvas.width * scaleMultiplier, canvas.height * scaleMultiplier, 1);
+  
+  return sprite;
+}
 function placeStars(starData, scene) {
+  const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
+  
+  starsToRemove.forEach(star => {
+    if (star.geometry) star.geometry.dispose();
+    if (star.material) {
+      if (star.material.map) star.material.map.dispose(); // Dispose of sprite textures to free memory
+      star.material.dispose();
+    }
+    scene.remove(star);
+  });
+
   console.log("placeStars called with", Object.keys(starData).length, "systems");
   let starsPlaced = 0;
   
   for (const system in starData) {
     const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
     
-    // Skip if position data is missing
     if (starPos[0] === null || starPos[0] === undefined || 
         starPos[1] === null || starPos[1] === undefined || 
         starPos[2] === null || starPos[2] === undefined) {
-      console.warn(`Skipping system ${system} - missing position data:`, starPos);
       continue;
     }
 
-    // Material for stars
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(2, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
     star.position.set(starPos[0], starPos[1], starPos[2]);
     star.name = starData[system].name;
+    star.userData.isSystemStar = true; 
     
     scene.add(star);
+
+    // --- NEW: HUBTAG TEXT LABEL ---
+    // Use 'id' or 'hubtag' depending on exactly how your database payload is structured
+    const hubtag = starData[system].id  + " " + starData[system].name; 
+    
+    if (hubtag && hubtag.trim() !== '') {
+      const labelSprite = createTextSprite(hubtag);
+      
+      // Position the label slightly above the star (Y-axis offset)
+      labelSprite.position.set(starPos[0], starPos[1] + 3.5, starPos[2]);
+      
+      // Tag it with isSystemStar so it gets destroyed/cleaned up during galaxy swaps!
+      labelSprite.userData.isSystemStar = true; 
+      
+      scene.add(labelSprite);
+    }
+
     starsPlaced++;
   }
   
-  console.log(`Placed ${starsPlaced} stars in scene. Scene now has ${scene.children.length} children.`);
+  console.log(`Placed ${starsPlaced} stars and labels in scene.`);
 }
 
 let firstPass = true;
@@ -399,30 +628,37 @@ initializeScene().then(function(data) {
   popup = data.popup;
   raycaster = data.raycaster;
 
-  astro.processAstrometrics(GALAXY).then(function(data2) {
-    //console.log('data',data2);
+  astro.processAstrometrics(currentGalaxy).then(function(data2) {
     stars = data2;
     console.log('stars data received:', stars);
-    //console.log('Sample star data:', Object.keys(stars).slice(0, 3).map(key => ({ name: key, data: stars[key] })));
     placeStars(stars, scene);
     
-    // Start animation only after stars are placed
+    // Transform the stars object into an array
+    const knownSystemsArray = Object.values(stars);
+    
+    // Execute the validation sequence using the imported JSON
+    if (knownSystemsArray.length > 0) {
+      const validationResults = validateCalculatedPositions(knownSystemsArray, validationData);
+      
+      if (validationResults && validationResults.summary.comparisonsWithErrors > 0) {
+        console.warn("Astrometric drift detected. Check validation logs for outliers.");
+      } else {
+        console.log("Astrometric validation passed within acceptable tolerances.");
+      }
+    }
+    
     if (firstPass) {
       firstPass = false;
-      //debug.addCoordinateSystemOverlay(scene);
     }
 
-    // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Keyboard controls: WASD for movement, C for coordinate overlay
     console.log('Adding keyboard event listeners');
     
-    // Test if event listeners are working at all
     window.addEventListener('keydown', (e) => {
       console.log('WINDOW KEYDOWN EVENT:', e.key, e.code, e.type);
     });
@@ -438,24 +674,20 @@ initializeScene().then(function(data) {
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
     
-    // Ensure the canvas can receive focus for keyboard events
     renderer.domElement.setAttribute('tabindex', '0');
     renderer.domElement.style.outline = 'none';
     
-    // Add click handler to focus canvas when clicked
     renderer.domElement.addEventListener('click', () => {
       renderer.domElement.focus();
       console.log('Canvas focused for keyboard input');
       console.log('Canvas has focus:', document.activeElement === renderer.domElement);
     });
     
-    // Auto-focus canvas on load
     setTimeout(() => {
       renderer.domElement.focus();
       console.log('Auto-focused canvas');
     }, 1000);
     
-    // Keyboard shortcut: 'C' to toggle coordinate system overlay
     window.addEventListener('keydown', (e) => {
       if (e.key === 'c' || e.key === 'C') {
         console.log("C pressed!")
@@ -463,9 +695,6 @@ initializeScene().then(function(data) {
       }
     });
 
-    // Optionally, add overlay by default:
-
-    // Add click outside popup to close it
     document.addEventListener('click', (event) => {
       if (!popup.contains(event.target)) {
         hidePopup();
@@ -484,220 +713,77 @@ initializeScene().then(function(data) {
       }
     });
 
-    // Add click event listener after scene is loaded
     window.addEventListener('click', onMouseClick);
-    snapButton.addEventListener('click', snapToSelectedAnchor);
     animate();
   });
 });
 
-
-
-// Create camera position display box
 const cameraPositionBox = document.createElement('div');
-cameraPositionBox.className = 'camera-position-box';
-cameraPositionBox.style.cssText = `
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  background: rgba(30, 30, 30, 0.95);
-  color: #fff;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-family: 'Courier New', monospace;
-  font-size: 14px;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid #444;
-`;
+cameraPositionBox.id = 'camera-position-box';
+cameraPositionBox.className = 'hud-panel';
 cameraPositionBox.innerHTML = `
-  <div style="font-weight: bold; margin-bottom: 4px;">Camera Position</div>
+  <div style="color: #00ffff; margin-bottom: 6px;">[ SENSOR TELEMETRY ]</div>
   <div>X: <span id="cam-x">0.00</span></div>
   <div>Y: <span id="cam-y">0.00</span></div>
   <div>Z: <span id="cam-z">0.00</span></div>
 `;
 document.body.appendChild(cameraPositionBox);
 
-// Create unsnap button
-const unsnapButton = document.createElement('button');
-unsnapButton.textContent = 'Unsnap Camera';
-unsnapButton.className = 'unsnap-button';
-unsnapButton.style.cssText = `
-  position: fixed;
-  top: 80px;
-  right: 155px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #ff4757;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s;
-  z-index: 1000;
-  display: none;
-`;
-document.body.appendChild(unsnapButton);
-
-const resetButton = document.createElement('button');
-resetButton.textContent = 'Reset Camera';
-resetButton.className = 'reset-button';
-resetButton.style.cssText = `
-  position: fixed;
-  top: 80px;
-  right: 15px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #4b6584;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s;
-  z-index: 1000;
-`;
-document.body.appendChild(resetButton);
-
-function resetCamera() {
-  cameraControls.setLookAt(
-    20, 20, 20,  // Initial camera position
-    0, 0, 0,     // Look at origin
-    true         // Smooth transition
-  );
-  
-  hidePopup();
-  unsnapButton.style.display = 'none';
-}
-
-resetButton.addEventListener('click', resetCamera);
-
-// Function to unsnap camera
-function unsnapCamera() {
-  // Hide popup
-  hidePopup();
-  
-  // Hide unsnap button
-  unsnapButton.style.display = 'none';
-}
-
-const crosshair = document.createElement('div');
-crosshair.id = 'viewport-crosshair';
-crosshair.style.cssText = `
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  transform: translate(-50%, -50%);
-  pointer-events: none; /* Crucial: allows clicks to pass through to the canvas */
-  z-index: 1000;
-`;
-
-/* Using two nested divs to create a plus shape with a slight shadow for visibility against light stars */
-crosshair.innerHTML = `
-  <div style="
-    position: absolute; 
-    top: 9px; 
-    left: 0; 
-    width: 20px; 
-    height: 2px; 
-    background: rgba(255, 255, 255, 0.9); 
-    box-shadow: 0 0 2px rgba(0,0,0,0.8);
-  "></div>
-  <div style="
-    position: absolute; 
-    top: 0; 
-    left: 9px; 
-    width: 2px; 
-    height: 20px; 
-    background: rgba(255, 255, 255, 0.9); 
-    box-shadow: 0 0 2px rgba(0,0,0,0.8);
-  "></div>
-`;
-document.body.appendChild(crosshair);
-
-// Add click handler for unsnap button
-unsnapButton.addEventListener('click', unsnapCamera);
-
-// Function to hide popup
 function hidePopup() {
-  popup.style.display = 'none';
+  popup.classList.remove('open');
 }
 
-// 1. Destroy old elements to prevent HMR ghost clicks
 const oldBtn = document.getElementById('add-system-btn');
 if (oldBtn) oldBtn.remove();
 
 const oldPanel = document.getElementById('add-system-panel');
 if (oldPanel) oldPanel.remove();
 
-// 2. Create button with an ID
 const toggleAddButton = document.createElement('button');
 toggleAddButton.id = 'add-system-btn';
-toggleAddButton.textContent = '+ Add System';
-toggleAddButton.style.cssText = `
-  position: fixed;
-  top: 30px;
-  right: 350px;
-  font-size: 1rem;
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
-  background: #20bf6b;
-  color: #fff;
-  cursor: pointer;
-  z-index: 1000;
-`;
+toggleAddButton.className = 'hud-button';
+toggleAddButton.textContent = '+ Initialize Target';
+toggleAddButton.state = "Off";
 document.body.appendChild(toggleAddButton);
 
-// 3. Create panel with an ID
 const addSystemPanel = document.createElement('div');
 addSystemPanel.id = 'add-system-panel';
-addSystemPanel.style.cssText = `
-  position: fixed;
-  top: 70px;
-  right: 350px;
-  background: rgba(30, 30, 30, 0.95);
-  color: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  font-family: monospace;
-  z-index: 1000;
-  display: none;
-  border: 1px solid #444;
-  width: 250px;
-`;
+addSystemPanel.className = 'hud-panel';
 
 addSystemPanel.innerHTML = `
-  <h3 style="margin-top: 0;">New Star System</h3>
+  <h3>New Star System</h3>
   <form style="display: flex; flex-direction: column; gap: 8px;">
-    <input type="text" id="new-hubtag" placeholder="Hubtag" required style="padding: 4px;">
-    <input type="text" id="new-name" placeholder="System Name" required style="padding: 4px;">
-    <input type="text" id="new-color" placeholder="Stellar class (blue, red, green, etc.)" required style="padding: 4px;">
-    <input type="number" step="any" id="new-a" placeholder="Distance from anchor A" required style="padding: 4px;">
-    <input type="number" step="any" id="new-b" placeholder="Distance from anchor B" required style="padding: 4px;">
-    <input type="number" step="any" id="new-c" placeholder="Distance from anchor C" required style="padding: 4px;">
-    <input type="number" step="any" id="new-d" placeholder="Distance from anchor D" required style="padding: 4px;">
-    <input type="number" step="any" id="new-e" placeholder="Distance from anchor E" required style="padding: 4px;">
-    <button type="submit" style="margin-top: 8px; padding: 6px; background: #4b6584; color: white; border: none; cursor: pointer;">Submit to Database</button>
+    <input type="text" id="new-hubtag" class="hud-input" placeholder="Hubtag" required>
+    <input type="text" id="new-name" class="hud-input" placeholder="System Name" required>
+    <input type="text" id="new-color" class="hud-input" placeholder="Stellar Class" required>
+    <input type="number" step="any" id="new-a" class="hud-input" placeholder="Dist: Anchor A" required>
+    <input type="number" step="any" id="new-b" class="hud-input" placeholder="Dist: Anchor B" required>
+    <input type="number" step="any" id="new-c" class="hud-input" placeholder="Dist: Anchor C" required>
+    <input type="number" step="any" id="new-d" class="hud-input" placeholder="Dist: Anchor D" required>
+    <input type="number" step="any" id="new-e" class="hud-input" placeholder="Dist: Anchor E" required>
+    <button type="submit" class="hud-button submit">Transmit Coordinates</button>
   </form>
-  <div id="add-status" style="margin-top: 8px; font-size: 12px;"></div>
+  <div id="add-status" style="margin-top: 12px; font-size: 12px; text-align: center;"></div>
 `;
 document.body.appendChild(addSystemPanel);
 
-// 4. Prevent UI clicks from triggering the raycaster
 toggleAddButton.addEventListener('click', (event) => {
   event.stopPropagation();
   
   if (addSystemPanel.style.display !== 'block') {
     addSystemPanel.style.display = 'block';
+    toggleAddButton.textContent = '- Cancel';
+    toggleAddButton.style.cssText += "background: rgba(227, 2, 35, 0.95);"
     document.exitPointerLock(); 
   } else {
+    toggleAddButton.textContent = "+ Initialize Target";
+    toggleAddButton.style.cssText += "background: #20bf6b;"
     addSystemPanel.style.display = 'none';
   }
+
+  toggleAddButton.state = toggleAddButton.state === "On" ? "Off" : "On"
 });
 
-// 5. Prevent form clicks from triggering the raycaster
 addSystemPanel.addEventListener('click', (event) => {
   event.stopPropagation();
 });
@@ -723,7 +809,7 @@ form.addEventListener('submit', async (event) => {
   };
 
   try {
-    const response = await fetch(BACKEND + 'add-system', {
+    const response = await fetch(BACKEND + 'add-system?galaxy=' + encodeURIComponent(currentGalaxy), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -743,5 +829,126 @@ form.addEventListener('submit', async (event) => {
     statusDiv.textContent = 'Error submitting data.';
     statusDiv.style.color = '#fc5c65';
     console.error('Failed to submit:', error);
+  }
+});
+
+const controlsTooltip = document.createElement('div');
+controlsTooltip.id = 'controls-tooltip';
+controlsTooltip.innerHTML = `
+  <div style="margin-bottom: 8px;">
+    [ NAVIGATION ] 
+    <span class="hud-key">W</span>
+    <span class="hud-key">A</span>
+    <span class="hud-key">S</span>
+    <span class="hud-key">D</span>
+    <span class="hud-key">Space</span> Up 
+    <span class="hud-key">Shift</span> Down
+  </div>
+  <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.85rem;">
+    Left-click any star to initialize telemetry readout.
+  </div>
+`;
+document.body.appendChild(controlsTooltip);
+
+const galaxySelector = document.createElement('div');
+galaxySelector.id = 'galaxy-selector';
+galaxySelector.className = 'hud-panel';
+
+galaxySelector.innerHTML = `
+  <h3>Active Database</h3>
+  <div class="galaxy-tabs" id="galaxy-tabs-container"></div>
+`;
+document.body.appendChild(galaxySelector);
+
+const tabContainer = document.getElementById('galaxy-tabs-container');
+
+const calypsoBtn = document.createElement('button');
+calypsoBtn.className = 'hud-tab active';
+calypsoBtn.textContent = 'Calypso';
+
+const euclidBtn = document.createElement('button');
+euclidBtn.className = 'hud-tab';
+euclidBtn.textContent = 'Euclid';
+
+tabContainer.appendChild(calypsoBtn);
+tabContainer.appendChild(euclidBtn);
+
+async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
+  if (currentGalaxy === newGalaxy) return;
+
+  activeBtn.classList.add('active');
+  inactiveBtn.classList.remove('active');
+  currentGalaxy = newGalaxy;
+
+  const overlay = document.getElementById('hyperspace-overlay');
+  const overlayText = document.getElementById('hyper-text-content');
+  overlayText.style.color = '#00ffff'; 
+  overlayText.textContent = `WARPING TO ${newGalaxy.toUpperCase()}...`;
+  overlay.classList.add('active');
+
+  const systemSearchInput = document.getElementById('anchor-search');
+  const snapButton = document.getElementById('snap-anchor-btn');
+  
+  if (systemSearchInput) {
+    systemSearchInput.value = '';
+    systemSearchInput.placeholder = 'Connecting to Database...';
+    systemSearchInput.disabled = true;
+  }
+  if (snapButton) {
+    snapButton.disabled = true;
+  }
+
+  const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
+  starsToRemove.forEach(star => {
+    if (star.geometry) star.geometry.dispose();
+    if (star.material) star.material.dispose();
+    scene.remove(star);
+  });
+
+  const popupElement = document.querySelector('.system-popup');
+  if (popupElement) popupElement.classList.remove('open');
+  unsnapCamera();
+
+  try {
+    stars = await astro.processAstrometrics(currentGalaxy);
+    placeStars(stars, scene);
+
+    const knownSystemsArray = Object.values(stars);
+    if (knownSystemsArray.length > 0) {
+      validateCalculatedPositions(knownSystemsArray, validationData);
+    }
+  } catch (err) {
+    console.error("Failed to map new galaxy:", err);
+    overlayText.textContent = `WARP FAILED: ${newGalaxy.toUpperCase()} UNREACHABLE`;
+    overlayText.style.color = '#ff4757'; 
+    setTimeout(() => { overlay.classList.remove('active'); }, 3000);
+    return;
+  }
+
+  setTimeout(() => {
+    overlay.classList.remove('active');
+  }, 400);
+}
+
+const hyperOverlay = document.createElement('div');
+hyperOverlay.id = 'hyperspace-overlay';
+hyperOverlay.innerHTML = `
+  <div class="hyper-spinner"></div>
+  <div class="hyper-text" id="hyper-text-content">INITIATING WARP...</div>
+`;
+document.body.appendChild(hyperOverlay);
+
+calypsoBtn.addEventListener('click', () => switchGalaxy('calypso', calypsoBtn, euclidBtn));
+euclidBtn.addEventListener('click', () => switchGalaxy('euclid', euclidBtn, calypsoBtn));
+
+// Resize listener for adjusting bloom
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  
+  // Update composer size to match
+  if (composer) {
+    composer.setSize(window.innerWidth, window.innerHeight);
   }
 });

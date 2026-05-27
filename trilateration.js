@@ -97,15 +97,14 @@ export function chooseLeastCoplanarAnchors(anchors) {
   }
 
   let bestVolume = 0;
-  let bestAnchors = [anchors[0], anchors[1], anchors[2], anchors[3]]; // Default selection
+  let bestAnchors = [anchors[0], anchors[1], anchors[2], anchors[3]]; 
   let bestPositions = [];
 
-  // Try all combinations of 4 anchor points
   for (let i = 0; i < numAnchors - 3; i++) {
     for (let j = i + 1; j < numAnchors - 2; j++) {
       for (let k = j + 1; k < numAnchors - 1; k++) {
         for (let l = k + 1; l < numAnchors; l++) {
-          // Get all six pairwise distances
+          
           const dAB = anchors[i][anchor_ids[j]] || anchors[j][anchor_ids[i]];
           const dAC = anchors[i][anchor_ids[k]] || anchors[k][anchor_ids[i]];
           const dAD = anchors[i][anchor_ids[l]] || anchors[l][anchor_ids[i]];
@@ -113,26 +112,37 @@ export function chooseLeastCoplanarAnchors(anchors) {
           const dBD = anchors[j][anchor_ids[l]] || anchors[l][anchor_ids[j]];
           const dCD = anchors[k][anchor_ids[l]] || anchors[l][anchor_ids[k]];
 
-          // Reconstruct all four anchor positions
+          if (
+            typeof dAB !== 'number' || typeof dAC !== 'number' || typeof dAD !== 'number' ||
+            typeof dBC !== 'number' || typeof dBD !== 'number' || typeof dCD !== 'number' ||
+            isNaN(dAB) || isNaN(dAC) || isNaN(dAD) || isNaN(dBC) || isNaN(dBD) || isNaN(dCD)
+          ) {
+            continue; 
+          }
+
+          const distMatrix = [
+            [0,   dAB, dAC, dAD],
+            [dAB, 0,   dBC, dBD],
+            [dAC, dBC, 0,   dCD],
+            [dAD, dBD, dCD, 0  ]
+          ];
+
           let positions;
           try {
-            positions = reconstructAnchorsFromDistances(dAB, dAC, dAD, dBC, dBD, dCD);
+            positions = reconstructAnchorsFromPairwiseDistances(distMatrix);
           } catch (e) {
-            // Invalid geometry, skip this combination
             continue;
           }
+          
           const [ P1, P2, P3, P4 ] = positions;
 
-          // Cayley-Menger volume
           const cmVolume = cayleyMengerVolume(dAB, dAC, dAD, dBC, dBD, dCD);
           if (cmVolume < 1e-6) {
             console.warn(`Cayley-Menger volume for anchors [${anchors[i].name}, ${anchors[j].name}, ${anchors[k].name}, ${anchors[l].name}] is too small: ${cmVolume}`);
           }
 
-          // Position-based volume
           const volume = calculateTetrahedronVolume(P1, P2, P3, P4);
 
-          // Check if this combination has better volume (less coplanar)
           if (volume > bestVolume) {
             bestVolume = volume;
             bestAnchors = [anchors[i], anchors[j], anchors[k], anchors[l]];
@@ -151,83 +161,6 @@ export function chooseLeastCoplanarAnchors(anchors) {
   };
 }
 
-// Need to build coordinate system from anchor points
-//  TODO: Be dynamic
-export function reconstructAnchorsFromDistancesOld(dAB, dAC, dBC) {
-  // A at (0,0,0), B at (dAB, 0, 0)
-  const A = [0, 0, 0];
-  const B = [dAB, 0, 0];
-
-  const xC = (dAC ** 2 + dAB ** 2 - dBC ** 2) / (2 * dAB);
-  const ySquared = dAC ** 2 - xC ** 2;
-  if (ySquared < 0) throw new Error("Invalid triangle — cannot place C.");
-
-  const yC = Math.sqrt(ySquared);
-  const C = [xC, yC, 0]; // we pick the +y option arbitrarily
-
-  return { A, B, C };
-}
-
-// Given all six pairwise distances, reconstruct the 3D positions of four anchors
-export function reconstructAnchorsFromDistances(dAB, dAC, dAD, dBC, dBD, dCD) {
-  // Place A at (0, 0, 0)
-  const A = [0, 0, 0];
-  // Place B at (dAB, 0, 0)
-  const B = [dAB, 0, 0];
-
-  // Place C in the x-y plane
-  const xC = (dAC ** 2 + dAB ** 2 - dBC ** 2) / (2 * dAB);
-  const yC2 = dAC ** 2 - xC ** 2;
-  if (yC2 < 0) throw new Error("Invalid triangle for C");
-  const yC = Math.sqrt(yC2);
-  const C = [xC, yC, 0];
-
-  // Place D in 3D using trilateration from A, B, C
-  // D = (x, y, z)
-  // |D - A| = dAD
-  // |D - B| = dBD
-  // |D - C| = dCD
-
-  // ex = (B - A) / |B - A|
-  const ex = [(B[0] - A[0]) / dAB, (B[1] - A[1]) / dAB, (B[2] - A[2]) / dAB];
-  // i = ex · (C - A)
-  const i = ex[0] * (C[0] - A[0]) + ex[1] * (C[1] - A[1]) + ex[2] * (C[2] - A[2]);
-  // ey = (C - A - i*ex) / |C - A - i*ex|
-  const aux = [C[0] - A[0] - i * ex[0], C[1] - A[1] - i * ex[1], C[2] - A[2] - i * ex[2]];
-  const auxNorm = Math.sqrt(aux[0] ** 2 + aux[1] ** 2 + aux[2] ** 2);
-  const ey = [aux[0] / auxNorm, aux[1] / auxNorm, aux[2] / auxNorm];
-  // ez = ex × ey
-  const ez = [
-    ex[1] * ey[2] - ex[2] * ey[1],
-    ex[2] * ey[0] - ex[0] * ey[2],
-    ex[0] * ey[1] - ex[1] * ey[0]
-  ];
-  // d = |B - A|
-  const d = dAB;
-  // j = ey · (C - A)
-  const j = ey[0] * (C[0] - A[0]) + ey[1] * (C[1] - A[1]) + ey[2] * (C[2] - A[2]);
-
-  // x = (dAD^2 - dBD^2 + d^2) / (2d)
-  const x = (dAD ** 2 - dBD ** 2 + d ** 2) / (2 * d);
-  // y = ((dAD^2 - dCD^2 + i^2 + j^2) / (2j)) - (i/j)x
-  const y = ((dAD ** 2 - dCD ** 2 + i ** 2 + j ** 2) / (2 * j)) - (i / j) * x;
-  // z^2 = dAD^2 - x^2 - y^2
-  let z2 = dAD ** 2 - x ** 2 - y ** 2;
-  if (z2 < 0) {
-    // Numerical error or impossible geometry
-    z2 = 0;
-  }
-  const z = Math.sqrt(z2);
-
-  // D = A + x*ex + y*ey + z*ez
-  const D = [
-    A[0] + x * ex[0] + y * ey[0] + z * ez[0],
-    A[1] + x * ex[1] + y * ey[1] + z * ez[1],
-    A[2] + x * ex[2] + y * ey[2] + z * ez[2]
-  ];
-
-  return [ A, B, C, D ];
-}
 
 /**
  * Reconstructs N anchor positions in 3D from an N x N pairwise distance matrix using classical MDS.
@@ -279,36 +212,6 @@ export function reconstructAnchorsFromPairwiseDistances(distMatrix) {
   }
   return coords;
 }
-/*
-// Enhanced quadrilateration with dynamic anchor selection
-export function trilaterate4Dynamic(name, anchors, targetDistances) {
-  // Choose the 4 least coplanar anchor points
-  const selection = chooseLeastCoplanarAnchors(anchors);
-  const anchor_ids = anchors.map(a => (a.anchor_id !== "false") ? a.anchor_id : a.name);
-  
-  // Get the distances between the selected anchors
-  const dAB = selection.anchors[0][anchor_ids[1]] || selection.anchors[1][anchor_ids[0]];
-  const dAC = selection.anchors[0][anchor_ids[2]] || selection.anchors[2][anchor_ids[0]];
-  const dBC = selection.anchors[1][anchor_ids[2]] || selection.anchors[2][anchor_ids[1]];
-  
-  // Reconstruct the first 3 anchor positions
-  const primaryAnchors = reconstructAnchorsFromDistances(dAB, dAC, dBC);
-  
-  // Get distances from 4th anchor to the first 3
-  const d4A = selection.anchors[3][anchor_ids[0]] || selection.anchors[0][anchor_ids[3]];
-  const d4B = selection.anchors[3][anchor_ids[1]] || selection.anchors[1][anchor_ids[3]];
-  const d4C = selection.anchors[3][anchor_ids[2]] || selection.anchors[2][anchor_ids[3]];
-  
-  // Calculate position of 4th anchor
-  const P4 = trilateratePoint(selection.anchors[3].name, [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C], [d4A, d4B, d4C]);
-  
-  // Create the anchor positions array
-  const anchorPositions = [primaryAnchors.A, primaryAnchors.B, primaryAnchors.C, P4];
-  
-  // Use the original trilaterate4 function with the selected anchors
-  return trilaterate4(name, anchorPositions, targetDistances);
-}
-*/
 
 /**
  * Multilateration for N anchors in 3D using nonlinear least squares.
@@ -327,7 +230,7 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
   
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
-    const d = anchorDistancesObj[anchor.anchor_id];
+    const d = anchorDistancesObj[i];
     
     // Check if distance data is valid
     if (typeof d === 'number' && !isNaN(d)) {
@@ -439,46 +342,6 @@ export function buildBasis(anchors) {
 }
 
 
-// Quadrilateration (trilateration, but more!)
-// Assumes trilaterate4Dyanmic has already selected the best 4 anchors
-export function trilaterate4(name, anchors, distances) {
-  
-  const bestAnchors = chooseLeastCoplanarAnchors(anchors);
-  const [P1, P2, P3, P4] = reconstructAnchorsFromDistances(bestAnchors[0].B, bestAnchors[0].C, bestAnchors[0].D, bestAnchors[1].C, bestAnchors[1].D, bestAnchors[2].D);
-  const [r1, r2, r3, r4] = distances;
-
-  console.log("Trilaterating ", name, " with distances ", r1, r2, r3, r4);
-  
-  const basis = buildBasis(anchors);
-  const ex = basis.basis[0];
-  const ey = basis.basis[1];
-  const ez = basis.basis[2];
-  const i = basis.basis[0][0] * (P3[0] - P1[0]) + basis.basis[0][1] * (P3[1] - P1[1]) + basis.basis[0][2] * (P3[2] - P1[2]);
-  const j = basis.basis[1][0] * (P3[0] - P1[0]) + basis.basis[1][1] * (P3[1] - P1[1]) + basis.basis[1][2] * (P3[2] - P1[2]);
-
-  const d = numeric.norm2(numeric.sub(P2, P1));
-  const x = (r1**2 - r2**2 + d**2) / (2 * d);
-  const y = ((r1**2 - r3**2 + i**2 + j**2) / (2 * j)) - ((i / j) * x);
-
-  var zSquared = r1**2 - x**2 - y**2;
-  if (zSquared < 0) {
-    console.log("Invalid trilateration for ", name, "- Using -zSquared\n zSquared = ", zSquared, "\n Distances: [", r1, r2, r3, r4, "]");
-    zSquared *= -1;
-    //throw new Error("Trilateration failed: No real solution (z² < 0)");
-  }
-
-  const z = Math.sqrt(zSquared);
-
-  // Position relative to P1
-  const result1 = numeric.add(P1, numeric.add(numeric.mul(ex, x), numeric.add(numeric.mul(ey, y), numeric.mul(ez, z))));
-  const result2 = numeric.add(P1, numeric.add(numeric.mul(ex, x), numeric.add(numeric.mul(ey, y), numeric.mul(ez, -z)))); // mirrored solution
-
-  // Use P4 to disambiguate which of the two points is closer
-  const dist1 = Math.abs(Math.sqrt(numeric.dot(numeric.sub(P4, result1), numeric.sub(P4, result1))) - r4);
-  const dist2 = Math.abs(Math.sqrt(numeric.dot(numeric.sub(P4, result2), numeric.sub(P4, result2))) - r4);
-
-  return dist1 < dist2 ? result1 : result2;
-}
 
 
 // Trilateration function - only used to get cooridinates of fourth anchor point

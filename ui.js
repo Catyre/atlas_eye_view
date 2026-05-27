@@ -1,5 +1,4 @@
 
-
 // Function to fetch data from No Man's Sky Miraheze wiki
 async function fetchWikiData(systemName) {
   try {
@@ -115,67 +114,31 @@ async function fetchWikiData(systemName) {
     return { error: `Failed to fetch wiki data for ${systemName}: ${error.message}` };
   }
 }
-
-
-// Function to show system popup
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
-  // Find system data
-
-  
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
     return;
   }
   
-  // Convert 3D world position to screen coordinates
-  const screenPosition = worldPosition.clone().project(camera);
-  
-  // Convert to pixel coordinates
-  const mouseX = (screenPosition.x * 0.5 + 0.5) * window.innerWidth;
-  const mouseY = (-screenPosition.y * 0.5 + 0.5) * window.innerHeight;
-  
-  // Show loading state
   popup.innerHTML = `
     <div class="system-name">${systemName}</div>
     <div class="loading-container">
       <div class="loading-spinner"></div>
-      Loading wiki data...
+      Loading telemetry...
     </div>
   `;
   
-  // Position popup
-  const popupWidth = 400;
-  const popupHeight = 200;
+  popup.classList.add('open');
   
-  let left = mouseX + 10;
-  let top = mouseY + 10;
-  
-  // Adjust if popup would go off screen
-  if (left + popupWidth > window.innerWidth) {
-    left = mouseX - popupWidth - 10;
-  }
-  if (top + popupHeight > window.innerHeight) {
-    top = mouseY - popupHeight - 10;
-  }
-  
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  popup.style.display = 'block';
-  
-  // Fetch wiki data
   const wikiData = await fetchWikiData(systemName);
   
-  // Format the system data
-  const formattedData = JSON.stringify(system, null, 2);
-  
-  // Create wiki data section
   let wikiSection = '';
   if (wikiData.error) {
     wikiSection = `
       <div class="wiki-section">
         <div class="wiki-title"> ${systemName} </div>
         ${JSON.parse(system.anchors).B}LY from Capital
-        <div class="error-message">Wiki Data</div>
+        <div class="error-message">Galactic Hub Database</div>
         <div class="error-text">${wikiData.error}</div>
       </div>
     `;
@@ -183,33 +146,56 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     wikiSection = `
       <div class="wiki-section">
         <div class="wiki-title">
-          <a href="${wikiData.url}">${wikiData.title}</a>
+          <a href="${wikiData.url}" target="_blank" style="color: inherit; text-decoration: none;">${wikiData.title}</a>
         </div>
         ${JSON.parse(system.anchors).B}LY from Capital
         ${wikiData.summary ? `<div class="wiki-summary">${wikiData.summary}</div>` : ''}
-        ${wikiData.galaxy ? `<div class="wiki-info"><strong>Galaxy:</strong> ${wikiData.galaxy}</div>` : ''}
-        ${wikiData.region ? `<div class="wiki-info"><strong>Region:</strong> ${wikiData.region}</div>` : ''}
-        ${wikiData.planets ? `<div class="wiki-info"><strong>Planets:</strong> ${wikiData.planets}</div>` : ''}
-        ${wikiData.moons ? `<div class="wiki-info"><strong>Moons:</strong> ${wikiData.moons}</div>` : ''}
-        ${wikiData.spectral_class ? `<div class="wiki-info"><strong>Spectral Class:</strong> ${wikiData.spectral_class}</div>` : ''}
-        ${wikiData.distance ? `<div class="wiki-info"><strong>Distance:</strong> ${wikiData.distance}</div>` : ''}
-        ${wikiData.glyphs ? `<div class="wiki-info glyphs"><strong>Glyphs:</strong> ${wikiData.glyphs}</div>` : ''}
-        ${wikiData.waterworlds ? `<div class="wiki-info"><strong>Waterworlds:</strong> ${wikiData.waterworlds}</div>` : ''}
-        ${wikiData.dissonant ? `<div class="wiki-info"><strong>Dissonant:</strong> ${wikiData.dissonant}</div>` : ''}
-        ${wikiData.faction ? `<div class="wiki-info"><strong>Faction:</strong> ${wikiData.faction}</div>` : ''}
-        ${wikiData.economy ? `<div class="wiki-info"><strong>Economy:</strong> ${wikiData.economy}</div>` : ''}
-        ${wikiData.wealth ? `<div class="wiki-info"><strong>Wealth:</strong> ${wikiData.wealth}</div>` : ''}
-        ${wikiData.conflict ? `<div class="wiki-info"><strong>Conflict:</strong> ${wikiData.conflict}</div>` : ''}
-        ${wikiData.discoveredBy ? `<div class="wiki-info"><strong>Discovered by:</strong> ${wikiData.discoveredBy}</div>` : ''}
+        ${wikiData.galaxy ? `<div class="wiki-info"><span>Galaxy:</span> ${wikiData.galaxy}</div>` : ''}
+        ${wikiData.region ? `<div class="wiki-info"><span>Region:</span> ${wikiData.region}</div>` : ''}
+        ${wikiData.planets ? `<div class="wiki-info"><span>Planets:</span> ${wikiData.planets}</div>` : ''}
+        ${wikiData.moons ? `<div class="wiki-info"><span>Moons:</span> ${wikiData.moons}</div>` : ''}
+        ${wikiData.spectral_class ? `<div class="wiki-info"><span>Spectral Class:</span> ${wikiData.spectral_class}</div>` : ''}
+        ${wikiData.distance ? `<div class="wiki-info"><span>Distance:</span> ${wikiData.distance}</div>` : ''}
+        ${wikiData.glyphs ? `<div class="wiki-info glyphs"><span>Glyphs:</span> ${wikiData.glyphs}</div>` : ''}
+        ${wikiData.waterworlds ? `<div class="wiki-info"><span>Waterworlds:</span> ${wikiData.waterworlds}</div>` : ''}
+        ${wikiData.dissonant ? `<div class="wiki-info"><span>Dissonant:</span> ${wikiData.dissonant}</div>` : ''}
+        ${wikiData.faction ? `<div class="wiki-info"><span>Faction:</span> ${wikiData.faction}</div>` : ''}
+        ${wikiData.economy ? `<div class="wiki-info"><span>Economy:</span> ${wikiData.economy}</div>` : ''}
+        ${wikiData.wealth ? `<div class="wiki-info"><span>Wealth:</span> ${wikiData.wealth}</div>` : ''}
+        ${wikiData.conflict ? `<div class="wiki-info"><span>Conflict:</span> ${wikiData.conflict}</div>` : ''}
+        ${wikiData.discoveredBy ? `<div class="wiki-info"><span>Discovered by:</span> ${wikiData.discoveredBy}</div>` : ''}
+        
+        <div style="margin-top: 15px; text-align: center;">
+          <a href="${wikiData.url}" target="_blank" rel="noopener noreferrer" style="display: block; padding: 8px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 4px; font-size: 0.9em; transition: background 0.2s;">
+            Access Full Database Entry
+          </a>
+        </div>
       </div>
     `;
   }
   
-  // Update popup content with both system data
   popup.innerHTML = `${wikiSection}`;
-  
-  // Update popup size based on content
-  const newHeight = Math.min(600, popup.scrollHeight);
-  popup.style.height = `${newHeight}px`;
 }
+
+// Crosshair
+const crosshair = document.createElement('div');
+crosshair.id = 'viewport-crosshair';
+crosshair.style.cssText = `
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1000;
+`;
+crosshair.innerHTML = `
+  <div class="crosshair-line" style="top: 14px; left: 0; width: 10px; height: 2px;"></div>
+  <div class="crosshair-line" style="top: 14px; right: 0; width: 10px; height: 2px;"></div>
+  <div class="crosshair-line" style="top: 0; left: 14px; width: 2px; height: 10px;"></div>
+  <div class="crosshair-line" style="bottom: 0; left: 14px; width: 2px; height: 10px;"></div>
+  <div class="crosshair-line" style="top: 14px; left: 14px; width: 2px; height: 2px;"></div>
+`;
+document.body.appendChild(crosshair);
 

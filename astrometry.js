@@ -1,15 +1,11 @@
 import * as tri from './trilateration.js';
 import { updateSystemDropdown } from './main.js';
 
-const BACKEND = 'https://atlas-eye-view.onrender.com/';
+const BACKEND = import.meta.env.VITE_BACKEND_URL;
 
 async function updateSystemCoordinates(galaxy, systemName, coordinates) {
-  let address = "";
-  if (galaxy === "euclid"){
-    address = BACKEND + "update-coordinates";
-  } else if (galaxy === "calypso") {
-    address = BACKEND + "update-coordinates";
-  }
+  let address = BACKEND + "update-coordinates?galaxy=" + encodeURIComponent(galaxy);
+  
   try {
     const updateData = {
       name: systemName,
@@ -40,12 +36,7 @@ async function updateSystemCoordinates(galaxy, systemName, coordinates) {
 }
 
 export async function processAstrometrics(galaxy) {
-  let address = "";
-  if (galaxy === "euclid"){
-    address = BACKEND + "systems";
-  } else if (galaxy === "calypso") {
-    address = BACKEND + "systems";
-  }
+  let address = BACKEND + "systems?galaxy=" + encodeURIComponent(galaxy);
 
   let stars = [];
   try {
@@ -73,56 +64,40 @@ export async function processAstrometrics(galaxy) {
     const all_anchors = stars.filter(obj => obj.is_anchor).sort((a, b) => { return a.anchor_id.localeCompare(b.anchor_id)});
     console.log("All anchors: ", all_anchors); 
 
-    const N = all_anchors.length;
-    const distMatrix = [];
-    for (let i = 0; i < N; i++) {
-      const i_id = all_anchors[i].anchor_id;
-      distMatrix[i] = [];
-      
-      let parsedAnchorsI = {};
+    if (all_anchors.length < 4) {
+      console.error("Critical Error: Less than 4 anchor points found.");
+      reject("Insufficient anchors");
+      return;
+    }
+
+    all_anchors.forEach(anchor => {
       try {
-        parsedAnchorsI = typeof all_anchors[i].anchors === 'string' 
-          ? JSON.parse(all_anchors[i].anchors) 
-          : all_anchors[i].anchors;
+        const parsedAnchors = typeof anchor.anchors === 'string' 
+          ? JSON.parse(anchor.anchors) 
+          : anchor.anchors;
+        
+        Object.assign(anchor, parsedAnchors);
       } catch (e) {
-        console.warn(`Failed to parse anchors for anchor system ${i_id}`);
+        console.warn(`Failed to parse anchors for system ${anchor.name}`);
       }
+    });
 
-      for (let j = 0; j < N; j++) {
-        const j_id = all_anchors[j].anchor_id;
-        if (i === j) {
-          distMatrix[i][j] = 0;
-        } else {
-          let d = parsedAnchorsI[j_id];
-          
-          if (typeof d !== 'number') {
-            let parsedAnchorsJ = {};
-            try {
-              parsedAnchorsJ = typeof all_anchors[j].anchors === 'string'
-                ? JSON.parse(all_anchors[j].anchors)
-                : all_anchors[j].anchors;
-            } catch (e) {}
-            d = parsedAnchorsJ[i_id];
-          }
-          distMatrix[i][j] = (typeof d === 'number') ? d : 0; 
-        }
-      }
+    const optimalGeometry = tri.chooseLeastCoplanarAnchors(all_anchors);
+    const selectedAnchors = optimalGeometry.anchors;
+    const selectedAnchorPositions = optimalGeometry.anchorPositions;
+
+    for (let i = 0; i < selectedAnchors.length; i++) {
+        selectedAnchors[i].ghc_x = selectedAnchorPositions[i][0];
+        selectedAnchors[i].ghc_y = selectedAnchorPositions[i][1];
+        selectedAnchors[i].ghc_z = selectedAnchorPositions[i][2];
     }
 
-    const anchorPositions = tri.reconstructAnchorsFromPairwiseDistances(distMatrix);
-
-    for (let i = 0; i < anchorPositions.length; i++) {
-        all_anchors[i].ghc_x = anchorPositions[i][0];
-        all_anchors[i].ghc_y = anchorPositions[i][1];
-        all_anchors[i].ghc_z = anchorPositions[i][2];
-    }
-
-    const {origin, basis} = tri.buildBasis(anchorPositions);
+    const {origin, basis} = tri.buildBasis(selectedAnchorPositions);
 
     const GHUB_COORDINATE_SYSTEM = {
       origin: origin,
       basis: basis,
-      anchors: all_anchors
+      anchors: selectedAnchors
     }
 
     stars.forEach(system => {
@@ -163,11 +138,6 @@ export async function processAstrometrics(galaxy) {
 
     console.log(`${stars.length} systems mapped!`)
     
-    const validationResults = false;
-    if (validationResults) {
-      console.log("Position validation completed. Check console for detailed results.");
-    }
-
     updateSystemDropdown(stars);
 
     if (systemData) {
