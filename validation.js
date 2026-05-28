@@ -71,7 +71,7 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
       })
       const sysDists = JSON.parse(system.anchors);
       
-      const calculatedPosition = tri.multilaterate(GHUB_COORDINATE_SYSTEM, usedAnchors);
+      const calculatedPosition = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sysAnchors);
       
       systemPositions[system.name] = calculatedPosition;
       validationResults.calculatedPositions[system.name] = calculatedPosition;
