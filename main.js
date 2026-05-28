@@ -32,6 +32,10 @@ var keys = {
   a: false,
   s: false,
   d: false,
+  arrowup: false,
+  arrowdown: false,
+  arrowleft: false,
+  arrowright: false,
   ' ': false, 
   shift: false 
 };
@@ -382,12 +386,12 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
   const moveDir = new THREE.Vector3(0, 0, 0);
   let isMoving = false;
 
-  if (keysPressed.w) { moveDir.add(forward); isMoving = true; }
-  if (keysPressed.s) { moveDir.sub(forward); isMoving = true; }
-  if (keysPressed.a) { moveDir.sub(right); isMoving = true; }
-  if (keysPressed.d) { moveDir.add(right); isMoving = true; }
+  if (keysPressed.w || keysPressed.arrowup) { moveDir.add(forward); isMoving = true; }
+  if (keysPressed.s || keysPressed.arrowdown) { moveDir.sub(forward); isMoving = true; }
+  if (keysPressed.a || keysPressed.arrowleft) { moveDir.sub(right); isMoving = true; }
+  if (keysPressed.d || keysPressed.arrowright) { moveDir.add(right); isMoving = true; }
   if (keysPressed[' ']) { moveDir.add(up); isMoving = true; } 
-  if (keysPressed.shift) { moveDir.sub(up); isMoving = true; } 
+  if (keysPressed.shift) { moveDir.sub(up); isMoving = true; }
 
   if (isMoving) {
     holdTime += delta;
@@ -861,15 +865,13 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-const controlsTooltip = document.createElement('div');
-controlsTooltip.id = 'controls-tooltip';
-controlsTooltip.innerHTML = `
+const controlsTooltip.innerHTML = `
   <div style="margin-bottom: 8px;">
     [ NAVIGATION ] 
-    <span class="hud-key">W</span>
-    <span class="hud-key">A</span>
-    <span class="hud-key">S</span>
-    <span class="hud-key">D</span>
+    <span class="hud-key">W / ↑</span>
+    <span class="hud-key">A / ←</span>
+    <span class="hud-key">S / ↓</span>
+    <span class="hud-key">D / →</span>
     <span class="hud-key">Space</span> Up 
     <span class="hud-key">Shift</span> Down
   </div>
