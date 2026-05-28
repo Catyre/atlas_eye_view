@@ -801,11 +801,13 @@ form.addEventListener('submit', async (event) => {
     id: addSystemPanel.querySelector('#new-hubtag').value,
     name: addSystemPanel.querySelector('#new-name').value,
     color: addSystemPanel.querySelector('#new-color').value,
-    new_a: parseFloat(addSystemPanel.querySelector('#new-a').value),
-    new_b: parseFloat(addSystemPanel.querySelector('#new-b').value),
-    new_c: parseFloat(addSystemPanel.querySelector('#new-c').value),
-    new_d: parseFloat(addSystemPanel.querySelector('#new-d').value),
-    new_e: parseFloat(addSystemPanel.querySelector('#new-e').value)
+    anchors: JSON.stringify({
+      A: parseFloat(addSystemPanel.querySelector('#new-a').value) || null,
+      B: parseFloat(addSystemPanel.querySelector('#new-b').value) || null,
+      C: parseFloat(addSystemPanel.querySelector('#new-c').value) || null,
+      D: parseFloat(addSystemPanel.querySelector('#new-d').value) || null,
+      E: parseFloat(addSystemPanel.querySelector('#new-e').value) || null
+    })
   };
 
   try {
