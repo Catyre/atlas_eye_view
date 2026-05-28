@@ -99,6 +99,7 @@ export async function processAstrometrics(galaxy) {
     let processedCount = 0;
     for (const system of stars) {
       let star_pos;
+      console.log(system.anchors);
       try {
         const sys_anchors = typeof system.anchors === 'string' 
           ? JSON.parse(system.anchors) 
