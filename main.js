@@ -779,7 +779,7 @@ addSystemPanel.innerHTML = `
   <form style="display: flex; flex-direction: column; gap: 8px;">
     <input type="text" id="new-hubtag" class="hud-input" placeholder="Hubtag" required>
     <input type="text" id="new-name" class="hud-input" placeholder="System Name" required>
-    <input type="text" id="new-color" class="hud-input" placeholder="Stellar Class" required>
+    <input type="text" id="new-color" class="hud-input" placeholder="Star Color (yellow, red, green, blue, purple)" required>
     <input type="number" step="any" id="new-a" class="hud-input" placeholder="Distance to [HUB44-A] Tashat" required>
     <input type="number" step="any" id="new-b" class="hud-input" placeholder="Distance to [HUB45-A] Nasfiel-Nit" required>
     <input type="number" step="any" id="new-c" class="hud-input" placeholder="Distance to [HUB17-A] Ochleac" required>
