@@ -788,11 +788,11 @@ addSystemPanel.innerHTML = `
     <input type="text" id="new-hubtag" class="hud-input" placeholder="Hubtag" required>
     <input type="text" id="new-name" class="hud-input" placeholder="System Name" required>
     <input type="text" id="new-color" class="hud-input" placeholder="Stellar Class" required>
-    <input type="number" step="any" id="new-a" class="hud-input" placeholder="Dist: Anchor A" required>
-    <input type="number" step="any" id="new-b" class="hud-input" placeholder="Dist: Anchor B" required>
-    <input type="number" step="any" id="new-c" class="hud-input" placeholder="Dist: Anchor C" required>
-    <input type="number" step="any" id="new-d" class="hud-input" placeholder="Dist: Anchor D" required>
-    <input type="number" step="any" id="new-e" class="hud-input" placeholder="Dist: Anchor E" required>
+    <input type="number" step="any" id="new-a" class="hud-input" placeholder="Distance to [HUB44-A] Tashat" required>
+    <input type="number" step="any" id="new-b" class="hud-input" placeholder="Distance to [HUB45-A] Nasfiel-Nit" required>
+    <input type="number" step="any" id="new-c" class="hud-input" placeholder="Distance to [HUB17-A] Ochleac" required>
+    <input type="number" step="any" id="new-d" class="hud-input" placeholder="Distance to [HUB25-A] Snezhna" required>
+    <input type="number" step="any" id="new-e" class="hud-input" placeholder="Distance to [HUB21-1E] Sidusius" required>
     <button type="submit" class="hud-button submit">Transmit Coordinates</button>
   </form>
   <div id="add-status" style="margin-top: 12px; font-size: 12px; text-align: center;"></div>
@@ -941,8 +941,26 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   inactiveBtn.classList.remove('active');
   currentGalaxy = newGalaxy;
 
-  // Toggle Anchor E visibility and requirement
+  const inputA = document.getElementById('new-a');
+  const inputB = document.getElementById('new-b');
+  const inputC = document.getElementById('new-c');
+  const inputD = document.getElementById('new-d');
   const inputE = document.getElementById('new-e');
+
+  // Switch placeholders
+  if (currentGalaxy === 'euclid') {
+    inputA.placeholder = 'Distance to [HUB12-416] Lion Shield';
+    inputB.placeholder = 'Distance to [HUB1-74] Sun Tzu';
+    inputC.placeholder = 'Distance to [HUB7-3FE] Aniwani';
+    inputD.placeholder = 'Distance to [HUB22-406] Legods';
+  } else {
+    inputA.placeholder = 'Distance to [HUB44-A] Tashat';
+    inputB.placeholder = 'Distance to [HUB45-A] Nasfiel-Nit';
+    inputC.placehodler = 'Distance to [HUB17-A] Ochleac';
+    inputD.placeholder = 'Distance to [HUB25-A] Snezhna';
+  }
+
+  // Toggle Anchor E visibility and requirement
   if (inputE) {
     if (currentGalaxy === 'euclid') {
       inputE.style.display = 'none';
