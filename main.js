@@ -865,7 +865,7 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-conVst controlsTooltip = document.createElement('div');
+const controlsTooltip = document.createElement('div');
 controlsTooltip.id = 'controls-tooltip';
 controlsTooltip.innerHTML = `
   <div style="margin-bottom: 8px;">
