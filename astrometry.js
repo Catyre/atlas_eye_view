@@ -54,7 +54,6 @@ export async function processAstrometrics(galaxy) {
     let systemData = {};
 
     const all_anchors = stars.filter(obj => obj.is_anchor).sort((a, b) => { return a.anchor_id.localeCompare(b.anchor_id)});
-    console.log("All anchors: ", all_anchors); 
 
     if (all_anchors.length < 4) {
       console.error("Critical Error: Less than 4 anchor points found.");
@@ -99,7 +98,6 @@ export async function processAstrometrics(galaxy) {
     let processedCount = 0;
     for (const system of stars) {
       let star_pos;
-      console.log(system.anchors);
       try {
         const sys_anchors = typeof system.anchors === 'string' 
           ? JSON.parse(system.anchors) 
