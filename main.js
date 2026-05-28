@@ -612,7 +612,7 @@ function placeStars(starData, scene) {
     }
 
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
-    const geometry = new THREE.SphereGeometry(2, 16, 16);
+    const geometry = new THREE.SphereGeometry(1, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
     star.position.set(-starPos[0], starPos[1], starPos[2]);
@@ -622,7 +622,6 @@ function placeStars(starData, scene) {
     scene.add(star);
 
     // --- NEW: HUBTAG TEXT LABEL ---
-    // Use 'id' or 'hubtag' depending on exactly how your database payload is structured
     const hubtag = starData[system].id  + " " + starData[system].name; 
     
     if (hubtag && hubtag.trim() !== '') {

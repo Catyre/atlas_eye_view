@@ -96,6 +96,7 @@ export async function processAstrometrics(galaxy) {
     });
 
     let processedCount = 0;
+    let mapScale = 2;
     for (const system of stars) {
       let star_pos;
       try {
@@ -106,15 +107,15 @@ export async function processAstrometrics(galaxy) {
         if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null){
           star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
           updateSystemCoordinates(galaxy, system.name, star_pos);
-          systemData[system.name].ghc_x = star_pos[0];
-          systemData[system.name].ghc_y = star_pos[1];
-          systemData[system.name].ghc_z = star_pos[2];
+          systemData[system.name].ghc_x = star_pos[0] * mapScale;
+          systemData[system.name].ghc_y = star_pos[1] * mapScale;
+          systemData[system.name].ghc_z = star_pos[2] * mapScale;
         } else {
           star_pos = [system.ghc_x, system.ghc_y, system.ghc_z];
           starPosns.push(star_pos);
-          systemData[system.name].ghc_x = star_pos[0];
-          systemData[system.name].ghc_y = star_pos[1];
-          systemData[system.name].ghc_z = star_pos[2];
+          systemData[system.name].ghc_x = star_pos[0] * mapScale;
+          systemData[system.name].ghc_y = star_pos[1] * mapScale;
+          systemData[system.name].ghc_z = star_pos[2] * mapScale;
         }
       } catch (e) {
         console.warn(`Failed to process position for system ${system.name}:`, e);
