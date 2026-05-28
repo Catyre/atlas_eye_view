@@ -714,13 +714,6 @@ initializeScene().then(function(data) {
       console.log('Auto-focused canvas');
     }, 1000);
     
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'c' || e.key === 'C') {
-        console.log("C pressed!")
-        debug.toggleCoordinateSystemOverlay(scene);
-      }
-    });
-
     document.addEventListener('click', (event) => {
       if (!popup.contains(event.target)) {
         hidePopup();
