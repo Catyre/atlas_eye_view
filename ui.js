@@ -121,10 +121,19 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   }
   
   popup.innerHTML = `
+    <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">[X]</button>
+    
     <div class="system-name">${systemName}</div>
-    <div class="loading-container">
-      <div class="loading-spinner"></div>
-      Loading telemetry...
+    <div class="wiki-info">X: ${position.x.toFixed(2)}</div>
+    <div class="wiki-info">Y: ${position.y.toFixed(2)}</div>
+    <div class="wiki-info">Z: ${position.z.toFixed(2)}</div>
+    <div class="wiki-info">Class: ${systemData.color || 'Unknown'}</div>
+    
+    <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <span>Accessing Galactic Archives...</span>
+      </div>
     </div>
   `;
   
@@ -199,3 +208,18 @@ crosshair.innerHTML = `
 `;
 document.body.appendChild(crosshair);
 
+// Bind the unsnap function to the new button
+const mobileCloseBtn = document.getElementById('mobile-unsnap-btn');
+if (mobileCloseBtn) {
+  // Show the button only if the screen is mobile-sized
+  if (window.innerWidth <= 768) {
+    mobileCloseBtn.style.display = 'block';
+  }
+  
+  mobileCloseBtn.addEventListener('click', () => {
+    // Dispatch a custom event or call window.unsnapCamera if you made it global
+    if (typeof window.unsnapCamera === 'function') {
+      window.unsnapCamera();
+    }
+  });
+}

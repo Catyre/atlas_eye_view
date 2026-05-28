@@ -60,6 +60,14 @@ function initializeScene() {
     var renderer = new THREE.WebGLRenderer({ antialias: true });
     window.cameraControls = new CameraControls( camera, renderer.domElement );
     cameraControls = window.cameraControls;
+    window.cameraControls = new CameraControls( camera, renderer.domElement );
+    
+    // Explicitly define touch behaviors
+    window.cameraControls.touches.one = CameraControls.ACTION.TOUCH_ROTATE;
+    window.cameraControls.touches.two = CameraControls.ACTION.TOUCH_DOLLY_TRUCK;
+    window.cameraControls.touches.three = CameraControls.ACTION.NONE;
+    
+    cameraControls = window.cameraControls;
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0px';
@@ -159,6 +167,46 @@ function resetCamera() {
   hidePopup();
 }
 
+function performRaycastSelection() {
+  raycaster.setFromCamera(mouse, camera);
+
+  const clickableObjects = scene.children.filter(obj => obj.name && obj.type === 'Mesh');
+  const intersects = raycaster.intersectObjects(clickableObjects);
+
+  if (intersects.length > 0) {
+    const clickedObject = intersects[0].object;
+    
+    if (clickedObject.name) {
+      const targetPosition = clickedObject.position;
+      const cameraOffset = 20;
+      
+      cameraControls.setLookAt(
+        targetPosition.x + cameraOffset,
+        targetPosition.y + cameraOffset,
+        targetPosition.z + cameraOffset,
+        targetPosition.x, targetPosition.y, targetPosition.z,
+        true 
+      );
+
+      const onCameraRest = () => {
+        cameraControls.removeEventListener('rest', onCameraRest);
+        const system = Object.fromEntries(
+          Object.entries(stars).filter(([key, value]) => value.name === clickedObject.name) 
+        )[clickedObject.name];
+        ui.showSystemPopup(clickedObject.name, clickedObject.position, system, camera, popup);
+        
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+      };
+      
+      cameraControls.addEventListener('rest', onCameraRest);
+    }
+  } else {
+    hidePopup();
+  }
+}
+
 function unsnapCamera() {
   hidePopup();
 
@@ -177,6 +225,7 @@ function unsnapCamera() {
     false 
   );
 }
+window.unsnapCamera = unsnapCamera;
 
 // Listen for the raw right-click (button 2) even during pointer lock
 window.addEventListener('mousedown', (event) => {
@@ -312,47 +361,7 @@ function onMouseClick(event) {
 
   raycaster.setFromCamera(mouse, camera);
 
-  const clickableObjects = scene.children.filter(obj => obj.name && obj.type === 'Mesh');
-  const intersects = raycaster.intersectObjects(clickableObjects);
-
-  if (intersects.length > 0) {
-    const clickedObject = intersects[0].object;
-    
-    if (clickedObject.name) {
-      const targetPosition = clickedObject.position;
-      const cameraOffset = 20;
-      const cameraPosition = {
-        x: targetPosition.x + cameraOffset,
-        y: targetPosition.y + cameraOffset,
-        z: targetPosition.z + cameraOffset
-      };
-      
-      cameraControls.setLookAt(
-        cameraPosition.x,
-        cameraPosition.y,
-        cameraPosition.z,
-        targetPosition.x,
-        targetPosition.y,
-        targetPosition.z,
-        true 
-      );
-
-      const onCameraRest = () => {
-        cameraControls.removeEventListener('rest', onCameraRest);
-        const system = Object.fromEntries(
-          Object.entries(stars)
-            .filter(([key, value]) => value.name === clickedObject.name) 
-        )[clickedObject.name];
-        ui.showSystemPopup(clickedObject.name, clickedObject.position, system, camera, popup);
-        
-        document.exitPointerLock();
-      };
-      
-      cameraControls.addEventListener('rest', onCameraRest);
-    }
-  } else {
-    hidePopup();
-  }
+  performRaycastSelection();
 }
 
 function onKeyDown(event) {
@@ -732,6 +741,25 @@ initializeScene().then(function(data) {
     });
 
     window.addEventListener('click', onMouseClick);
+    window.addEventListener('touchstart', (event) => {
+      // Ignore multi-touch (like pinching to zoom)
+      if (event.touches.length > 1) return;
+
+      const touch = event.touches[0];
+      
+      // Stop UI clicks from hitting the 3D canvas
+      if (event.target.closest('.system-popup') || event.target.closest('.hud-panel') || event.target.tagName.toLowerCase() === 'a') {
+        return;
+      }
+
+      // Calculate normalized device coordinates for touch
+      mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+      // Run your existing raycaster logic
+      performRaycastSelection();
+    });
+
     animate();
   });
 });

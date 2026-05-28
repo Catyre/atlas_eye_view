@@ -34,7 +34,6 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
   }
   
   const anchors = GHUB_COORDINATE_SYSTEM.anchors;
-  console.log("Anchors: " + Object.entries(anchors[0]));
 
   const validationResults = {
     anchorPositions: {

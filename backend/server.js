@@ -4,7 +4,6 @@ import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-// Create Express app
 const app = express();
 let PORT = process.env.PORT;
 let CURR_ENV = "Production"
@@ -20,7 +19,6 @@ const allowedOrigins = [
   'http://localhost:5173'
 ];
 
-// Middleware
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST'],
@@ -28,11 +26,32 @@ app.use(cors({
 }));
 app.use(express.json());
 
+/* --- Input Sanitization Helpers --- */
 
-// Database connection
+// Converts HTML characters to safe entities to prevent XSS attacks
+const sanitizeString = (str) => {
+  if (typeof str !== 'string') return '';
+  return str
+    .trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+};
+
+// Strictly converts values to floats, rejecting strings and NaNs
+const parseValidFloat = (val) => {
+  if (val === null || val === undefined || val === '') return null;
+  const parsed = parseFloat(val);
+  return isNaN(parsed) ? null : parsed;
+};
+
+/* ---------------------------------- */
+
 let db;
 try {
-  // Ensure the directory exists
   const dbDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
@@ -50,7 +69,6 @@ try {
   process.exit(1);
 }
 
-// Ensure systems table exists, or create it if not
 function ensureSystemsTable() {
   return new Promise((resolve, reject) => {
     db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='systems'", (err, row) => {
@@ -87,7 +105,6 @@ function ensureSystemsTable() {
   });
 }
 
-// Initialize database with coordinate columns if they don't exist
 function initializeDatabase() {
   console.log('Initializing database...');
   
@@ -107,11 +124,6 @@ function initializeDatabase() {
         return;
       }
       
-      console.log('Current table structure:');
-      columns.forEach(column => {
-        console.log(`  - ${column.name} (${column.type})`);
-      });
-      
       const existingColumns = columns.map(col => col.name);
       const neededColumns = ['id', 'name', 'anchors', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'anchor_id', 'confidence', 'galaxy'];
       const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
@@ -122,8 +134,6 @@ function initializeDatabase() {
         return;
       }
       
-      console.log(`Missing columns: ${missingColumns.join(', ')}`);
-      
       let completed = 0;
       missingColumns.forEach(columnName => {
         let colDef = 'TEXT';
@@ -133,16 +143,10 @@ function initializeDatabase() {
 
         const sql = `ALTER TABLE systems ADD COLUMN ${columnName} ${colDef}`;
         db.run(sql, (err) => {
-          if (err) {
-            if (err.message.includes('duplicate column name')) {
-              console.log(`Column ${columnName} already exists`);
-            } else {
-              console.error(`Error adding column ${columnName}:`, err.message);
-              reject(err);
-              return;
-            }
-          } else {
-            console.log(`Added column: ${columnName}`);
+          if (err && !err.message.includes('duplicate column name')) {
+            console.error(`Error adding column ${columnName}:`, err.message);
+            reject(err);
+            return;
           }
           
           completed++;
@@ -157,18 +161,20 @@ function initializeDatabase() {
 }
 
 app.post('/add-system', (req, res) => {
-  const galaxy = req.query.galaxy || 'calypso';
-  const { id, name, new_a, new_b, new_c, new_d, new_e, color } = req.body;
-  let ghc_x, ghc_y, ghc_z, is_anchor, anchor_id, confidence;
-  ghc_x = null;
-  ghc_y = null;
-  ghc_z = null;
-  is_anchor = 0;
-  anchor_id = 0;
-  confidence = 0;
+  // Clean all inputs
+  const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
+  const id = sanitizeString(req.body.id);
+  const name = sanitizeString(req.body.name);
+  const color = sanitizeString(req.body.color);
   
-  if (!name || new_a === undefined || new_b === undefined || new_c === undefined || new_d === undefined || color === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  const new_a = parseValidFloat(req.body.new_a);
+  const new_b = parseValidFloat(req.body.new_b);
+  const new_c = parseValidFloat(req.body.new_c);
+  const new_d = parseValidFloat(req.body.new_d);
+  const new_e = parseValidFloat(req.body.new_e);
+
+  if (!name || new_a === null || new_b === null || new_c === null || new_d === null || !color) {
+    return res.status(400).json({ error: 'Missing or invalid required fields' });
   }
 
   const anchorsObj = { 
@@ -176,13 +182,13 @@ app.post('/add-system', (req, res) => {
     B: new_b, 
     C: new_c, 
     D: new_d, 
-    E: new_e !== undefined && new_e !== '' ? new_e : null
+    E: new_e 
   };
   const anchors = JSON.stringify(anchorsObj);
 
   const query = `INSERT INTO systems (id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(query, [id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy], function(err) {
+  db.run(query, [id, name, anchors, null, null, null, color, 0, 0, 0, galaxy], function(err) {
     if (err) {
       console.error('Database insert error:', err);
       return res.status(500).json({ error: 'Failed to write to database' });
@@ -195,10 +201,8 @@ app.post('/add-system', (req, res) => {
   });
 });
 
-// GET /systems - Get all systems
 app.get('/systems', (req, res) => {
-  const galaxy = req.query.galaxy || 'calypso';
-  console.log(`Fetching systems for ${galaxy}...`);
+  const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
   
   db.all('SELECT * FROM systems WHERE galaxy = ? ORDER BY id', [galaxy], (err, rows) => {
     if (err) {
@@ -210,13 +214,15 @@ app.get('/systems', (req, res) => {
   });
 });
 
-// POST /update-coordinates - Update system coordinates
 app.post('/update-coordinates', (req, res) => {
   try {
-    const galaxy = req.query.galaxy || 'calypso';
-    const { name, ghc_x, ghc_y, ghc_z } = req.body;
+    const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
+    const name = sanitizeString(req.body.name);
+    const ghc_x = parseValidFloat(req.body.ghc_x);
+    const ghc_y = parseValidFloat(req.body.ghc_y);
+    const ghc_z = parseValidFloat(req.body.ghc_z);
     
-    if (!name || typeof ghc_x !== 'number' || typeof ghc_y !== 'number' || typeof ghc_z !== 'number') {
+    if (!name || ghc_x === null || ghc_y === null || ghc_z === null) {
       return res.status(400).json({ 
         error: 'Invalid input. Required: name (string), ghc_x (number), ghc_y (number), ghc_z (number)' 
       });
@@ -235,7 +241,6 @@ app.post('/update-coordinates', (req, res) => {
         return;
       }
       
-      console.log(`Updated coordinates for ${name}: [${ghc_x.toFixed(2)}, ${ghc_y.toFixed(2)}, ${ghc_z.toFixed(2)}]`);
       res.json({ 
         success: true, 
         message: `Coordinates updated for ${name}`,
@@ -250,11 +255,10 @@ app.post('/update-coordinates', (req, res) => {
   }
 });
 
-// GET /system/:name - Get specific system by name
 app.get('/system/:name', (req, res) => {
   try {
-    const galaxy = req.query.galaxy || 'calypso';
-    const { name } = req.params;
+    const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
+    const name = sanitizeString(req.params.name);
     
     db.get('SELECT * FROM systems WHERE name = ? AND galaxy = ?', [name, galaxy], (err, row) => {
       if (err) {
@@ -277,9 +281,8 @@ app.get('/system/:name', (req, res) => {
   }
 });
 
-// GET /systems-with-coordinates - Get systems that have coordinates
 app.get('/systems-with-coordinates', (req, res) => {
-  const galaxy = req.query.galaxy || 'calypso';
+  const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
   const query = 'SELECT * FROM systems WHERE ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL AND galaxy = ? ORDER BY id';
   
   db.all(query, [galaxy], (err, rows) => {
@@ -296,9 +299,8 @@ app.get('/systems-with-coordinates', (req, res) => {
   });
 });
 
-// GET /coordinates-status - Get status of coordinate updates
 app.get('/coordinates-status', (req, res) => {
-  const galaxy = req.query.galaxy || 'calypso';
+  const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
   const sql = `
     SELECT 
       COUNT(*) as total_systems,
@@ -327,23 +329,28 @@ app.get('/coordinates-status', (req, res) => {
   });
 });
 
-// POST /batch-update-coordinates - Update multiple systems at once
 app.post('/batch-update-coordinates', (req, res) => {
   try {
-    const galaxy = req.query.galaxy || 'calypso';
+    const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
     const { updates } = req.body;
     
     if (!Array.isArray(updates)) {
       return res.status(400).json({ error: 'Updates must be an array' });
     }
     
+    const cleanUpdates = [];
     for (const update of updates) {
-      if (!update.name || typeof update.ghc_x !== 'number' || 
-          typeof update.ghc_y !== 'number' || typeof update.ghc_z !== 'number') {
+      const cleanName = sanitizeString(update.name);
+      const cleanX = parseValidFloat(update.ghc_x);
+      const cleanY = parseValidFloat(update.ghc_y);
+      const cleanZ = parseValidFloat(update.ghc_z);
+
+      if (!cleanName || cleanX === null || cleanY === null || cleanZ === null) {
         return res.status(400).json({ 
-          error: 'Each update must have: name (string), ghc_x (number), ghc_y (number), ghc_z (number)' 
+          error: 'Each update must have: valid name (string), ghc_x (number), ghc_y (number), ghc_z (number)' 
         });
       }
+      cleanUpdates.push({ name: cleanName, ghc_x: cleanX, ghc_y: cleanY, ghc_z: cleanZ });
     }
     
     db.serialize(() => {
@@ -353,19 +360,16 @@ app.post('/batch-update-coordinates', (req, res) => {
       let updatedCount = 0;
       let completed = 0;
       
-      updates.forEach((update, index) => {
+      cleanUpdates.forEach((update) => {
         stmt.run([update.ghc_x, update.ghc_y, update.ghc_z, update.name, galaxy], function(err) {
           if (err) {
             console.error(`Error updating ${update.name}:`, err.message);
           } else if (this.changes > 0) {
             updatedCount++;
-            console.log(`Updated ${update.name}: [${update.ghc_x.toFixed(2)}, ${update.ghc_y.toFixed(2)}, ${update.ghc_z.toFixed(2)}]`);
-          } else {
-            console.warn(`System not found in ${galaxy}: ${update.name}`);
           }
           
           completed++;
-          if (completed === updates.length) {
+          if (completed === cleanUpdates.length) {
             stmt.finalize();
             db.run('COMMIT', (err) => {
               if (err) {
@@ -376,9 +380,9 @@ app.post('/batch-update-coordinates', (req, res) => {
               
               res.json({ 
                 success: true, 
-                message: `Updated ${updatedCount} out of ${updates.length} systems`,
+                message: `Updated ${updatedCount} out of ${cleanUpdates.length} systems`,
                 updated_count: updatedCount,
-                total_requested: updates.length
+                total_requested: cleanUpdates.length
               });
             });
           }
@@ -392,10 +396,9 @@ app.post('/batch-update-coordinates', (req, res) => {
   }
 });
 
-// POST /upload-systems - Upload or update multiple systems
 app.post('/upload', (req, res) => {
   try {
-    const galaxy = req.query.galaxy || 'calypso';
+    const defaultGalaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
     const { systems } = req.body;
     
     if (!Array.isArray(systems)) {
@@ -405,11 +408,35 @@ app.post('/upload', (req, res) => {
       return res.status(400).json({ error: 'systems array is empty' });
     }
     
+    const cleanSystems = [];
     for (const sys of systems) {
-      if (!sys.id || !sys.name) {
-        return res.status(400).json({ error: 'Each system must have at least id and name' });
+      const cleanId = sanitizeString(sys.id);
+      const cleanName = sanitizeString(sys.name);
+      
+      if (!cleanId || !cleanName) {
+        return res.status(400).json({ error: 'Each system must have valid id and name' });
       }
-      sys.galaxy = sys.galaxy || galaxy;
+
+      let parsedAnchors = null;
+      if (typeof sys.anchors === 'object' && sys.anchors !== null) {
+        parsedAnchors = JSON.stringify(sys.anchors);
+      } else if (typeof sys.anchors === 'string') {
+        parsedAnchors = sys.anchors; // Assuming pre-stringified JSON
+      }
+
+      cleanSystems.push({
+        id: cleanId,
+        name: cleanName,
+        anchors: parsedAnchors,
+        ghc_x: parseValidFloat(sys.ghc_x),
+        ghc_y: parseValidFloat(sys.ghc_y),
+        ghc_z: parseValidFloat(sys.ghc_z),
+        color: sys.color ? sanitizeString(sys.color) : null,
+        is_anchor: sys.is_anchor ? 1 : 0,
+        anchor_id: sys.anchor_id ? sanitizeString(sys.anchor_id) : null,
+        confidence: parseValidFloat(sys.confidence),
+        galaxy: sanitizeString(sys.galaxy || defaultGalaxy).toLowerCase()
+      });
     }
     
     const fields = ['id','name','anchors','ghc_x','ghc_y','ghc_z','color','is_anchor','anchor_id', 'confidence', 'galaxy'];
@@ -419,7 +446,7 @@ app.post('/upload', (req, res) => {
     let inserted = 0;
     db.serialize(() => {
       const stmt = db.prepare(sql);
-      for (const sys of systems) {
+      for (const sys of cleanSystems) {
         const values = fields.map(f => sys[f] !== undefined ? sys[f] : null);
         stmt.run(values, function(err) {
           if (!err) inserted++;
@@ -429,7 +456,7 @@ app.post('/upload', (req, res) => {
         if (err) {
           res.status(500).json({ error: 'Database error', details: err.message });
         } else {
-          res.json({ success: true, inserted, total: systems.length });
+          res.json({ success: true, inserted, total: cleanSystems.length });
         }
       });
     });
@@ -439,7 +466,6 @@ app.post('/upload', (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   db.get('SELECT COUNT(*) as count FROM systems', (err, row) => {
     if (err) {
@@ -461,24 +487,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Start server
 async function startServer() {
   try {
     console.log('Starting server initialization...');
-    
     await initializeDatabase();
     
     const server = app.listen(PORT, () => {
       console.log(`Server running on ${CURR_ENV}`);
-      console.log('Available endpoints:');
-      console.log('  GET  /systems                    - Get all systems');
-      console.log('  GET  /system/:name               - Get specific system');
-      console.log('  POST /update-coordinates         - Update single system coordinates');
-      console.log('  POST /batch-update-coordinates   - Update multiple systems');
-      console.log('  GET  /systems-with-coordinates   - Get systems with coordinates');
-      console.log('  GET  /coordinates-status         - Get coordinate update status');
-      console.log('  GET  /health                     - Health check');
-      console.log('  POST /add-system                 - Submit a new system to the database')
     });
     
     server.on('error', (error) => {
@@ -496,7 +511,6 @@ async function startServer() {
   }
 }
 
-// Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down server...');
   if (db) {
