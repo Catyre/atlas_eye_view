@@ -796,7 +796,8 @@ form.addEventListener('submit', async (event) => {
   const statusDiv = addSystemPanel.querySelector('#add-status');
   statusDiv.textContent = 'Submitting...';
   statusDiv.style.color = '#fff';
-  
+
+  const valE = parseFloat(addSystemPanel.querySelector('#new-e').value);
   const payload = {
     id: addSystemPanel.querySelector('#new-hubtag').value,
     name: addSystemPanel.querySelector('#new-name').value,
@@ -805,7 +806,7 @@ form.addEventListener('submit', async (event) => {
     new_b: parseFloat(addSystemPanel.querySelector('#new-b').value),
     new_c: parseFloat(addSystemPanel.querySelector('#new-c').value),
     new_d: parseFloat(addSystemPanel.querySelector('#new-d').value),
-    new_e: parseFloat(addSystemPanel.querySelector('#new-e').value)
+    new_e: isNaN(valE) ? null : valE
   };
 
   try {
@@ -907,6 +908,19 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   activeBtn.classList.add('active');
   inactiveBtn.classList.remove('active');
   currentGalaxy = newGalaxy;
+
+  // Toggle Anchor E visibility and requirement
+  const inputE = document.getElementById('new-e');
+  if (inputE) {
+    if (currentGalaxy === 'euclid') {
+      inputE.style.display = 'none';
+      inputE.required = false;
+      inputE.value = ''; // Clear any leftover data
+    } else {
+      inputE.style.display = 'block';
+      inputE.required = true;
+    }
+  }
 
   const overlay = document.getElementById('hyperspace-overlay');
   const overlayText = document.getElementById('hyper-text-content');

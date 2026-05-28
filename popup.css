@@ -242,15 +242,15 @@
 
 #add-system-btn {
   position: fixed;
-  top: 865px;
+  top: 890px;
   right: 20px;
-  padding: 6px 16px;
+  padding: 6px 6px;
 }
-
+/* Align the panel directly above the button */
 #add-system-panel {
   position: fixed;
-  top: 70px;
-  right: 200px;
+  bottom: 145px; 
+  right: 20px; 
   padding: 20px;
   width: 280px;
   display: none;
