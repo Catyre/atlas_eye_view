@@ -231,6 +231,7 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
     const d = anchorDistancesObj[i];
+    console.log(d);
     
     // Check if distance data is valid
     if (typeof d === 'number' && !isNaN(d)) {
