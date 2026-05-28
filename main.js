@@ -865,7 +865,9 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-const controlsTooltip.innerHTML = `
+conVst controlsTooltip = document.createElement('div');
+controlsTooltip.id = 'controls-tooltip';
+controlsTooltip.innerHTML = `
   <div style="margin-bottom: 8px;">
     [ NAVIGATION ] 
     <span class="hud-key">W / ↑</span>
