@@ -231,10 +231,9 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
     const d = anchorDistancesObj[anchor.anchor_id] || anchorDistancesObj[anchor.name];
-    console.log(d);
     
     // Check if distance data is valid
-    if (typeof d === 'number' && !isNaN(d)) {
+    if (typeof d === 'object') {
       anchorPos.push([anchor.ghc_x, anchor.ghc_y, anchor.ghc_z]);
       distances.push(d);
       validAnchors.push(anchor.anchor_id);
