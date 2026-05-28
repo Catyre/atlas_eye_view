@@ -615,7 +615,7 @@ function placeStars(starData, scene) {
     const geometry = new THREE.SphereGeometry(2, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
-    star.position.set(starPos[0], starPos[1], starPos[2]);
+    star.position.set(-starPos[0], starPos[1], starPos[2]);
     star.name = starData[system].name;
     star.userData.isSystemStar = true; 
     
@@ -629,7 +629,7 @@ function placeStars(starData, scene) {
       const labelSprite = createTextSprite(hubtag);
       
       // Position the label slightly above the star (Y-axis offset)
-      labelSprite.position.set(starPos[0], starPos[1] + 3.5, starPos[2]);
+      labelSprite.position.set(-starPos[0], starPos[1] + 3.5, starPos[2]);
       
       // Tag it with isSystemStar so it gets destroyed/cleaned up during galaxy swaps!
       labelSprite.userData.isSystemStar = true; 
