@@ -44,7 +44,11 @@ const CAMERA_MOVE_SPEED = 125;
 function initializeScene() { 
   return new Promise(function(resolve, reject) {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0x050510);
+
+    // Add the exponential fog (Color, Density)
+    // 0x1a0a2a is a deep cosmic purple, and 0.0004 is a very thin density
+    scene.fog = new THREE.FogExp2(0x1a0a2a, 0.0007);
 
     createBackgroundStarfield(scene);
 
@@ -71,7 +75,7 @@ function initializeScene() {
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       1.5, // Bloom strength (how bright it glows)
-      0.4, // Bloom radius (how far the glow spreads)
+      0.6, // Bloom radius (how far the glow spreads)
       0.0  // Bloom threshold (what brightness level triggers the glow)
     );
 
@@ -153,21 +157,39 @@ function resetCamera() {
   );
   
   hidePopup();
-  unsnapButton.style.display = 'none';
 }
-
-const unsnapButton = document.createElement('button');
-unsnapButton.id = 'unsnap-btn';
-unsnapButton.className = 'hud-button warning';
-unsnapButton.textContent = 'Unsnap Camera';
-document.body.appendChild(unsnapButton);
 
 function unsnapCamera() {
   hidePopup();
-  unsnapButton.style.display = 'none';
+
+  const currentPos = new THREE.Vector3();
+  cameraControls.getPosition(currentPos);
+
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+
+  // Push the target 100 units forward to create a smooth rotation radius
+  const distance = 10;
+  const newTarget = currentPos.clone().add(forward.multiplyScalar(distance));
+
+  cameraControls.setLookAt(
+    currentPos.x, currentPos.y, currentPos.z,
+    newTarget.x, newTarget.y, newTarget.z,
+    false 
+  );
 }
 
-unsnapButton.addEventListener('click', unsnapCamera);
+// Listen for the raw right-click (button 2) even during pointer lock
+window.addEventListener('mousedown', (event) => {
+  if (event.button === 2) {
+    unsnapCamera();
+  }
+});
+
+// Still prevent the default browser menu from popping up
+window.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+
 resetButton.addEventListener('click', resetCamera);
 
 // Target Search Panel
@@ -220,7 +242,6 @@ function snapToSelectedAnchor() {
     true
   );
 
-  unsnapButton.style.display = 'block';
 }
 
 if (snapButton) {
@@ -269,9 +290,11 @@ export function updateSystemDropdown(systems = null) {
   }
 }
 
-
 function onMouseClick(event) {
-  // NEW: Let UI clicks behave normally and stop them from hitting the 3D canvas
+  // Reject any mouse click that is not the primary left button (0)
+  if (event.button !== 0) return;
+
+  // Let UI clicks behave normally and stop them from hitting the 3D canvas
   if (event.target.closest('.system-popup') || event.target.closest('.hud-panel') || event.target.tagName.toLowerCase() === 'a') {
     return;
   }
@@ -323,7 +346,6 @@ function onMouseClick(event) {
         ui.showSystemPopup(clickedObject.name, clickedObject.position, system, camera, popup);
         
         document.exitPointerLock();
-        unsnapButton.style.display = 'block';
       };
       
       cameraControls.addEventListener('rest', onCameraRest);
@@ -501,9 +523,9 @@ function createBackgroundStarfield(scene) {
   const particleCount = 8000;
   
   for (let i = 0; i < particleCount; i++) {
-    const x = (Math.random() - 0.5) * 4000;
-    const y = (Math.random() - 0.5) * 4000;
-    const z = (Math.random() - 0.5) * 4000;
+    const x = (Math.random() - 0.5) * 8000;
+    const y = (Math.random() - 0.5) * 8000;
+    const z = (Math.random() - 0.5) * 8000;
     starVertices.push(x, y, z);
   }
 
@@ -537,7 +559,7 @@ function createTextSprite(message) {
   // HUD-style Cyan text with a slight glow effect
   context.fillStyle = "rgba(0, 255, 255, 0.9)";
   context.shadowColor = "rgba(0, 255, 255, 0.5)";
-  context.shadowBlur = 1;
+  context.shadowBlur = 0.5;
   
   context.textAlign = "center";
   context.textBaseline = "middle";
@@ -735,6 +757,12 @@ document.body.appendChild(cameraPositionBox);
 
 function hidePopup() {
   popup.classList.remove('open');
+
+  // Re-engage pointer lock, but add a safeguard to ensure we don't 
+  // hijack the mouse if the user is actively typing in an input field
+  if (document.activeElement.tagName !== 'INPUT') {
+    renderer.domElement.requestPointerLock();
+  }
 }
 
 const oldBtn = document.getElementById('add-system-btn');
