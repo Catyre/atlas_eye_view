@@ -176,7 +176,7 @@ app.post('/add-system', (req, res) => {
     B: new_b, 
     C: new_c, 
     D: new_d, 
-    E: new_e || 0 
+    E: new_e !== undefined && new_e !== '' ? new_e : null
   };
   const anchors = JSON.stringify(anchorsObj);
 
