@@ -239,20 +239,25 @@
   left: 20px;
   padding: 12px 16px;
 }
-
 #add-system-btn {
   position: fixed;
-  top: 890px;
+  bottom: 120px; /* Sits exactly above the Active Database box */
   right: 20px;
-  padding: 6px 6px;
+  width: 220px;
+  padding: 8px 16px;
+  text-align: center;
+  white-space: nowrap;
+  z-index: 2000;
+  top: auto;
 }
-/* Align the panel directly above the button */
+
 #add-system-panel {
   position: fixed;
-  bottom: 145px; 
-  right: 20px; 
-  padding: 20px;
+  bottom: 165px; /* Sits exactly above the initialize button */
+  right: 20px;
   width: 280px;
+  padding: 20px;
+  z-index: 2001;
   display: none;
 }
 
