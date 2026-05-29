@@ -121,22 +121,15 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   }
   
   popup.innerHTML = `
-    <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">[X]</button>
-    
-    <div class="system-name">${systemName}</div>
-    <div class="wiki-info">X: ${worldPosition.x.toFixed(2)}</div>
-    <div class="wiki-info">Y: ${worldPosition.y.toFixed(2)}</div>
-    <div class="wiki-info">Z: ${worldPosition.z.toFixed(2)}</div>
-    <div class="wiki-info">Class: ${system.color || 'Unknown'}</div>
-    
     <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
-      <div class="loading-container">
-        <div class="loading-spinner"></div>
-        <span>Accessing Galactic Archives...</span>
-      </div>
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <span>Accessing Galactic Archives...</span>
     </div>
-  `;
-  
+  </div>
+`;
+
+
   popup.classList.add('open');
   
   const wikiData = await fetchWikiData(systemName);
@@ -182,8 +175,18 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
       </div>
     `;
   }
-  
-  popup.innerHTML = `${wikiSection}`;
+
+  popup.innerHTML = `
+    ${wikiSection}
+    <br>
+    <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">
+      [X]
+    </button>
+
+    <div class="wiki-info">X: ${worldPosition.x.toFixed(2)}</div>
+    <div class="wiki-info">Y: ${worldPosition.y.toFixed(2)}</div>
+    <div class="wiki-info">Z: ${worldPosition.z.toFixed(2)}</div>
+    <div class="wiki-info">Class: ${system.color || 'Unknown'}</div>`;
 }
 
 // Crosshair

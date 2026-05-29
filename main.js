@@ -279,7 +279,7 @@ function snapToSelectedAnchor() {
   }
   
   const offset = 20;
-  const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
+  const pos = [-targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
   
   cameraControls.setLookAt(
     pos[0] + offset,
