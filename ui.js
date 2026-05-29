@@ -124,9 +124,9 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">[X]</button>
     
     <div class="system-name">${systemName}</div>
-    <div class="wiki-info">X: ${position.x.toFixed(2)}</div>
-    <div class="wiki-info">Y: ${position.y.toFixed(2)}</div>
-    <div class="wiki-info">Z: ${position.z.toFixed(2)}</div>
+    <div class="wiki-info">X: ${worldPosition.x.toFixed(2)}</div>
+    <div class="wiki-info">Y: ${worldPosition.y.toFixed(2)}</div>
+    <div class="wiki-info">Z: ${worldPosition.z.toFixed(2)}</div>
     <div class="wiki-info">Class: ${systemData.color || 'Unknown'}</div>
     
     <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
