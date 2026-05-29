@@ -127,7 +127,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     <div class="wiki-info">X: ${worldPosition.x.toFixed(2)}</div>
     <div class="wiki-info">Y: ${worldPosition.y.toFixed(2)}</div>
     <div class="wiki-info">Z: ${worldPosition.z.toFixed(2)}</div>
-    <div class="wiki-info">Class: ${systemData.color || 'Unknown'}</div>
+    <div class="wiki-info">Class: ${system.color || 'Unknown'}</div>
     
     <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
       <div class="loading-container">
