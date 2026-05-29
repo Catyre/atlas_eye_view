@@ -3,6 +3,14 @@ import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Define __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Lock the database path to the exact directory where server.js lives
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'galaxy_data', 'astrometrics.sqlite');
 
 const app = express();
 let PORT = process.env.PORT;
@@ -11,8 +19,6 @@ if (PORT === undefined) {
   CURR_ENV = "Development";
   PORT = 10000;
 }
-
-const DB_PATH = process.env.DB_PATH || './backend/galaxy_data/astrometrics.sqlite';
 
 const allowedOrigins = [
   'https://gh-cartography.onrender.com', 
