@@ -214,22 +214,28 @@ app.get('/systems', (req, res) => {
   });
 });
 
+
 app.post('/update-coordinates', (req, res) => {
   try {
-    const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
-    const name = sanitizeString(req.body.name);
+    // Rely on the database driver for safety, not HTML sanitization
+    const galaxy = (req.query.galaxy || 'calypso').toLowerCase();
+    const name = req.body.name; 
+    
     const ghc_x = parseValidFloat(req.body.ghc_x);
     const ghc_y = parseValidFloat(req.body.ghc_y);
     const ghc_z = parseValidFloat(req.body.ghc_z);
     
-    if (!name || ghc_x === null || ghc_y === null || ghc_z === null) {
+    // Allow null coordinates so the frontend can un-map a broken system,
+    // and safely check the name without rejecting the number 0
+    if (name === undefined || name === null || name.toString().trim() === '') {
       return res.status(400).json({ 
-        error: 'Invalid input. Required: name (string), ghc_x (number), ghc_y (number), ghc_z (number)' 
+        error: 'Invalid input. System name is required.' 
       });
     }
     
     const sql = 'UPDATE systems SET ghc_x = ?, ghc_y = ?, ghc_z = ? WHERE name = ? AND galaxy = ?';
-    db.run(sql, [ghc_x, ghc_y, ghc_z, name, galaxy], function(err) {
+    
+    db.run(sql, [ghc_x, ghc_y, ghc_z, name.toString(), galaxy], function(err) {
       if (err) {
         console.error('Error updating coordinates:', err.message);
         res.status(500).json({ error: 'Database error' });
@@ -254,6 +260,7 @@ app.post('/update-coordinates', (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
 
 app.get('/system/:name', (req, res) => {
   try {
