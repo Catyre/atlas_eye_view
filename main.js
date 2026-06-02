@@ -292,7 +292,7 @@ function snapToSelectedAnchor() {
   const pos = [
     -targetX * scale, 
     targetY * scale, 
-    -targetZ * scale
+    targetZ * scale
   ];
   
   cameraControls.setLookAt(
@@ -641,7 +641,7 @@ function placeStars(starData, scene) {
     // Flip X and Z, and apply the scale multiplier
     const renderX = -starPos[0] * scale;
     const renderY = starPos[1] * scale;
-    const renderZ = -starPos[2] * scale;
+    const renderZ = starPos[2] * scale;
 
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(1, 16, 16);
