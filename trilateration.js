@@ -43,33 +43,6 @@ function calculateTetrahedronVolume(P1, P2, P3, P4) {
 }
 
 
-// Given anchorPositions: Array of [x, y, z]
-// and distances: Array of distances to the unknown point
-// Returns: [x, y, z] of the estimated point
-export function multilaterate1(anchors, distances) {
-  // Use nonlinear least squares to minimize the error
-  // between the calculated and measured distances
-  // We'll use numeric.js's uncmin for minimization
-
-  // Initial guess: centroid of anchors
-  const centroid = anchors.reduce((acc, p) => [acc[0]+p[0], acc[1]+p[1], acc[2]+p[2]], [0,0,0])
-    .map(x => x/anchors.length);
-
-  function errorFunc(pos) {
-    let sum = 0;
-    for (let i = 0; i < anchors.length; i++) {
-      const dx = pos[0] - anchors[i][0];
-      const dy = pos[1] - anchors[i][1];
-      const dz = pos[2] - anchors[i][2];
-      const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      sum += (dist - distances[i]) ** 2;
-    }
-    return sum;
-  }
-
-  const result = numeric.uncmin(errorFunc, centroid);
-  return result.solution;
-}
 
 // Calculate the volume of a tetrahedron using the Cayley-Menger determinant
 function cayleyMengerVolume(d12, d13, d14, d23, d24, d34) {

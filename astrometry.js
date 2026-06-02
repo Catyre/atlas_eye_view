@@ -75,47 +75,52 @@ export async function processAstrometrics(galaxy) {
 
     const optimalGeometry = tri.chooseLeastCoplanarAnchors(all_anchors);
     const selectedAnchors = optimalGeometry.anchors;
-    const selectedAnchorPositions = optimalGeometry.anchorPositions;
 
-    for (let i = 0; i < selectedAnchors.length; i++) {
-        selectedAnchors[i].ghc_x = selectedAnchorPositions[i][0];
-        selectedAnchors[i].ghc_y = selectedAnchorPositions[i][1];
-        selectedAnchors[i].ghc_z = selectedAnchorPositions[i][2];
-    }
-
-    const {origin, basis} = tri.buildBasis(selectedAnchorPositions);
+    // Extract the true database coordinates to calculate the centroid
+    const currentAnchorPositions = selectedAnchors.map(a => [a.ghc_x, a.ghc_y, a.ghc_z]);
+    const {origin, basis} = tri.buildBasis(currentAnchorPositions);
 
     const GHUB_COORDINATE_SYSTEM = {
       origin: origin,
       basis: basis,
-      anchors: selectedAnchors
-    }
+      // CRITICAL: Deep copy the anchors so multilaterate doesn't corrupt the basis mid-loop
+      anchors: JSON.parse(JSON.stringify(selectedAnchors)) 
+    };
 
     stars.forEach(system => {
       systemData[system.name] = system;
     });
 
     let processedCount = 0;
-    let mapScale = 2;
     for (const system of stars) {
+      // Anchors are the absolute truth. Never recalculate them.
+      if (system.is_anchor) {
+        systemData[system.name].ghc_x = system.ghc_x;
+        systemData[system.name].ghc_y = system.ghc_y;
+        systemData[system.name].ghc_z = system.ghc_z;
+        continue;
+      }
+
       let star_pos;
       try {
         const sys_anchors = typeof system.anchors === 'string' 
           ? JSON.parse(system.anchors) 
           : system.anchors;
 
-        if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null){
+        // Revert back to the null check so we don't spam the database
+        if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null) {
           star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
           updateSystemCoordinates(galaxy, system.name, star_pos);
-          systemData[system.name].ghc_x = star_pos[0] * mapScale;
-          systemData[system.name].ghc_y = star_pos[1] * mapScale;
-          systemData[system.name].ghc_z = star_pos[2] * mapScale;
+          systemData[system.name].ghc_x = star_pos[0];
+          systemData[system.name].ghc_y = star_pos[1];
+          systemData[system.name].ghc_z = star_pos[2];
+          console.log("processAstrometrics for " + system.name + ": [" + star_pos.join(', ') + "]");
         } else {
           star_pos = [system.ghc_x, system.ghc_y, system.ghc_z];
           starPosns.push(star_pos);
-          systemData[system.name].ghc_x = star_pos[0] * mapScale;
-          systemData[system.name].ghc_y = star_pos[1] * mapScale;
-          systemData[system.name].ghc_z = star_pos[2] * mapScale;
+          systemData[system.name].ghc_x = star_pos[0];
+          systemData[system.name].ghc_y = star_pos[1];
+          systemData[system.name].ghc_z = star_pos[2];
         }
       } catch (e) {
         console.warn(`Failed to process position for system ${system.name}:`, e);
@@ -129,8 +134,10 @@ export async function processAstrometrics(galaxy) {
     }
 
     console.log(`${stars.length} systems mapped!`)
+    console.log("systemData: ")
+    console.log(JSON.parse(JSON.stringify(systemData)));
     
-    updateSystemDropdown(stars);
+    updateSystemDropdown(systemData);
 
     if (systemData) {
       resolve(systemData);
