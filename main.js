@@ -888,7 +888,10 @@ form.addEventListener('submit', async (event) => {
     });
 
     if (!response.ok) {
-      throw new Error('Server rejected request');
+      // 1. Extract the actual error payload from the backend
+      const errorData = await response.json();
+      // 2. Throw an error containing the backend's exact words
+      throw new Error(errorData.error || `HTTP Status ${response.status}`);
     }
 
     statusDiv.textContent = 'Success! System added.';
@@ -903,7 +906,7 @@ form.addEventListener('submit', async (event) => {
       placeStars(stars, scene);
       
       // Run the validation sequence silently in the background
-      const knownSystemsArray = Object.values(stars);
+      const knownSystemsArray = JSON.parse(JSON.stringify(Object.values(stars)));
       if (knownSystemsArray.length > 0) {
         validateCalculatedPositions(knownSystemsArray, validationData);
       }
