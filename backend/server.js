@@ -185,6 +185,8 @@ app.post('/add-system', (req, res) => {
   const new_d = parseValidFloat(req.body.new_d);
   const new_e = parseValidFloat(req.body.new_e);
 
+  console.log("Raw payload:", req.body);
+
   if (!name || new_a === null || new_b === null || new_c === null || new_d === null || !color) {
     return res.status(400).json({ error: 'Missing or invalid required fields' });
   }
