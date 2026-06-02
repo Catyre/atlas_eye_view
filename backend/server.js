@@ -32,7 +32,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-/* --- Input Sanitization Helpers --- */
+/* --- Helpers --- */
+
+// Timestamp logging helper
+const logWithTimestamp = (message) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
+};
 
 // Converts HTML characters to safe entities to prevent XSS attacks
 const sanitizeString = (str) => {
@@ -200,6 +206,8 @@ app.post('/add-system', (req, res) => {
       return res.status(500).json({ error: 'Failed to write to database' });
     }
     
+    logWithTimestamp(`NEW SYSTEM ADDED: '${name}' (ID: ${id}) in galaxy '${galaxy}'.`);
+    
     res.status(201).json({ 
       message: 'System successfully added', 
       id: this.lastID 
@@ -209,6 +217,8 @@ app.post('/add-system', (req, res) => {
 
 app.get('/systems', (req, res) => {
   const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
+  
+  logWithTimestamp(`DATA ACCESSED: Full system list requested for galaxy '${galaxy}'.`);
   
   db.all('SELECT * FROM systems WHERE galaxy = ? ORDER BY id', [galaxy], (err, rows) => {
     if (err) {
@@ -253,6 +263,8 @@ app.post('/update-coordinates', (req, res) => {
         return;
       }
       
+      logWithTimestamp(`COORDINATES UPDATED: '${name}' in galaxy '${galaxy}'.`);
+      
       res.json({ 
         success: true, 
         message: `Coordinates updated for ${name}`,
@@ -272,6 +284,8 @@ app.get('/system/:name', (req, res) => {
   try {
     const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
     const name = sanitizeString(req.params.name);
+    
+    logWithTimestamp(`DATA ACCESSED: Specific system details requested for '${name}' in galaxy '${galaxy}'.`);
     
     db.get('SELECT * FROM systems WHERE name = ? AND galaxy = ?', [name, galaxy], (err, row) => {
       if (err) {
@@ -296,6 +310,9 @@ app.get('/system/:name', (req, res) => {
 
 app.get('/systems-with-coordinates', (req, res) => {
   const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
+  
+  logWithTimestamp(`DATA ACCESSED: Systems with resolved coordinates requested for galaxy '${galaxy}'.`);
+  
   const query = 'SELECT * FROM systems WHERE ghc_x IS NOT NULL AND ghc_y IS NOT NULL AND ghc_z IS NOT NULL AND galaxy = ? ORDER BY id';
   
   db.all(query, [galaxy], (err, rows) => {
@@ -391,6 +408,8 @@ app.post('/batch-update-coordinates', (req, res) => {
                 return;
               }
               
+              logWithTimestamp(`BATCH UPDATE: ${updatedCount} out of ${cleanUpdates.length} systems updated in galaxy '${galaxy}'.`);
+              
               res.json({ 
                 success: true, 
                 message: `Updated ${updatedCount} out of ${cleanUpdates.length} systems`,
@@ -469,6 +488,7 @@ app.post('/upload', (req, res) => {
         if (err) {
           res.status(500).json({ error: 'Database error', details: err.message });
         } else {
+          logWithTimestamp(`BATCH UPLOAD: ${inserted} systems inserted/replaced in galaxy '${defaultGalaxy}'.`);
           res.json({ success: true, inserted, total: cleanSystems.length });
         }
       });

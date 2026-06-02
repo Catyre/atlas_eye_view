@@ -269,17 +269,35 @@ const snapButton = document.getElementById('snap-anchor-btn');
 
 function snapToSelectedAnchor() {
   const targetName = systemSearchInput.value;
-  const targetSystem = systemList.find(sys => sys.name === targetName);
-  
+  //const targetSystem = systemList.find(sys => sys.name === targetName);
+  const targetSystem = Object.entries(systemList).find(([name, data]) => name === targetName)[1];
+
   if (!targetSystem) {
     // Flash red if the system is not found in the datalist
     systemSearchInput.style.border = '1px solid #fc5c65';
     setTimeout(() => { systemSearchInput.style.border = ''; }, 1000);
     return;
   }
+
+  const targetX = targetSystem.ghc_x ?? targetSystem.x;
+  const targetY = targetSystem.ghc_y ?? targetSystem.y;
+  const targetZ = targetSystem.ghc_z ?? targetSystem.z;
+
+  if (targetX == null || targetY == null || targetZ == null) return;
   
+  const scale = 2;
   const offset = 20;
-  const pos = [-targetSystem.ghc_x, targetSystem.ghc_y, -targetSystem.ghc_z];
+  
+  // Apply the exact same flip and scale to the camera destination
+  const pos = [
+    -targetX * scale, 
+    targetY * scale, 
+    -targetZ * scale
+  ];
+  
+  // Apply the exact same flip and scale to the camera destination
+  //const pos = [-targetSystem.ghc_x * scale, targetSystem.ghc_y * scale, -targetSystem.ghc_z * scale];
+  //const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
   
   cameraControls.setLookAt(
     pos[0] + offset,
@@ -290,6 +308,7 @@ function snapToSelectedAnchor() {
     pos[2],
     true
   );
+  console.log("Snapping camera to:" + pos);
 
 }
 
@@ -325,10 +344,10 @@ export function updateSystemDropdown(systems = null) {
   
   systemList = systemsToUse;
   
-  for (const sys of systemsToUse) {
-    if (!sys.name) continue;
+  for (const [name, data] of Object.entries(systemsToUse)){
+    if (!name) continue;
     const opt = document.createElement('option');
-    opt.value = sys.name; 
+    opt.value = name;
     systemDatalist.appendChild(opt);
   }
   
@@ -596,6 +615,7 @@ function createTextSprite(message) {
   
   return sprite;
 }
+
 function placeStars(starData, scene) {
   const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
   
@@ -618,13 +638,21 @@ function placeStars(starData, scene) {
         starPos[1] === null || starPos[1] === undefined || 
         starPos[2] === null || starPos[2] === undefined) {
       continue;
+
     }
+
+    const scale = 2;
+    // Flip X and Z, and apply the scale multiplier
+    const renderX = -starPos[0] * scale;
+    const renderY = starPos[1] * scale;
+    const renderZ = -starPos[2] * scale;
 
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(1, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
-    star.position.set(-starPos[0], starPos[1], -starPos[2]);
+    star.position.set(renderX, renderY, renderZ);
+    console.log("Placing " + starData[system].name + " at [" + renderX + ", " + renderY + ", " + renderZ + "]")
     star.name = starData[system].name;
     star.userData.isSystemStar = true; 
     
@@ -637,7 +665,7 @@ function placeStars(starData, scene) {
       const labelSprite = createTextSprite(hubtag);
       
       // Position the label slightly above the star (Y-axis offset)
-      labelSprite.position.set(-starPos[0], starPos[1] + 3.5, -starPos[2]);
+      labelSprite.position.set(renderX, renderY + 3.5, renderZ);
       
       // Tag it with isSystemStar so it gets destroyed/cleaned up during galaxy swaps!
       labelSprite.userData.isSystemStar = true; 
@@ -668,7 +696,7 @@ initializeScene().then(function(data) {
     placeStars(stars, scene);
     
     // Transform the stars object into an array
-    const knownSystemsArray = Object.values(stars);
+    const knownSystemsArray = JSON.parse(JSON.stringify(Object.values(stars)));
     
     // Execute the validation sequence using the imported JSON
     if (knownSystemsArray.length > 0) {
@@ -693,17 +721,6 @@ initializeScene().then(function(data) {
 
     console.log('Adding keyboard event listeners');
     
-    window.addEventListener('keydown', (e) => {
-      console.log('WINDOW KEYDOWN EVENT:', e.key, e.code, e.type);
-    });
-    
-    document.addEventListener('keydown', (e) => {
-      console.log('DOCUMENT KEYDOWN EVENT:', e.key, e.code, e.type);
-    });
-    
-    renderer.domElement.addEventListener('keydown', (e) => {
-      console.log('CANVAS KEYDOWN EVENT:', e.key, e.code, e.type);
-    });
     
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);

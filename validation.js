@@ -17,21 +17,15 @@ export function validateCalculatedPositions(knownSystemsData, validationData) {
 
   const optimalGeometry = tri.chooseLeastCoplanarAnchors(anchorSystems);
   const selectedAnchors = optimalGeometry.anchors;
-  const selectedAnchorPositions = optimalGeometry.anchorPositions;
 
-  for (let i = 0; i < selectedAnchors.length; i++) {
-      selectedAnchors[i].ghc_x = selectedAnchorPositions[i][0];
-      selectedAnchors[i].ghc_y = selectedAnchorPositions[i][1];
-      selectedAnchors[i].ghc_z = selectedAnchorPositions[i][2];
-  }
-
-  const {origin, basis} = tri.buildBasis(selectedAnchorPositions);
+  const currentAnchorPositions = selectedAnchors.map(a => [a.ghc_x, a.ghc_y, a.ghc_z]);
+  const {origin, basis} = tri.buildBasis(currentAnchorPositions);
 
   const GHUB_COORDINATE_SYSTEM = {
     origin: origin,
     basis: basis,
-    anchors: selectedAnchors
-  }
+    anchors: JSON.parse(JSON.stringify(selectedAnchors))
+  };
   
   const anchors = GHUB_COORDINATE_SYSTEM.anchors;
 
