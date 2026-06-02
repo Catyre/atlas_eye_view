@@ -285,7 +285,7 @@ function snapToSelectedAnchor() {
 
   if (targetX == null || targetY == null || targetZ == null) return;
   
-  const scale = 2;
+  const scale = 1;
   const offset = 20;
   
   // Apply the exact same flip and scale to the camera destination
@@ -294,10 +294,6 @@ function snapToSelectedAnchor() {
     targetY * scale, 
     -targetZ * scale
   ];
-  
-  // Apply the exact same flip and scale to the camera destination
-  //const pos = [-targetSystem.ghc_x * scale, targetSystem.ghc_y * scale, -targetSystem.ghc_z * scale];
-  //const pos = [targetSystem.ghc_x, targetSystem.ghc_y, targetSystem.ghc_z];
   
   cameraControls.setLookAt(
     pos[0] + offset,
@@ -641,7 +637,7 @@ function placeStars(starData, scene) {
 
     }
 
-    const scale = 2;
+    const scale = 1;
     // Flip X and Z, and apply the scale multiplier
     const renderX = -starPos[0] * scale;
     const renderY = starPos[1] * scale;
