@@ -146,29 +146,47 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     `;
   } else {
     wikiSection = `
-      <div class="wiki-section">
-        <div class="wiki-title">
-          <a href="${wikiData.url}" target="_blank" style="color: inherit; text-decoration: none;">${wikiData.title}</a>
-        </div>
-        ${JSON.parse(system.anchors).B}LY from Capital
-        ${wikiData.summary ? `<div class="wiki-summary">${wikiData.summary}</div>` : ''}
-        ${wikiData.galaxy ? `<div class="wiki-info"><span>Galaxy:</span> ${wikiData.galaxy}</div>` : ''}
-        ${wikiData.region ? `<div class="wiki-info"><span>Region:</span> ${wikiData.region}</div>` : ''}
-        ${wikiData.planets ? `<div class="wiki-info"><span>Planets:</span> ${wikiData.planets}</div>` : ''}
-        ${wikiData.moons ? `<div class="wiki-info"><span>Moons:</span> ${wikiData.moons}</div>` : ''}
-        ${wikiData.spectral_class ? `<div class="wiki-info"><span>Spectral Class:</span> ${wikiData.spectral_class}</div>` : ''}
-        ${wikiData.distance ? `<div class="wiki-info"><span>Distance:</span> ${wikiData.distance}</div>` : ''}
-        ${wikiData.glyphs ? `<div class="wiki-info glyphs"><span>Glyphs:</span> ${wikiData.glyphs}</div>` : ''}
-        ${wikiData.waterworlds ? `<div class="wiki-info"><span>Waterworlds:</span> ${wikiData.waterworlds}</div>` : ''}
-        ${wikiData.dissonant ? `<div class="wiki-info"><span>Dissonant:</span> ${wikiData.dissonant}</div>` : ''}
-        ${wikiData.faction ? `<div class="wiki-info"><span>Faction:</span> ${wikiData.faction}</div>` : ''}
-        ${wikiData.economy ? `<div class="wiki-info"><span>Economy:</span> ${wikiData.economy}</div>` : ''}
-        ${wikiData.wealth ? `<div class="wiki-info"><span>Wealth:</span> ${wikiData.wealth}</div>` : ''}
-        ${wikiData.conflict ? `<div class="wiki-info"><span>Conflict:</span> ${wikiData.conflict}</div>` : ''}
-        ${wikiData.discoveredBy ? `<div class="wiki-info"><span>Discovered by:</span> ${wikiData.discoveredBy}</div>` : ''}
+      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         
-        <div style="margin-top: 15px; text-align: center;">
-          <a href="${wikiData.url}" target="_blank" rel="noopener noreferrer" style="display: block; padding: 8px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 4px; font-size: 0.9em; transition: background 0.2s;">
+        <div style="border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
+          <div class="wiki-title" style="font-size: 1.25em; letter-spacing: 1px; text-transform: uppercase;">
+            <a href="${wikiData.url}" target="_blank" style="color: #00ffff; text-decoration: none; text-shadow: 0 0 8px rgba(0,255,255,0.5);">${wikiData.title}</a>
+          </div>
+          <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+            DISTANCE: ${JSON.parse(system.anchors).B} LY FROM CAPITAL
+          </div>
+        </div>
+
+        ${wikiData.summary ? `<div class="wiki-summary" style="font-style: italic; color: #a8b2d1; font-size: 0.9em; margin-bottom: 15px; line-height: 1.4;">${wikiData.summary}</div>` : ''}
+
+        ${wikiData.glyphs ? `
+          <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
+            <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
+            <div class="nms-glyph-text" style="color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.5);">${wikiData.glyphs}</div>
+          </div>
+        ` : ''}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
+          
+          ${wikiData.galaxy ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">GALAXY</div><div style="color: #fff;">${wikiData.galaxy}</div></div>` : ''}
+          ${wikiData.region ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">REGION</div><div style="color: #fff;">${wikiData.region}</div></div>` : ''}
+          
+          ${wikiData.planets || wikiData.moons ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">CELESTIAL BODIES</div><div style="color: #fff;">${wikiData.planets || '0'} Planets, ${wikiData.moons || '0'} Moons</div></div>` : ''}
+          ${wikiData.spectral_class ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">SPECTRAL CLASS</div><div style="color: #fff;">${wikiData.spectral_class}</div></div>` : ''}
+          
+          ${wikiData.faction ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">DOMINANT FORM</div><div style="color: #fff;">${wikiData.faction}</div></div>` : ''}
+          ${wikiData.conflict ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">CONFLICT LEVEL</div><div style="color: #fff;">${wikiData.conflict}</div></div>` : ''}
+          
+          ${wikiData.economy || wikiData.wealth ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">ECONOMY</div><div style="color: #fff;">${wikiData.economy || 'Unknown'} ${wikiData.wealth ? `(${wikiData.wealth})` : ''}</div></div>` : ''}
+          ${wikiData.dissonant ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">SYSTEM STATE</div><div style="color: #ff4757;">Dissonant</div></div>` : ''}
+          
+          ${wikiData.waterworlds ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">WATERWORLDS</div><div style="color: #fff;">${wikiData.waterworlds}</div></div>` : ''}
+          ${wikiData.discoveredBy ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">DISCOVERED BY</div><div style="color: #fff;">${wikiData.discoveredBy}</div></div>` : ''}
+
+        </div>
+        
+        <div style="margin-top: 18px; text-align: center;">
+          <a href="${wikiData.url}" target="_blank" rel="noopener noreferrer" style="display: block; padding: 10px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 2px; font-size: 0.8em; letter-spacing: 2px; text-transform: uppercase;">
             Access Full Database Entry
           </a>
         </div>
