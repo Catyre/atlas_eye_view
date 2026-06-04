@@ -1,10 +1,18 @@
 /* Fonts */
 @font-face {
-    font-family: "NMS-Glyphs-Mono";
-    src:
-      local("NMS-Glyphs-Mono"),
-      url("/fonts/nms-glyphs-mono-webfont.woff") format("woff"),
-      url("/fonts/nms-glyphs-mono-webfont.woff2") format("woff2");
+  font-family: 'NMSGlyphs';
+  src: url('/fonts/NMS-Glyphs-Mono.ttf') format('truetype'); /* Adjust extension if using .woff */
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 2. Create a styling class for the glyph text */
+.nms-glyph-text {
+  font-family: 'NMSGlyphs', monospace;
+  font-size: 1.5rem; /* Glyphs usually need to be a bit larger to read clearly */
+  letter-spacing: 4px; /* Space them out slightly */
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Optional: give them a slight glow */
 }
 
 @font-face {
