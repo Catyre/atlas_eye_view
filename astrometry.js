@@ -45,7 +45,7 @@ export async function processAstrometrics(galaxy) {
     stars = await res.json();
   } catch (err) {
     console.error("Could not fetch systems from backend:", err);
-    alert("Could not load star systems from backend. Is the server running?");
+    alert("Server maintenance underway - Could not load star systems from backend.");
     return; 
   }
 
