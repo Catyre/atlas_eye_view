@@ -1124,3 +1124,105 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
   }
 });
+
+// Exporting/Importing logs
+const dataManagementPanel = document.createElement('div');
+dataManagementPanel.id = 'data-management-panel';
+dataManagementPanel.className = 'hud-panel';
+
+dataManagementPanel.style.position = 'absolute';
+dataManagementPanel.style.bottom = '20px';
+dataManagementPanel.style.left = '20px';
+dataManagementPanel.style.zIndex = '100';
+
+dataManagementPanel.innerHTML = `
+  <h3 style="margin-top: 3px; margin-bottom: 10px; margin-left: 5px;">Local Data</h3>
+  <div style="display: flex; gap: 8px;">
+    <button id="export-logs-btn" class="hud-button">Backup Logs</button>
+    <button id="import-logs-btn" class="hud-button">Restore Logs</button>
+    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+  </div>
+  <div id="data-status" style="margin-top: 8px; font-size: 0.8em; color: #20bf6b; text-align: center;"></div>
+`;
+document.body.appendChild(dataManagementPanel);
+
+// Prevent clicks on the panel from hitting the 3D canvas
+dataManagementPanel.addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+
+const exportBtn = document.getElementById('export-logs-btn');
+const importBtn = document.getElementById('import-logs-btn');
+const fileInput = document.getElementById('import-file-input');
+const dataStatus = document.getElementById('data-status');
+
+exportBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const logs = {};
+  let count = 0;
+  
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('gh_notes_')) {
+      logs[key] = localStorage.getItem(key);
+      count++;
+    }
+  }
+  
+  if (count === 0) {
+    dataStatus.textContent = 'No logs found to export.';
+    dataStatus.style.color = '#feca57';
+    setTimeout(() => { dataStatus.textContent = ''; }, 3000);
+    return;
+  }
+  
+  const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const downloadLink = document.createElement('a');
+  downloadLink.href = url;
+  downloadLink.download = 'surveyor_logs_backup.json';
+  downloadLink.click();
+  
+  URL.revokeObjectURL(url);
+  
+  dataStatus.textContent = `Exported ${count} logs.`;
+  dataStatus.style.color = '#20bf6b';
+  setTimeout(() => { dataStatus.textContent = ''; }, 3000);
+});
+
+importBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const logs = JSON.parse(e.target.result);
+      let count = 0;
+      
+      for (const key in logs) {
+        if (key.startsWith('gh_notes_')) {
+          localStorage.setItem(key, logs[key]);
+          count++;
+        }
+      }
+      
+      dataStatus.textContent = `Restored ${count} logs.`;
+      dataStatus.style.color = '#20bf6b';
+    } catch (err) {
+      dataStatus.textContent = 'Invalid backup file.';
+      dataStatus.style.color = '#fc5c65';
+    }
+    
+    fileInput.value = '';
+    setTimeout(() => { dataStatus.textContent = ''; }, 3000);
+  };
+  
+  reader.readAsText(file);
+});
