@@ -416,7 +416,7 @@ function onMouseClick(event) {
 }
 
 function onKeyDown(event) {
-  if (document.activeElement.tagName === 'INPUT') return;
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
   
   const key = event.key.toLowerCase();
   if (key in keys) {
@@ -428,7 +428,7 @@ function onKeyDown(event) {
 }
 
 function onKeyUp(event) {
-  if (document.activeElement.tagName === 'INPUT') return;
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
 
   const key = event.key.toLowerCase();
   if (key in keys) {
