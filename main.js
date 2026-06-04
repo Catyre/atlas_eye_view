@@ -998,11 +998,11 @@ document.body.appendChild(galaxySelector);
 const tabContainer = document.getElementById('galaxy-tabs-container');
 
 const calypsoBtn = document.createElement('button');
-calypsoBtn.className = 'hud-tab active';
+calypsoBtn.className = 'hud-tab';
 calypsoBtn.textContent = 'Calypso';
 
 const euclidBtn = document.createElement('button');
-euclidBtn.className = 'hud-tab';
+euclidBtn.className = 'hud-tab active';
 euclidBtn.textContent = 'Euclid';
 
 tabContainer.appendChild(calypsoBtn);
