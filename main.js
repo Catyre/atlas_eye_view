@@ -23,7 +23,7 @@ var composer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
-let currentGalaxy = "calypso";
+let currentGalaxy = "euclid";
 let labelsVisible = true;
 const BACKEND = import.meta.env.VITE_BACKEND_URL;
 
