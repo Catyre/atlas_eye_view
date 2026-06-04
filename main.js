@@ -24,6 +24,7 @@ var popup = null;
 var mouse = null;
 var raycaster = null;
 let currentGalaxy = "calypso";
+let labelsVisible = true;
 const BACKEND = import.meta.env.VITE_BACKEND_URL;
 
 // Keyboard controls state
@@ -150,6 +151,41 @@ export async function getScene() {
   await initializeScene();
   return scene;
 }
+
+
+const toggleLabelsBtn = document.createElement('button');
+toggleLabelsBtn.id = 'toggle-labels-btn';
+toggleLabelsBtn.className = 'hud-button';
+toggleLabelsBtn.textContent = 'Hide Labels';
+
+// Explicitly position this button so it does not overlap your Reset View button
+toggleLabelsBtn.style.position = 'absolute';
+toggleLabelsBtn.style.top = '140px'; // Places it just below the top-left corner
+toggleLabelsBtn.style.left = '20px';
+toggleLabelsBtn.style.width = 'fit-content';
+toggleLabelsBtn.style.zIndex = '100';
+document.body.appendChild(toggleLabelsBtn);
+
+toggleLabelsBtn.addEventListener('click', (event) => {
+  // Prevent the click from bleeding through to the 3D canvas and locking the mouse
+  event.stopPropagation(); 
+  
+  labelsVisible = !labelsVisible;
+  toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels' : 'Hide Labels';
+
+  scene.children.forEach(child => {
+    if (child.userData && child.userData.isLabel) {
+      child.visible = labelsVisible;
+    }
+  });
+  
+  // Force the graphics engine to draw one new frame immediately so the text vanishes
+  if (composer) {
+    composer.render();
+  } else if (renderer && scene && camera) {
+    renderer.render(scene, camera);
+  }
+});
 
 const resetButton = document.createElement('button');
 resetButton.id = 'reset-btn';
@@ -665,6 +701,8 @@ function placeStars(starData, scene) {
       
       // Tag it with isSystemStar so it gets destroyed/cleaned up during galaxy swaps!
       labelSprite.userData.isSystemStar = true; 
+      labelSprite.userData.isLabel = true; 
+      labelSprite.visible = labelsVisible;
       
       scene.add(labelSprite);
     }
