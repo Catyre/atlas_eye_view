@@ -216,6 +216,11 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   const saveBtn = document.getElementById('save-note-btn');
   const statusText = document.getElementById('note-save-status');
 
+  // Forcefully trap all keyboard events inside the textarea
+  notesArea.addEventListener('keydown', (e) => e.stopPropagation());
+  notesArea.addEventListener('keyup', (e) => e.stopPropagation());
+  notesArea.addEventListener('keypress', (e) => e.stopPropagation());
+
   // Load any existing note from the user's browser memory
   const existingNote = localStorage.getItem(storageKey);
   if (existingNote) {
