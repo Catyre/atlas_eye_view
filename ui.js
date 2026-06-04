@@ -176,17 +176,60 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     `;
   }
 
+  const coordsHtml = `
+  <div style="display: flex; align-items: center; gap: 8px; background: rgba(10, 15, 30, 0.85); border: 1px solid rgba(0, 255, 255, 0.3); border-left: 2px solid #00ffff; padding: 8px 8px; box-shadow: 0 0 10px rgba(0, 255, 255, 0.1); margin-top: 15px; margin-bottom: 15px;">
+    <div style="color: #00ffff; font-size: 0.7rem; letter-spacing: 1px; border-right: 1px solid rgba(0, 255, 255, 0.3); padding-right: 15px;">
+      [GHC COORDINATES]
+    </div>
+    <div style="display: flex; gap: 20px; font-family: monospace; font-size: 1.1rem; color: #8892b0;">
+      <div>X: <span style="color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.5);">${system.ghc_x.toFixed(2)}</span></div>
+      <div>Y: <span style="color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.5);">${system.ghc_y.toFixed(2)}</span></div>
+      <div>Z: <span style="color: #ffffff; text-shadow: 0 0 4px rgba(255,255,255,0.5);">${system.ghc_z.toFixed(2)}</span></div>
+    </div>
+  </div>
+  `;
+
+  const personalLog = `
+    <div class="system-notes-container" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+      <div style="color: #00ffff; font-size: 0.9em; margin-bottom: 5px;">[ PERSONAL LOG ]</div>
+      <textarea id="system-personal-notes" placeholder="Enter surveyor notes..." style="width: 100%; height: 80px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #444; padding: 5px; font-family: monospace; resize: vertical;"></textarea>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+        <button id="save-note-btn" class="hud-button" style="padding: 4px 8px; font-size: 0.8em;">Save Log</button>
+        <span id="note-save-status" style="font-size: 0.8em; color: #20bf6b;"></span>
+      </div>
+    </div>
+  `;
+
   popup.innerHTML = `
     ${wikiSection}
     <br>
+    ${personalLog}
     <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">
       [X]
     </button>
+    ${coordsHtml}
+    `;
 
-    <div class="wiki-info">X: ${worldPosition.x.toFixed(2)}</div>
-    <div class="wiki-info">Y: ${worldPosition.y.toFixed(2)}</div>
-    <div class="wiki-info">Z: ${worldPosition.z.toFixed(2)}</div>
-    <div class="wiki-info">Class: ${system.color || 'Unknown'}</div>`;
+  // Generate a unique key for this specific system
+  const storageKey = `gh_notes_${system.name}`;
+  const notesArea = document.getElementById('system-personal-notes');
+  const saveBtn = document.getElementById('save-note-btn');
+  const statusText = document.getElementById('note-save-status');
+
+  // Load any existing note from the user's browser memory
+  const existingNote = localStorage.getItem(storageKey);
+  if (existingNote) {
+    notesArea.value = existingNote;
+  }
+
+  // Save the note when the button is clicked
+  saveBtn.addEventListener('click', () => {
+    const currentText = notesArea.value;
+    localStorage.setItem(storageKey, currentText);
+    
+    statusText.textContent = "Saved to local storage.";
+    setTimeout(() => { statusText.textContent = ""; }, 2000);
+  });
 }
 
 // Crosshair
