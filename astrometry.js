@@ -108,8 +108,9 @@ export async function processAstrometrics(galaxy) {
           : system.anchors;
 
         // Revert back to the null check so we don't spam the database
-        if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null ||
-            (system.ghc_x === 0.0 && system.ghc_y === 0.0 && system.ghc_z === 0.0)) {
+        //if (system.ghc_x === null || system.ghc_y === null || system.ghc_z === null ||
+        //    (system.ghc_x === 0.0 && system.ghc_y === 0.0 && system.ghc_z === 0.0)) {
+        if (true) {
           star_pos = tri.multilaterate(GHUB_COORDINATE_SYSTEM, sys_anchors);
           updateSystemCoordinates(galaxy, system.name, star_pos);
           systemData[system.name].ghc_x = star_pos[0];

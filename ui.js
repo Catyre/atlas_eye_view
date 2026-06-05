@@ -1,8 +1,14 @@
+import { calculateDistance } from './trilateration.js';
+
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
     return;
   }
+
+  const ghc_system = [system.ghc_x, system.ghc_y, system.ghc_z];
+  const ghc_capital = [-500.00390254377453, 236.72745822760584, -298.53842838766906]; // Hard coded for Bixiann for now
+  const dist2capital = calculateDistance(ghc_system, ghc_capital);
   
   popup.innerHTML = `
     <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
@@ -18,13 +24,13 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   console.log(wikiData);
   
   let wikiSection = '';
-  if (wikiData.error) {
+  if (wikiData === null) {
     wikiSection = `
       <div class="wiki-section">
         <div class="wiki-title"> ${systemName} </div>
-        ${JSON.parse(system.anchors).B}LY from Capital
+        ${dist2capital.toFixed(0)}LY from Capital
         <div class="error-message">Galactic Hub Database</div>
-        <div class="error-text">${wikiData.error}</div>
+        <div class="error-text">Cannot find Galactic Hub data for this system.</div>
       </div>
     `;
   } else {
@@ -36,7 +42,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
             <a href="${wikiData.url}" target="_blank" style="color: #00ffff; text-decoration: none; text-shadow: 0 0 8px rgba(0,255,255,0.5);">${wikiData.title}</a>
           </div>
           <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
-            DISTANCE: ${JSON.parse(system.anchors).B} LY FROM CAPITAL
+            DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
           </div>
         </div>
 

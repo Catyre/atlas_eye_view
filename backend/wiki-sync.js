@@ -212,4 +212,6 @@ async function processSystems() {
   });
 }
 
-processSystems();
+if (require.main === module ){
+  processSystems();
+}
