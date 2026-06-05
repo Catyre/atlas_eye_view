@@ -70,7 +70,7 @@ function extractSummary(text) {
   return '';
 }
 
-async function fetchWikiData(systemName) {
+export async function fetchWikiData(systemName) {
   try {
     const rawName = unescapeString(systemName);
     const cleanName = rawName.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
