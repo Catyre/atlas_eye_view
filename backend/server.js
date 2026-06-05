@@ -4,12 +4,11 @@ import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { fetchWikiData } from './wiki-sync.js';
 
-// Define __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Lock the database path to the exact directory where server.js lives
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'galaxy_data', 'astrometrics.sqlite');
 
 const app = express();
@@ -34,13 +33,11 @@ app.use(express.json());
 
 /* --- Helpers --- */
 
-// Timestamp logging helper
 const logWithTimestamp = (message) => {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${message}`);
 };
 
-// Converts HTML characters to safe entities to prevent XSS attacks
 const sanitizeString = (str) => {
   if (typeof str !== 'string') return '';
   return str
@@ -53,7 +50,6 @@ const sanitizeString = (str) => {
     .replace(/\//g, '&#x2F;');
 };
 
-// Strictly converts values to floats, rejecting strings and NaNs
 const parseValidFloat = (val) => {
   if (val === null || val === undefined || val === '') return null;
   const parsed = parseFloat(val);
@@ -102,7 +98,8 @@ function ensureSystemsTable() {
           is_anchor INTEGER,
           anchor_id TEXT,
           confidence REAL,
-          galaxy TEXT DEFAULT 'calypso'
+          galaxy TEXT DEFAULT 'calypso',
+          wiki_data TEXT
         )`;
         db.run(createSql, (err) => {
           if (err) {
@@ -137,11 +134,11 @@ function initializeDatabase() {
       }
       
       const existingColumns = columns.map(col => col.name);
-      const neededColumns = ['id', 'name', 'anchors', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'anchor_id', 'confidence', 'galaxy'];
+      const neededColumns = ['id', 'name', 'anchors', 'ghc_x', 'ghc_y', 'ghc_z', 'color', 'is_anchor', 'anchor_id', 'confidence', 'galaxy', 'wiki_data'];
       const missingColumns = neededColumns.filter(col => !existingColumns.includes(col));
       
       if (missingColumns.length === 0) {
-        console.log('All coordinate columns already exist');
+        console.log('All required columns already exist');
         resolve();
         return;
       }
@@ -172,8 +169,7 @@ function initializeDatabase() {
   });
 }
 
-app.post('/add-system', (req, res) => {
-  // Clean all inputs
+app.post('/add-system', async (req, res) => {
   const galaxy = sanitizeString(req.query.galaxy || 'calypso').toLowerCase();
   const id = sanitizeString(req.body.id);
   const name = sanitizeString(req.body.name);
@@ -185,7 +181,6 @@ app.post('/add-system', (req, res) => {
   const new_d = parseValidFloat(req.body.new_d);
   const new_e = parseValidFloat(req.body.new_e);
 
-  console.log("Raw payload:", req.body);
 
   if (!name || new_a === null || new_b === null || new_c === null || new_d === null || !color) {
     return res.status(400).json({ error: 'Missing or invalid required fields' });
@@ -200,15 +195,23 @@ app.post('/add-system', (req, res) => {
   };
   const anchors = JSON.stringify(anchorsObj);
 
-  const query = `INSERT INTO systems (id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  let wikiDataStr = null;
+  const wikiResult = await fetchWikiData(name);
+  if (wikiResult.status === 'success' || wikiResult.status === 'mentions_only') {
+    wikiDataStr = JSON.stringify(wikiResult.data);
+  }
+
+  const query = `INSERT INTO systems (id, name, anchors, ghc_x, ghc_y, ghc_z, color, is_anchor, anchor_id, confidence, galaxy, wiki_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(query, [id, name, anchors, null, null, null, color, 0, 0, 0, galaxy], function(err) {
+  db.run(query, [id, name, anchors, null, null, null, color, 0, 0, 0, galaxy, wikiDataStr], function(err) {
     if (err) {
       console.error('Database insert error:', err);
       return res.status(500).json({ error: 'Failed to write to database' });
     }
     
-    logWithTimestamp(`NEW SYSTEM ADDED: '${name}' (ID: ${id}) in galaxy '${galaxy}'.`);
+    logWithTimestamp(`NEW SYSTEM ADDED: '${name}' (ID: ${id}) in galaxy '${galaxy}'. Wiki data fetched: ${wikiDataStr ? 'Yes' : 'No'}`);
+    logWithTimestamp("Raw payload:", req.body);
+
     
     res.status(201).json({ 
       message: 'System successfully added', 
@@ -232,10 +235,8 @@ app.get('/systems', (req, res) => {
   });
 });
 
-
 app.post('/update-coordinates', (req, res) => {
   try {
-    // Rely on the database driver for safety, not HTML sanitization
     const galaxy = (req.query.galaxy || 'calypso').toLowerCase();
     const name = req.body.name; 
     
@@ -243,8 +244,6 @@ app.post('/update-coordinates', (req, res) => {
     const ghc_y = parseValidFloat(req.body.ghc_y);
     const ghc_z = parseValidFloat(req.body.ghc_z);
     
-    // Allow null coordinates so the frontend can un-map a broken system,
-    // and safely check the name without rejecting the number 0
     if (name === undefined || name === null || name.toString().trim() === '') {
       return res.status(400).json({ 
         error: 'Invalid input. System name is required.' 
@@ -280,7 +279,6 @@ app.post('/update-coordinates', (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 app.get('/system/:name', (req, res) => {
   try {
@@ -455,7 +453,7 @@ app.post('/upload', (req, res) => {
       if (typeof sys.anchors === 'object' && sys.anchors !== null) {
         parsedAnchors = JSON.stringify(sys.anchors);
       } else if (typeof sys.anchors === 'string') {
-        parsedAnchors = sys.anchors; // Assuming pre-stringified JSON
+        parsedAnchors = sys.anchors;
       }
 
       cleanSystems.push({
@@ -469,11 +467,12 @@ app.post('/upload', (req, res) => {
         is_anchor: sys.is_anchor ? 1 : 0,
         anchor_id: sys.anchor_id ? sanitizeString(sys.anchor_id) : null,
         confidence: parseValidFloat(sys.confidence),
-        galaxy: sanitizeString(sys.galaxy || defaultGalaxy).toLowerCase()
+        galaxy: sanitizeString(sys.galaxy || defaultGalaxy).toLowerCase(),
+        wiki_data: sys.wiki_data ? sys.wiki_data : null
       });
     }
     
-    const fields = ['id','name','anchors','ghc_x','ghc_y','ghc_z','color','is_anchor','anchor_id', 'confidence', 'galaxy'];
+    const fields = ['id','name','anchors','ghc_x','ghc_y','ghc_z','color','is_anchor','anchor_id', 'confidence', 'galaxy', 'wiki_data'];
     const placeholders = fields.map(() => '?').join(',');
     const sql = `INSERT OR REPLACE INTO systems (${fields.join(',')}) VALUES (${placeholders})`;
     
