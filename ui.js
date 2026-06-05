@@ -1,7 +1,3 @@
-// TODO: Wiki data is now fetched for every system as its drawn...no need to fetch again when pulling system panel
-// Move fetchWikiData to filter.js
-import calculateDistance from 'trilateration.js';
-
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
