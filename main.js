@@ -11,6 +11,7 @@ import './popup.css';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { setupFilters } from './filter.js';
 window.jQuery = $;
 import 'jquery-csv';
 
@@ -137,6 +138,15 @@ function initializeScene() {
       20, 20, 20, 
       0, 0, 0,    
       false       
+    );
+
+    setupFilters(
+      scene,
+      () => labelsVisible,
+      () => {
+        if (composer) composer.render();
+        else if (renderer) renderer.render(scene, camera);
+      }
     );
 
     var data = {cameraControls: cameraControls, camera: camera, renderer: renderer, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};
@@ -648,7 +658,7 @@ function createTextSprite(message) {
   return sprite;
 }
 
-function placeStars(starData, scene) {
+async function placeStars(starData, scene) {
   const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
   
   starsToRemove.forEach(star => {
@@ -670,7 +680,6 @@ function placeStars(starData, scene) {
         starPos[1] === null || starPos[1] === undefined || 
         starPos[2] === null || starPos[2] === undefined) {
       continue;
-
     }
 
     const scale = 1;
@@ -685,9 +694,12 @@ function placeStars(starData, scene) {
     
     star.position.set(renderX, renderY, renderZ);
     console.log("Placing " + starData[system].name + " at [" + renderX + ", " + renderY + ", " + renderZ + "]")
+    const wikiData = starData[system].wiki_data;
     star.name = starData[system].name;
     star.userData.isSystemStar = true; 
-    
+    star.userData.systemData = starData[system]; // Pass the whole database object
+    star.userData.wikiData = wikiData; // Bind the wiki object here
+
     scene.add(star);
 
     // --- NEW: HUBTAG TEXT LABEL ---
@@ -703,7 +715,9 @@ function placeStars(starData, scene) {
       labelSprite.userData.isSystemStar = true; 
       labelSprite.userData.isLabel = true; 
       labelSprite.visible = labelsVisible;
-      
+      labelSprite.userData.systemData = starData[system]; // Pass the exact same object to the label
+      labelSprite.userData.wikiData = wikiData; // Bind it to the label as well
+
       scene.add(labelSprite);
     }
 

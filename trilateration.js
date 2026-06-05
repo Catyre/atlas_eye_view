@@ -42,8 +42,6 @@ function calculateTetrahedronVolume(P1, P2, P3, P4) {
   return volume;
 }
 
-
-
 // Calculate the volume of a tetrahedron using the Cayley-Menger determinant
 function cayleyMengerVolume(d12, d13, d14, d23, d24, d34) {
   // Cayley-Menger determinant for 4 points
