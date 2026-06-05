@@ -1,119 +1,7 @@
+// TODO: Wiki data is now fetched for every system as its drawn...no need to fetch again when pulling system panel
+// Move fetchWikiData to filter.js
+import calculateDistance from 'trilateration.js';
 
-// Function to fetch data from No Man's Sky Miraheze wiki
-async function fetchWikiData(systemName) {
-  try {
-    // Clean the system name for wiki search
-    const cleanName = systemName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-    
-    // First, search for the system page
-    const searchUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanName)}&format=json&origin=*`;
-    
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      throw new Error(`Search request failed: ${searchResponse.status}`);
-    }
-    
-    const searchData = await searchResponse.json();
-    
-    if (!searchData.query || searchData.query.search.length === 0) {
-      return { error: `No wiki page found for system: ${systemName}` };
-    }
-    
-    // Get the first search result (most relevant)
-    const pageId = searchData.query.search[0].pageid;
-    const pageTitle = searchData.query.search[0].title;
-    
-    // Fetch the page content
-    const contentUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=parse&pageid=${pageId}&format=json&origin=*`;
-    
-    const contentResponse = await fetch(contentUrl, {
-      method: 'GET',
-      headers: new Headers( {
-        'Api-User-Agent': 'Soideos (thesoideosinterface@gmail.com)'
-      })
-    });
-    if (!contentResponse.ok) {
-      throw new Error(`Content request failed: ${contentResponse.status}`);
-    }
-    
-    const contentData = await contentResponse.json();
-    
-    if (!contentData.parse) {
-      return { error: `Could not parse wiki page for: ${systemName}` };
-    }
-    
-    // Extract useful information from the parsed content
-    const htmlContent = contentData.parse.text['*'];
-    
-    // Create a temporary DOM element to parse the HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    
-    // Extract key information
-    const wikiData = {
-      title: pageTitle,
-      url: `https://nmsgalactichub.miraheze.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, '_'))}`,
-      summary: '',
-      galaxy: '',
-      region: '',
-      planets: '',
-      moons: '',
-      spectral_class: '',
-      distance: '',
-      glyphs: '',
-      waterworlds: '',
-      dissonant: '',
-      faction: '',
-      economy: '',
-      wealth: '',
-      conflict: '',
-      discoveredBy: '',
-    };
-    
-    // Try to extract information from infobox or content
-    const infobox = tempDiv.querySelector('.infoboxWrap');
-    console.log(infobox);
-    if (infobox) {
-      const rowData = infobox.querySelectorAll('.pi-data-value');
-      const rowLabels = infobox.querySelectorAll('.pi-data-label');
-      
-      rowLabels.forEach((row, i) => {
-        const label = row.innerText.trim().toLowerCase();
-        const value = rowData[i].innerText.trim();
-
-        if (label.includes('galaxy')) wikiData.galaxy = value;
-        else if (label.includes('region')) wikiData.region = value;
-        else if (label.includes('planets')) wikiData.planets = value;
-        else if (label.includes('moons')) wikiData.moons = value;
-        else if (label.includes('spectral class')) wikiData.spectral_class = value;
-        else if (label.includes('distance')) wikiData.distance = value;
-        else if (label.includes('glyphs')) wikiData.glyphs = value;
-        else if (label.includes('waterworld')) wikiData.waterworlds = value;
-        else if (label.includes('dissonant')) wikiData.dissonant = value;
-        else if (label.includes('faction')) wikiData.faction = value;
-        else if (label.includes('economy')) wikiData.economy = value;
-        else if (label.includes('conflict')) wikiData.conflict = value;
-        else if (label.includes('discovered by')) wikiData.discoveredBy = value;
-      });
-    }
-    
-    // Extract summary from first paragraph
-    const paragraphs = tempDiv.querySelectorAll('p');
-    for (let p of paragraphs) {
-      const text = p.textContent.trim();
-      if (text.length > 50 && !text.includes('this article') && !text.includes('this page')) {
-        wikiData.summary = text.substring(0, 200) + (text.length > 200 ? '...' : '');
-        break;
-      }
-    }
-    
-    return wikiData;
-    
-  } catch (error) {
-    console.error('Error fetching wiki data:', error);
-    return { error: `Failed to fetch wiki data for ${systemName}: ${error.message}` };
-  }
-}
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
@@ -122,17 +10,16 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   
   popup.innerHTML = `
     <div class="wiki-section" id="wiki-container-${systemName.replace(/\s+/g, '-')}">
-    <div class="loading-container">
-      <div class="loading-spinner"></div>
-      <span>Accessing Galactic Archives...</span>
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <span>Accessing Galactic Archives...</span>
+      </div>
     </div>
-  </div>
-`;
-
-
+  `;
   popup.classList.add('open');
   
-  const wikiData = await fetchWikiData(systemName);
+  const wikiData = JSON.parse(system.wiki_data);
+  console.log(wikiData);
   
   let wikiSection = '';
   if (wikiData.error) {
