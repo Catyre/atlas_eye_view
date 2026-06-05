@@ -210,7 +210,7 @@ app.post('/add-system', async (req, res) => {
     }
     
     logWithTimestamp(`NEW SYSTEM ADDED: '${name}' (ID: ${id}) in galaxy '${galaxy}'. Wiki data fetched: ${wikiDataStr ? 'Yes' : 'No'}`);
-    logWithTimestamp("Raw payload:", req.body);
+    logWithTimestamp(`Raw payload:", ${req.body}`);
 
     
     res.status(201).json({ 
