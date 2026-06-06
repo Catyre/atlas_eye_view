@@ -126,7 +126,10 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     wikiSection = `
       <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         <div class="wiki-title"> ${systemName} </div>
-        <div class="wiki-info">${dist2capital.toFixed(0)}LY from Capital</div>
+        <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+          DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+        </div>
+
         ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
             <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
