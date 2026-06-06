@@ -124,9 +124,9 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   let wikiSection = '';
   if (wikiData === null) {
     wikiSection = `
-      <div class="wiki-section">
+      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         <div class="wiki-title"> ${systemName} </div>
-        ${dist2capital.toFixed(0)}LY from Capital
+        <div class="wiki-info">${dist2capital.toFixed(0)}LY from Capital</div>
         ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
             <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
