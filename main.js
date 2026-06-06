@@ -24,7 +24,7 @@ var composer = null;
 var popup = null;
 var mouse = null;
 var raycaster = null;
-let currentGalaxy = "euclid";
+window.currentGalaxy = "euclid";
 let labelsVisible = true;
 const BACKEND = import.meta.env.VITE_BACKEND_URL;
 
@@ -755,7 +755,7 @@ initializeScene().then(function(data) {
   popup = data.popup;
   raycaster = data.raycaster;
 
-  astro.processAstrometrics(currentGalaxy).then(function(data2) {
+  astro.processAstrometrics(window.currentGalaxy).then(function(data2) {
     stars = data2;
     console.log('stars data received:', stars);
     placeStars(stars, scene);
@@ -950,7 +950,7 @@ form.addEventListener('submit', async (event) => {
   };
 
   try {
-    const response = await fetch(BACKEND + 'add-system?galaxy=' + encodeURIComponent(currentGalaxy), {
+    const response = await fetch(BACKEND + 'add-system?galaxy=' + encodeURIComponent(window.currentGalaxy), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -971,7 +971,7 @@ form.addEventListener('submit', async (event) => {
 
     try {
       // Re-fetch the database and rebuild the map arrays
-      stars = await astro.processAstrometrics(currentGalaxy);
+      stars = await astro.processAstrometrics(window.currentGalaxy);
       
       // Clear old meshes and place the updated dataset
       placeStars(stars, scene);
@@ -1113,11 +1113,11 @@ tabContainer.appendChild(calypsoBtn);
 tabContainer.appendChild(euclidBtn);
 
 async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
-  if (currentGalaxy === newGalaxy) return;
+  if (window.currentGalaxy === newGalaxy) return;
 
   activeBtn.classList.add('active');
   inactiveBtn.classList.remove('active');
-  currentGalaxy = newGalaxy;
+  window.currentGalaxy = newGalaxy;
 
   const inputA = document.getElementById('new-a');
   const inputB = document.getElementById('new-b');
@@ -1126,7 +1126,7 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   const inputE = document.getElementById('new-e');
 
   // Switch placeholders
-  if (currentGalaxy === 'euclid') {
+  if (window.currentGalaxy === 'euclid') {
     inputA.placeholder = 'Distance to [HUB12-416] Lion Shield';
     inputB.placeholder = 'Distance to [HUB1-74] Sun Tzu';
     inputC.placeholder = 'Distance to [HUB7-3FE] Aniwani';
@@ -1140,7 +1140,7 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
 
   // Toggle Anchor E visibility and requirement
   if (inputE) {
-    if (currentGalaxy === 'euclid') {
+    if (window.currentGalaxy === 'euclid') {
       inputE.style.display = 'none';
       inputE.required = false;
       inputE.value = ''; // Clear any leftover data
@@ -1180,7 +1180,7 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
   unsnapCamera();
 
   try {
-    stars = await astro.processAstrometrics(currentGalaxy);
+    stars = await astro.processAstrometrics(window.currentGalaxy);
     placeStars(stars, scene);
 
     const knownSystemsArray = Object.values(stars);

@@ -2,8 +2,8 @@ import { calculateDistance } from './trilateration.js';
 
 // --- DECODING PORTAL GLYPHS FROM HUBTAG ---
 // Dictionary of Region Coordinates
-const regionDictionary = {
-  "HUB1": { x: "041D", y: "004E", z: "0D88" },
+const euclidRegionDictionary = {
+  "HUB1": { x: "041D", y: "004E", z: "0D88" }, // 041D:004E:0D88
   "HUB2": {x: "041D", y: "004E", z: "0D87"}, // 041D:004E:0D87
   "HUB3": {x: "041E", y: "004E", z:"0D87"}, //041E:004E:0D87
   "HUB4": {x: "041E", y: "004E", z: "0D88"}, // 041E:004E:0D88
@@ -32,48 +32,45 @@ const regionDictionary = {
   "HUB27": {x: "041C", y: "004D", z: "0D87"} // 041C:004D:0D87
 };
 
-function decodeHubtag(hubtag) {
+const calypsoRegionDictionary = {
+  "HUB1": {x: "", y: "", z: ""},
+};
+
+export function decodeHubtag(hubtag) {
   // Parse the solar system index and region
-  // Expects formats like "HUB1-210" or "[HUB10-F4] System Name"
   const tagMatch = hubtag.match(/HUB(\d+)-([A-Fa-f0-9]+)/i);
   
   if (!tagMatch) {
-    throw new Error("Invalid hubtag format. Expected format like 'HUB1-210'.");
+    throw new Error("Invalid hubtag format. Expected format like 'HUB1-74'.");
   }
   
   const regionId = `HUB${tagMatch[1]}`;
   const rawSSI = tagMatch[2]; 
+  let coords = null;
 
   // Look up the region's coordinates in the dictionary
-  const coords = regionDictionary[regionId];
+  if (window.currentGalaxy === "euclid") { 
+    coords = euclidRegionDictionary[regionId];
+  } else if (window.currentGalaxy === "calypso") {
+    coords = calypsoRegionDictionary[regionId];
+  }
+
   if (!coords) {
     throw new Error(`Region ${regionId} not found in the dictionary.`);
   }
 
-  // Append the SSI to represent the standard Signal Booster format
-  // Prefixing with a generic alpha identifier for completeness
+  // Format the Signal Booster string
   const signalBoosterFormat = `XXXX:${coords.x}:${coords.y}:${coords.z}:${rawSSI.padStart(4, '0')}`;
 
-  // Convert coordinates to a portal glyph address
-  const adjustHex = (hexStr, threshold, addOffset, subOffset, padding) => {
-    const val = parseInt(hexStr, 16);
-    let adjustedVal;
-    
-    if (val < threshold) {
-      adjustedVal = val + addOffset;
-    } else {
-      adjustedVal = val - subOffset;
-    }
-    
-    // Convert back to hex, make uppercase, and pad/truncate to the correct length
-    let resultHex = adjustedVal.toString(16).toUpperCase();
-    return resultHex.padStart(padding, '0').slice(-padding);
-  };
+  // Apply the true offsets and use bitwise masks to handle overflow truncation
+  const adjX = (parseInt(coords.x, 16) + 0x801) & 0xFFF;
+  const adjY = (parseInt(coords.y, 16) + 0x81) & 0xFF;
+  const adjZ = (parseInt(coords.z, 16) + 0x801) & 0xFFF;
 
-  // Apply the specific coordinate offsets
-  const adjX = adjustHex(coords.x, 0x0800, 0x0801, 0x07FF, 3);
-  const adjY = adjustHex(coords.y, 0x0080, 0x007F, 0x007F, 2);
-  const adjZ = adjustHex(coords.z, 0x0800, 0x0801, 0x07FF, 3);
+  // Convert to formatted hex strings
+  const hexX = adjX.toString(16).toUpperCase().padStart(3, '0');
+  const hexY = adjY.toString(16).toUpperCase().padStart(2, '0');
+  const hexZ = adjZ.toString(16).toUpperCase().padStart(3, '0');
 
   // Format the Solar System Index to 3 characters
   const ssi = parseInt(rawSSI, 16).toString(16).toUpperCase().padStart(3, '0').slice(-3);
@@ -82,7 +79,7 @@ function decodeHubtag(hubtag) {
   const planetIndex = "0";
 
   // Assemble the final Portal Address: P SSS YY ZZZ XXX
-  const portalAddress = `${planetIndex}${ssi}${adjY}${adjZ}${adjX}`;
+  const portalAddress = `${planetIndex}${ssi}${hexY}${hexZ}${hexX}`;
 
   return {
     inputHubtag: hubtag,
@@ -91,11 +88,6 @@ function decodeHubtag(hubtag) {
     portalAddress: portalAddress
   };
 }
-
-// Example usage testing your provided coordinate logic
-// console.log(decodeHubtag("HUB10-210"));
-// Returns: 0210FE9AAEB3
-
 
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
@@ -119,16 +111,15 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   
   const wikiData = JSON.parse(system.wiki_data);
   const systemGlyphs = decodeHubtag(system.id).portalAddress;
-  console.log(wikiData);
   
   let wikiSection = '';
   if (wikiData === null) {
     wikiSection = `
       <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         <div class="wiki-title"> ${systemName} </div>
-        <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
-          DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
-        </div>
+          <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+            DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+          </div>
 
         ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
