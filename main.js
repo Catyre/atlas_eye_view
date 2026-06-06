@@ -181,27 +181,17 @@ document.body.appendChild(toggleLabelsBtn);
 
 if (toggleLabelsBtn) {
   toggleLabelsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
+    // Prevent the click from bleeding through to the 3D canvas and locking the mouse
+    event.stopPropagation(); 
     
-    // 1. Flip your global state variable
     labelsVisible = !labelsVisible;
-    
-    // 2. Programmatically click the hidden Apply button on your filter panel
-    // This forces the filter loop to run, which safely checks BOTH the search parameters 
-    // AND your new labelsVisible state before rendering.
-    const applyFiltersBtn = document.getElementById('apply-filters-btn');
-    if (applyFiltersBtn) {
-      console.log("we get here")
-      applyFiltersBtn.click();
-    } else {
-      // Fallback if the filter panel hasn't loaded for some reason
-      scene.traverse((child) => {
-        if (child.userData && child.userData.isLabel) {
-          child.visible = labelsVisible;
-        }
-      });
-      if (typeof triggerRender === 'function') triggerRender();
-    }
+    toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels' : 'Hide Labels';
+
+    scene.children.forEach(child => {
+      if (child.userData && child.userData.isLabel) {
+        child.visible = labelsVisible;
+      }
+    });
   });
 }
 
@@ -1014,25 +1004,90 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
+// --- TOGGLE BUTTON ---
+const toggleControlsBtn = document.createElement('button');
+toggleControlsBtn.id = 'toggle-controls-btn';
+toggleControlsBtn.className = 'hud-button';
+toggleControlsBtn.textContent = '?';
+
+toggleControlsBtn.style.position = 'relative';
+toggleControlsBtn.style.bottom = '10px'; 
+toggleControlsBtn.style.left = '20px'; 
+toggleControlsBtn.style.zIndex = '101';
+toggleControlsBtn.style.width = '35px';
+toggleControlsBtn.style.height = '35px';
+toggleControlsBtn.style.borderRadius = '50%';
+toggleControlsBtn.style.padding = '0';
+toggleControlsBtn.style.display = 'flex';
+toggleControlsBtn.style.justifyContent = 'center';
+toggleControlsBtn.style.alignItems = 'center';
+toggleControlsBtn.style.transition = 'background 0.2s, color 0.2s';
+document.body.appendChild(toggleControlsBtn);
+
+toggleControlsBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+toggleControlsBtn.addEventListener('click', (e) => e.stopPropagation());
+
+
+// --- SLIDING PANEL ---
 const controlsTooltip = document.createElement('div');
 controlsTooltip.id = 'controls-tooltip';
+controlsTooltip.className = 'hud-panel';
+
+controlsTooltip.style.position = 'absolute';
+controlsTooltip.style.bottom = '155px'; 
+controlsTooltip.style.left = '20px'; 
+controlsTooltip.style.zIndex = '100';
+controlsTooltip.style.width = '260px';
+controlsTooltip.style.background = 'rgba(10, 15, 30, 0.85)';
+controlsTooltip.style.border = '1px solid rgba(0, 255, 255, 0.3)';
+controlsTooltip.style.padding = '15px';
+controlsTooltip.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.1)';
+controlsTooltip.style.fontFamily = 'monospace';
+
+controlsTooltip.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+controlsTooltip.style.transform = 'translateY(20px)';
+controlsTooltip.style.opacity = '0';
+controlsTooltip.style.pointerEvents = 'none';
+
 controlsTooltip.innerHTML = `
-  <div style="margin-bottom: 8px;">
-    [ NAVIGATION ] 
-    <span class="hud-key">[W / ↑]</span>
-    <span class="hud-key">[A / ←]</span>
-    <span class="hud-key">[S / ↓]</span>
-    <span class="hud-key">[D / →]</span>
-    <span class="hud-key">[Space]</span> Up 
-    <span class="hud-key">[Shift]</span> Down
-    <span class="hud-key">[F]</span> Toggle Filters
-    <span class="hud-key">[H]</span> Toggle labels
+  <div style="color: #00ffff; font-size: 0.9rem; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid rgba(0,255,255,0.3); padding-bottom: 5px;">
+    [ SYSTEM CONTROLS ]
   </div>
-  <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.85rem;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; color: #8892b0; margin-bottom: 12px;">
+    <div style="grid-column: 1 / -1;"><span class="hud-key" style="color:#fff">WASD / ↑↓←→</span> Move</div>
+    <div><span class="hud-key" style="color:#fff">Space</span> Up</div>
+    <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
+    <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
+    <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
+  </div>
+  <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4;">
     Left-click any star to initialize telemetry readout.
   </div>
 `;
 document.body.appendChild(controlsTooltip);
+
+
+// --- TOGGLE ANIMATION LOGIC ---
+let isControlsOpen = false;
+
+toggleControlsBtn.addEventListener('click', () => {
+  isControlsOpen = !isControlsOpen;
+  
+  if (isControlsOpen) {
+    controlsTooltip.style.transform = 'translateY(0)';
+    controlsTooltip.style.opacity = '1';
+    
+    toggleControlsBtn.style.background = 'rgba(0, 255, 255, 0.2)';
+    toggleControlsBtn.style.color = '#fff';
+  } else {
+    controlsTooltip.style.transform = 'translateY(20px)';
+    controlsTooltip.style.opacity = '0';
+    
+    toggleControlsBtn.style.background = '';
+    toggleControlsBtn.style.color = '';
+  }
+});
+
 
 const galaxySelector = document.createElement('div');
 galaxySelector.id = 'galaxy-selector';
@@ -1269,3 +1324,4 @@ fileInput.addEventListener('change', (event) => {
   
   reader.readAsText(file);
 });
+
