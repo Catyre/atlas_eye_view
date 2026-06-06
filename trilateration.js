@@ -132,7 +132,6 @@ export function chooseLeastCoplanarAnchors(anchors) {
   };
 }
 
-
 /**
  * Reconstructs N anchor positions in 3D from an N x N pairwise distance matrix using classical MDS.
  * @param {Array<Array<number>>} distMatrix - N x N matrix of pairwise distances
@@ -194,35 +193,67 @@ export function reconstructAnchorsFromPairwiseDistances(distMatrix) {
 export function multilaterate(coordinate_system, anchorDistancesObj) {
   const anchors = coordinate_system.anchors;
   
-  // Build arrays, filtering out anchors with missing or invalid distance data
   const anchorPos = [];
   const distances = [];
   const validAnchors = [];
+  
+  const SCALE = 100000;
   
   for (let i = 0; i < anchors.length; i++) {
     const anchor = anchors[i];
     const d = anchorDistancesObj[anchor.anchor_id];
     
-    // Check if distance data is valid
-    if (typeof d === 'number' && !isNaN(d)) {
-      anchorPos.push([anchor.ghc_x, anchor.ghc_y, anchor.ghc_z]);
-      distances.push(d);
+    if (typeof d === 'number' && !isNaN(d) && d > 0) {
+      anchorPos.push([anchor.ghc_x / SCALE, anchor.ghc_y / SCALE, anchor.ghc_z / SCALE]);
+      distances.push(d / SCALE);
       validAnchors.push(anchor.anchor_id);
-    } else {
-      console.warn(`Skipping anchor ${anchor.anchor_id} - missing or invalid distance data:`, d);
     }
   }
 
-  // Check if we have enough valid anchors
   if (validAnchors.length < 4) {
-    throw new Error(`Insufficient valid anchors for multilateration. Found ${validAnchors.length}, need at least 4. Valid anchors: ${validAnchors.join(', ')}`);
+    throw new Error(`Insufficient valid anchors for multilateration. Found ${validAnchors.length}, need at least 4.`);
   }
 
-  console.log(`Multilateration using ${validAnchors.length} valid anchors: ${validAnchors.join(', ')}`);
+  // Phase 1: Linear Least Squares (Bancroft Method approximation)
+  // This calculates the exact mathematical bottom of the error valley instantly
+  let linearGuess = null;
+  try {
+    const A = [];
+    const b = [];
 
-  // Initial guess: centroid of valid anchors
-  const centroid = coordinate_system.origin;
+    const x0 = anchorPos[0][0];
+    const y0 = anchorPos[0][1];
+    const z0 = anchorPos[0][2];
+    const d0 = distances[0];
 
+    for (let i = 1; i < anchorPos.length; i++) {
+      const xi = anchorPos[i][0];
+      const yi = anchorPos[i][1];
+      const zi = anchorPos[i][2];
+      const di = distances[i];
+
+      A.push([
+        2 * (xi - x0),
+        2 * (yi - y0),
+        2 * (zi - z0)
+      ]);
+
+      const constTerm = (xi * xi - x0 * x0) + (yi * yi - y0 * y0) + (zi * zi - z0 * z0) - (di * di - d0 * d0);
+      b.push(constTerm); 
+    }
+
+    const At = numeric.transpose(A);
+    const AtA = numeric.dot(At, A);
+    const AtA_inv = numeric.inv(AtA);
+    const pseudoInv = numeric.dot(AtA_inv, At);
+    
+    linearGuess = numeric.dot(pseudoInv, b);
+  } catch (err) {
+    console.warn("Linear matrix inversion failed (anchors likely coplanar). Falling back to multi-guess solver.");
+  }
+
+  // Phase 2: Non-Linear Refinement
+  // This polishes the linear guess to handle any floating-point precision loss
   function errorFunc(pos) {
     let sum = 0;
     for (let i = 0; i < anchorPos.length; i++) {
@@ -236,15 +267,50 @@ export function multilaterate(coordinate_system, anchorDistancesObj) {
     return sum;
   }
 
-  // Use numeric.js's uncmin for minimization
-  const result = numeric.uncmin(errorFunc, centroid);
+  let bestInitialGuess;
+
+  if (linearGuess && !isNaN(linearGuess[0])) {
+    // If linear algebra succeeded, it is mathematically the best possible starting point
+    bestInitialGuess = linearGuess;
+  } else {
+    // Fallback if anchors were perfectly coplanar causing a singular matrix
+    const centroid = [
+      coordinate_system.origin[0] / SCALE,
+      coordinate_system.origin[1] / SCALE,
+      coordinate_system.origin[2] / SCALE
+    ];
+    const spread = Math.max(...distances) / 2; 
+    const guesses = [
+      centroid,
+      [centroid[0] + spread, centroid[1], centroid[2]],
+      [centroid[0] - spread, centroid[1], centroid[2]],
+      [centroid[0], centroid[1] + spread, centroid[2]],
+      [centroid[0], centroid[1] - spread, centroid[2]],
+      [centroid[0], centroid[1], centroid[2] + spread],
+      [centroid[0], centroid[1], centroid[2] - spread]
+    ];
+    
+    let minInitialError = Infinity;
+    for (const guess of guesses) {
+      const err = errorFunc(guess);
+      if (err < minInitialError) {
+        minInitialError = err;
+        bestInitialGuess = guess;
+      }
+    }
+  }
+
+  const result = numeric.uncmin(errorFunc, bestInitialGuess);
   
   if (!result || !result.solution) {
     throw new Error('Multilateration optimization failed');
   }
   
-  console.log(`Multilateration result: [${result.solution[0].toFixed(2)}, ${result.solution[1].toFixed(2)}, ${result.solution[2].toFixed(2)}]`);
-  return result.solution;
+  return [
+    result.solution[0] * SCALE,
+    result.solution[1] * SCALE,
+    result.solution[2] * SCALE
+  ];
 }
 
 // Helper to convert anchor objects with dynamic keys to arrays for multilateration
