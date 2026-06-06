@@ -212,6 +212,6 @@ async function processSystems() {
   });
 }
 
-if (require.main === module ){
+if (import.meta.main){
   processSystems();
 }
