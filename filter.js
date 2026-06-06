@@ -86,6 +86,9 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
       <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #8892b0; cursor: pointer;">
         <input type="checkbox" id="filter-nowiki"> No Wiki Page
       </label>
+      <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #8892b0; cursor: pointer;">
+        <input type="checkbox" id="filter-haswiki"> Wiki Page
+      </label>
     </div>
 
     <div style="display: flex; gap: 10px;">
@@ -132,6 +135,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
   const filterDissonantInput = document.getElementById('filter-dissonant');
   const filterWaterInput = document.getElementById('filter-water');
   const filterNoWikiInput = document.getElementById('filter-nowiki');
+  const filterHasWikiInput = document.getElementById('filter-haswiki');
 
   function runFilters() {
     const searchTerm = filterTextInput.value.toLowerCase().trim();
@@ -142,6 +146,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
     const requireDissonant = filterDissonantInput.checked;
     const requireWater = filterWaterInput.checked;
     const requireNoWiki = filterNoWikiInput.checked;
+    const requireHasWiki = filterHasWikiInput.checked;
 
     let totalChecked = 0;
     let matchCount = 0;
@@ -222,6 +227,13 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
           }
         }
 
+        if (requireHasWiki && isMatch) {
+          const hasDedicatedPage = wiki.title && wiki.title !== 'Reference Only';
+          if (!hasDedicatedPage) {
+            isMatch = false;
+          }
+        }
+
         if (child.userData.isSystemStar) {
           child.visible = isMatch;
           if (isMatch) matchCount++;
@@ -241,6 +253,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
 
   applyFiltersBtn.addEventListener('click', runFilters);
 
+
   const handleEnterKey = (e) => {
     e.stopPropagation();
     if (e.key === 'Enter') runFilters();
@@ -251,14 +264,24 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
   filterConflictInput.addEventListener('keydown', handleEnterKey);
 
   resetFiltersBtn.addEventListener('click', () => {
-    filterTextInput.value = '';
-    filterColorInput.value = 'all';
-    filterFactionInput.value = 'all';
-    filterEconomyInput.value = '';
-    filterConflictInput.value = '';
-    filterDissonantInput.checked = false;
-    filterWaterInput.checked = false;
-    filterNoWikiInput.checked = false;
-    runFilters();
+    let totalRestored = 0;
+
+    scene.traverse((child) => {
+      if (child.userData && child.userData.systemData) {
+        if (child.userData.isSystemStar) {
+          child.visible = true;
+          totalRestored++;
+        } else if (child.userData.isLabel) {
+          const areLabelsOn = typeof getLabelsVisible === 'function' ? getLabelsVisible() : true;
+          child.visible = areLabelsOn;
+        }
+      }
+    });
+
+    console.log(`[FILTER] Map reset. Restored visibility to ${totalRestored} systems.`);
+
+    if (typeof triggerRender === 'function') {
+      triggerRender();
+    }
   });
 }

@@ -39,7 +39,10 @@ var keys = {
   arrowleft: false,
   arrowright: false,
   ' ': false, 
-  shift: false 
+  shift: false, 
+  h: false,
+  f: false,
+  fToggle: true
 };
 const CAMERA_MOVE_SPEED = 125; 
 
@@ -162,7 +165,6 @@ export async function getScene() {
   return scene;
 }
 
-
 const toggleLabelsBtn = document.createElement('button');
 toggleLabelsBtn.id = 'toggle-labels-btn';
 toggleLabelsBtn.className = 'hud-button';
@@ -176,26 +178,32 @@ toggleLabelsBtn.style.width = 'fit-content';
 toggleLabelsBtn.style.zIndex = '100';
 document.body.appendChild(toggleLabelsBtn);
 
-toggleLabelsBtn.addEventListener('click', (event) => {
-  // Prevent the click from bleeding through to the 3D canvas and locking the mouse
-  event.stopPropagation(); 
-  
-  labelsVisible = !labelsVisible;
-  toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels' : 'Hide Labels';
 
-  scene.children.forEach(child => {
-    if (child.userData && child.userData.isLabel) {
-      child.visible = labelsVisible;
+if (toggleLabelsBtn) {
+  toggleLabelsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    // 1. Flip your global state variable
+    labelsVisible = !labelsVisible;
+    
+    // 2. Programmatically click the hidden Apply button on your filter panel
+    // This forces the filter loop to run, which safely checks BOTH the search parameters 
+    // AND your new labelsVisible state before rendering.
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    if (applyFiltersBtn) {
+      console.log("we get here")
+      applyFiltersBtn.click();
+    } else {
+      // Fallback if the filter panel hasn't loaded for some reason
+      scene.traverse((child) => {
+        if (child.userData && child.userData.isLabel) {
+          child.visible = labelsVisible;
+        }
+      });
+      if (typeof triggerRender === 'function') triggerRender();
     }
   });
-  
-  // Force the graphics engine to draw one new frame immediately so the text vanishes
-  if (composer) {
-    composer.render();
-  } else if (renderer && scene && camera) {
-    renderer.render(scene, camera);
-  }
-});
+}
 
 const resetButton = document.createElement('button');
 resetButton.id = 'reset-btn';
@@ -429,6 +437,25 @@ function onKeyDown(event) {
   if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
   
   const key = event.key.toLowerCase();
+  
+  if (key === 'f') {
+    const applyBtn = document.getElementById('apply-filters-btn');
+    const resetBtn = document.getElementById('reset-filters-btn');
+    
+    if (keys.fToggle) {
+      applyBtn.click();
+    } else {
+      resetBtn.click();
+    }
+
+    keys.fToggle = !keys.fToggle;
+  }
+  
+  if (key === 'h') {
+    const labelsBtn = document.getElementById('toggle-labels-btn');
+    if (labelsBtn) labelsBtn.click();
+  }
+
   if (key in keys) {
     keys[key] = true;
     event.preventDefault();
@@ -992,12 +1019,14 @@ controlsTooltip.id = 'controls-tooltip';
 controlsTooltip.innerHTML = `
   <div style="margin-bottom: 8px;">
     [ NAVIGATION ] 
-    <span class="hud-key">W / ↑</span>
-    <span class="hud-key">A / ←</span>
-    <span class="hud-key">S / ↓</span>
-    <span class="hud-key">D / →</span>
-    <span class="hud-key">Space</span> Up 
-    <span class="hud-key">Shift</span> Down
+    <span class="hud-key">[W / ↑]</span>
+    <span class="hud-key">[A / ←]</span>
+    <span class="hud-key">[S / ↓]</span>
+    <span class="hud-key">[D / →]</span>
+    <span class="hud-key">[Space]</span> Up 
+    <span class="hud-key">[Shift]</span> Down
+    <span class="hud-key">[F]</span> Toggle Filters
+    <span class="hud-key">[H]</span> Toggle labels
   </div>
   <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.85rem;">
     Left-click any star to initialize telemetry readout.
