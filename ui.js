@@ -140,7 +140,12 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   }
 
   const ghc_system = [system.ghc_x, system.ghc_y, system.ghc_z];
-  const ghc_capital = [-500.00390254377453, 236.72745822760584, -298.53842838766906]; // Hard coded for Bixiann for now
+  let ghc_capital = [0, 0, 0];
+  if (window.currentGalaxy === 'euclid') {
+    ghc_capital = [-500.00390254377453, 236.72745822760584, -298.53842838766906]; // Hard coded for Bixiann for now
+  } else if (window.currentGalaxy === 'calypso'){
+    ghc_capital = [0, 0, 0]; // Update for Edogya
+  }
   const dist2capital = calculateDistance(ghc_system, ghc_capital);
   
   popup.innerHTML = `
@@ -160,10 +165,16 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   if (wikiData === null) {
     wikiSection = `
       <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
-        <div class="wiki-title"> ${systemName} </div>
-          <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
-            DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+        
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
+          <div>
+            <div class="wiki-title"> ${systemName} </div>
+            <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+              DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+            </div>
           </div>
+          <img src="Galactic_Hub_Main_Emblem.png" alt="Galactic Hub Emblem" style="width: 65px; height: auto; opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.5));">
+        </div>
 
         ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
@@ -180,14 +191,18 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     wikiSection = `
       <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         
-        <div style="border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
-          <div class="wiki-title" style="font-size: 1.25em; letter-spacing: 1px; text-transform: uppercase;">
-            <a href="${wikiData.url}" target="_blank" style="color: #00ffff; text-decoration: none; text-shadow: 0 0 8px rgba(0,255,255,0.5);">${wikiData.title}</a>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
+          <div>
+            <div class="wiki-title" style="font-size: 1.25em; letter-spacing: 1px; text-transform: uppercase;">
+              <a href="${wikiData.url}" target="_blank" style="color: #00ffff; text-decoration: none; text-shadow: 0 0 8px rgba(0,255,255,0.5);">${wikiData.title}</a>
+            </div>
+            <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+              DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+            </div>
           </div>
-          <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
-            DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
-          </div>
+          <img src="Galactic_Hub_Main_Emblem.png" alt="Galactic Hub Emblem" style="width: 65px; height: auto; opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.5));">
         </div>
+
         ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
             <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
@@ -195,10 +210,8 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
           </div>
         ` : ''}
 
-
         <div class="wiki-title">Galactic Hub Database</div>
         ${wikiData.summary ? `<div class="wiki-summary" style="font-style: italic; color: #a8b2d1; font-size: 0.9em; margin-bottom: 15px; line-height: 1.4;">${wikiData.summary}</div>` : ''}
-
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
           
