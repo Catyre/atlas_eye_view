@@ -1,5 +1,138 @@
 import { calculateDistance } from './trilateration.js';
 
+// --- DECODING PORTAL GLYPHS FROM HUBTAG ---
+// Dictionary of Region Coordinates
+const euclidRegionDictionary = {
+  "HUB1": { x: "041D", y: "004E", z: "0D88" }, // 041D:004E:0D88
+  "HUB2": {x: "041D", y: "004E", z: "0D87"}, // 041D:004E:0D87
+  "HUB3": {x: "041E", y: "004E", z:"0D87"}, //041E:004E:0D87
+  "HUB4": {x: "041E", y: "004E", z: "0D88"}, // 041E:004E:0D88
+  "HUB5": {x: "041E", y: "004E", z: "0D89"}, // 041E:004E:0D89
+  "HUB6": {x: "041D", y: "004E", z: "0D89"}, // 041D:004E:0D89
+  "HUB7": {x: "041C" , y: "004E", z: "0D89"}, // 041C:004E:0D89
+  "HUB8": {x: "041C", y: "004E", z: "0D88"}, // 041C:004E:0D88
+  "HUB9": {x: "041C", y: "004E", z: "0D87"}, // 041C:004E:0D87
+  "HUB10": {x: "041D", y: "004F", z: "0D88"}, // 041D:004F:0D88
+  "HUB11": {x: "041D", y: "004F", z: "0D87"}, // 041D:004F:0D87
+  "HUB12": {x: '041E', y: "004F", z: "0D87"}, // 041E:004F:0D87
+  "HUB13": {x: "041E", y: "004F", z: "0D88"}, // 041E:004F:0D88
+  "HUB14": {x: "042F", y: "0077", z: "0D55"}, // 042F:0077:0D55
+  "HUB15": {x: "041D", y: "004F", z: "0D89"}, // 041D:004F:0D89
+  "HUB16": {x: "041C", y: "004F", z: "0D89"}, // 041C:004F:0D89
+  "HUB17": {x: "041C", y: "004F", z: "0D88"}, // 041C:004F:0D88
+  "HUB18": {x: "041C", y: "004F", z: "0D87"}, // 041C:004F:0D87
+  "HUB19": {x: "041D", y: "004D", z: "0D88"}, // 041D:004D:0D88
+  "HUB20": {x: "041D", y: "004D", z: "0D87"}, // 041D:004D:0D87
+  "HUB21": {x: "041E", y: "004D", z: "0D87"}, // 041E:004D:0D87
+  "HUB22": {x: "041E", y: "004D", z: "0D88"}, // 041E:004D:0D88
+  "HUB23": {x: "041E", y: "004D", z: "0D89"}, // 041E:004D:0D89
+  "HUB24": {x: "041D", y: "004D", z: "0D89"}, // 041D:004D:0D89
+  "HUB25": {x: "041C", y: "004D", z: "0D89"}, // 041C:004D:0D89
+  "HUB26": {x: "041C", y: "004D", z: "0D88"}, // 041C:004D:0D88
+  "HUB27": {x: "041C", y: "004D", z: "0D87"} // 041C:004D:0D87
+};
+
+const calypsoRegionDictionary = {
+  "HUB1": { x: "042F", y: "0078", z: "0D55" },
+  "HUB2": { x: "042F", y: "0078", z: "0D54" },
+  "HUB3": { x: "0430", y: "0078", z: "0D54" },
+  "HUB4": { x: "0430", y: "0078", z: "0D55" },
+  "HUB5": { x: "0430", y: "0078", z: "0D56" },
+  "HUB6": { x: "042F", y: "0078", z: "0D56" },
+  "HUB7": { x: "042E", y: "0078", z: "0D56" },
+  "HUB8": { x: "042E", y: "0078", z: "0D55" },
+  "HUB9": { x: "042E", y: "0078", z: "0D54" },
+  "HUB10": { x: "042F", y: "0079", z: "0D55" },
+  "HUB11": { x: "042F", y: "0077", z: "0D55" },
+  "HUB12": { x: "042E", y: "0078", z: "0D53" },
+  "HUB13": { x: "042F", y: "0078", z: "0D53" },
+  "HUB14": { x: "0430", y: "0078", z: "0D53" },
+  "HUB15": { x: "0431", y: "0078", z: "0D53" },
+  "HUB16": { x: "0431", y: "0078", z: "0D54" },
+  "HUB17": { x: "0431", y: "0078", z: "0D55" },
+  "HUB18": { x: "0431", y: "0078", z: "0D56" },
+  "HUB19": { x: "0431", y: "0078", z: "0D57" },
+  "HUB20": { x: "0430", y: "0078", z: "0D57" },
+  "HUB21": { x: "042F", y: "0078", z: "0D57" },
+  "HUB22": { x: "042E", y: "0078", z: "0D57" },
+  "HUB23": { x: "042D", y: "0078", z: "0D57" },
+  "HUB24": { x: "042D", y: "0078", z: "0D56" },
+  "HUB25": { x: "042D", y: "0078", z: "0D55" },
+  "HUB26": { x: "042D", y: "0078", z: "0D54" },
+  "HUB27": { x: "042D", y: "0078", z: "0D53" },
+  "HUB28": { x: "042F", y: "0079", z: "0D54" },
+  "HUB29": { x: "0430", y: "0079", z: "0D54" },
+  "HUB30": { x: "0430", y: "0079", z: "0D55" },
+  "HUB31": { x: "0430", y: "0079", z: "0D56" },
+  "HUB32": { x: "042F", y: "0079", z: "0D56" },
+  "HUB33": { x: "042E", y: "0079", z: "0D56" },
+  "HUB34": { x: "042E", y: "0079", z: "0D55" },
+  "HUB35": { x: "042E", y: "0079", z: "0D54" },
+  "HUB36": { x: "042F", y: "0077", z: "0D54" },
+  "HUB37": { x: "0430", y: "0077", z: "0D54" },
+  "HUB38": { x: "0430", y: "0077", z: "0D55" },
+  "HUB39": { x: "0430", y: "0077", z: "0D56" },
+  "HUB40": { x: "042F", y: "0077", z: "0D56" },
+  "HUB41": { x: "042E", y: "0077", z: "0D56" },
+  "HUB42": { x: "042E", y: "0077", z: "0D55" },
+  "HUB43": { x: "042E", y: "0077", z: "0D54" },
+  "HUB44": { x: "042F", y: "007A", z: "0D55" },
+  "HUB45": { x: "042F", y: "0076", z: "0D55" }
+};
+
+export function decodeHubtag(hubtag) {
+  // Parse the solar system index and region
+  const tagMatch = hubtag.match(/HUB(\d+)-([A-Fa-f0-9]+)/i);
+  
+  if (!tagMatch) {
+    throw new Error("Invalid hubtag format. Expected format like 'HUB1-74'.");
+  }
+  
+  const regionId = `HUB${tagMatch[1]}`;
+  const rawSSI = tagMatch[2]; 
+  let coords = null;
+
+  // Look up the region's coordinates in the dictionary
+  if (window.currentGalaxy === "euclid") { 
+    coords = euclidRegionDictionary[regionId];
+  } else if (window.currentGalaxy === "calypso") {
+    coords = calypsoRegionDictionary[regionId];
+  }
+
+  if (!coords) {
+    throw new Error(`Region ${regionId} not found in the dictionary.`);
+  }
+
+  // Format the Signal Booster string
+  const signalBoosterFormat = `XXXX:${coords.x}:${coords.y}:${coords.z}:${rawSSI.padStart(4, '0')}`;
+
+  // Apply the true offsets and use bitwise masks to handle overflow truncation
+  const adjX = (parseInt(coords.x, 16) + 0x801) & 0xFFF;
+  const adjY = (parseInt(coords.y, 16) + 0x81) & 0xFF;
+  const adjZ = (parseInt(coords.z, 16) + 0x801) & 0xFFF;
+
+  // Convert to formatted hex strings
+  const hexX = adjX.toString(16).toUpperCase().padStart(3, '0');
+  const hexY = adjY.toString(16).toUpperCase().padStart(2, '0');
+  const hexZ = adjZ.toString(16).toUpperCase().padStart(3, '0');
+
+  // Format the Solar System Index to 3 characters
+  const ssi = parseInt(rawSSI, 16).toString(16).toUpperCase().padStart(3, '0').slice(-3);
+  
+  // Set Planet Index to 0 for the system's primary portal
+  const planetIndex = "0";
+
+  // Assemble the final Portal Address: P SSS YY ZZZ XXX
+  const portalAddress = `${planetIndex}${ssi}${hexY}${hexZ}${hexX}`;
+
+  return {
+    inputHubtag: hubtag,
+    region: regionId,
+    signalBooster: signalBoosterFormat,
+    portalAddress: portalAddress
+  };
+}
+
 export async function showSystemPopup(systemName, worldPosition, system, camera, popup) {
   if (!system) {
     console.warn(`No data found for system: ${systemName}`);
@@ -21,14 +154,24 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   popup.classList.add('open');
   
   const wikiData = JSON.parse(system.wiki_data);
-  console.log(wikiData);
+  const systemGlyphs = decodeHubtag(system.id).portalAddress;
   
   let wikiSection = '';
   if (wikiData === null) {
     wikiSection = `
-      <div class="wiki-section">
+      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
         <div class="wiki-title"> ${systemName} </div>
-        ${dist2capital.toFixed(0)}LY from Capital
+          <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
+            DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
+          </div>
+
+        ${systemGlyphs ? `
+          <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
+            <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
+            <div class="nms-glyph-text" style="color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.5);">${systemGlyphs}</div>
+          </div>
+        ` : ''}
+
         <div class="error-message">Galactic Hub Database</div>
         <div class="error-text">Cannot find Galactic Hub data for this system.</div>
       </div>
@@ -45,15 +188,17 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
             DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
           </div>
         </div>
-
-        ${wikiData.summary ? `<div class="wiki-summary" style="font-style: italic; color: #a8b2d1; font-size: 0.9em; margin-bottom: 15px; line-height: 1.4;">${wikiData.summary}</div>` : ''}
-
-        ${wikiData.glyphs ? `
+        ${systemGlyphs ? `
           <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid #333; padding: 10px; text-align: center; margin-bottom: 15px;">
             <div style="color: #00ffff; font-size: 0.75em; letter-spacing: 2px; margin-bottom: 5px;">[ PORTAL SEQUENCE ]</div>
-            <div class="nms-glyph-text" style="color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.5);">${wikiData.glyphs}</div>
+            <div class="nms-glyph-text" style="color: #ffffff; text-shadow: 0 0 5px rgba(255,255,255,0.5);">${systemGlyphs}</div>
           </div>
         ` : ''}
+
+
+        <div class="wiki-title">Galactic Hub Database</div>
+        ${wikiData.summary ? `<div class="wiki-summary" style="font-style: italic; color: #a8b2d1; font-size: 0.9em; margin-bottom: 15px; line-height: 1.4;">${wikiData.summary}</div>` : ''}
+
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
           
