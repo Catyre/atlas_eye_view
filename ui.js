@@ -1,4 +1,5 @@
 import { calculateDistance } from './trilateration.js';
+import * as THREE from 'three';
 
 // --- DECODING PORTAL GLYPHS FROM HUBTAG ---
 // Dictionary of Region Coordinates
@@ -303,26 +304,96 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
 }
 
 // Crosshair
-const crosshair = document.createElement('div');
-crosshair.id = 'viewport-crosshair';
-crosshair.style.cssText = `
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 30px;
-  height: 30px;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 1000;
+const crosshairContainer = document.createElement('div');
+crosshairContainer.id = 'targeting-crosshair';
+crosshairContainer.style.position = 'absolute';
+crosshairContainer.style.top = '0';
+crosshairContainer.style.left = '0';
+crosshairContainer.style.width = '40px';
+crosshairContainer.style.height = '40px';
+crosshairContainer.style.pointerEvents = 'none'; 
+crosshairContainer.style.zIndex = '50';
+crosshairContainer.style.transition = 'opacity 0.2s ease';
+crosshairContainer.style.transform = `translate(-50%, -50%) translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`;
+
+crosshairContainer.innerHTML = `
+  <div style="position: absolute; top: 50%; left: 0; width: 10px; height: 1px; background: #00ffff; box-shadow: 0 0 4px #00ffff;"></div>
+  <div style="position: absolute; top: 50%; right: 0; width: 10px; height: 1px; background: #00ffff; box-shadow: 0 0 4px #00ffff;"></div>
+  <div style="position: absolute; top: 0; left: 50%; width: 1px; height: 10px; background: #00ffff; box-shadow: 0 0 4px #00ffff;"></div>
+  <div style="position: absolute; bottom: 0; left: 50%; width: 1px; height: 10px; background: #00ffff; box-shadow: 0 0 4px #00ffff;"></div>
+  <div style="position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%);"></div>
 `;
-crosshair.innerHTML = `
-  <div class="crosshair-line" style="top: 14px; left: 0; width: 10px; height: 2px;"></div>
-  <div class="crosshair-line" style="top: 14px; right: 0; width: 10px; height: 2px;"></div>
-  <div class="crosshair-line" style="top: 0; left: 14px; width: 2px; height: 10px;"></div>
-  <div class="crosshair-line" style="bottom: 0; left: 14px; width: 2px; height: 10px;"></div>
-  <div class="crosshair-line" style="top: 14px; left: 14px; width: 2px; height: 2px;"></div>
-`;
-document.body.appendChild(crosshair);
+
+const crosshairLabel = document.createElement('div');
+crosshairLabel.style.position = 'absolute';
+crosshairLabel.style.top = '45px';
+crosshairLabel.style.left = '50%';
+crosshairLabel.style.transform = 'translateX(-50%)';
+crosshairLabel.style.color = '#fff';
+crosshairLabel.style.fontFamily = 'monospace';
+crosshairLabel.style.fontSize = '0.85rem';
+crosshairLabel.style.letterSpacing = '1px';
+crosshairLabel.style.textShadow = '0 0 5px rgba(0, 255, 255, 0.8)';
+crosshairLabel.style.whiteSpace = 'nowrap';
+crosshairLabel.textContent = '';
+
+crosshairContainer.appendChild(crosshairLabel);
+document.body.appendChild(crosshairContainer);
+
+const tempVector = new THREE.Vector3();
+
+export function updateTargetingComputer(camera, scene) {
+  const snapThreshold = 0.15; 
+  let closestSystem = null;
+  let minDistance = snapThreshold;
+  let lockedScreenPosition = new THREE.Vector2();
+
+  scene.traverse((child) => {
+    if (child.isMesh && child.userData && child.userData.isSystemStar && child.visible) {
+      tempVector.copy(child.position);
+      tempVector.project(camera); 
+
+      if (tempVector.z > 1 || tempVector.z < -1) return;
+
+      const distance = Math.sqrt(tempVector.x * tempVector.x + tempVector.y * tempVector.y);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSystem = child;
+        lockedScreenPosition.set(tempVector.x, tempVector.y);
+      }
+    }
+  });
+
+  if (closestSystem) {
+    window.currentLockedSystem = closestSystem; // <-- ADD THIS LINE
+
+    const x = (lockedScreenPosition.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(lockedScreenPosition.y * 0.5) + 0.5) * window.innerHeight;
+
+    crosshairContainer.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+    crosshairContainer.style.opacity = '1';
+    
+    crosshairContainer.children[0].style.width = '14px';
+    crosshairContainer.children[1].style.width = '14px';
+    crosshairContainer.children[2].style.height = '14px';
+    crosshairContainer.children[3].style.height = '14px';
+    
+    const data = closestSystem.userData.systemData;
+    crosshairLabel.textContent = data.name || data.id || 'Unknown System';
+  } else {
+    window.currentLockedSystem = null; // <-- ADD THIS LINE
+
+    crosshairContainer.style.transform = `translate(-50%, -50%) translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`;
+    crosshairContainer.style.opacity = '0.3'; 
+    crosshairLabel.textContent = '';
+    
+    crosshairContainer.children[0].style.width = '10px';
+    crosshairContainer.children[1].style.width = '10px';
+    crosshairContainer.children[2].style.height = '10px';
+    crosshairContainer.children[3].style.height = '10px';
+  }
+}
 
 // Bind the unsnap function to the new button
 const mobileCloseBtn = document.getElementById('mobile-unsnap-btn');

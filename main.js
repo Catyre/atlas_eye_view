@@ -583,6 +583,7 @@ function animate() {
   handleCameraMovement(keys, camera, cameraControls, delta);
   
   updateCameraPositionDisplay();
+  ui.updateTargetingComputer(camera, scene);
 
   requestAnimationFrame(animate);
 
@@ -822,7 +823,23 @@ initializeScene().then(function(data) {
       }
     });
 
-    window.addEventListener('click', onMouseClick);
+    //window.addEventListener('click', onMouseClick);
+    window.addEventListener('click', (event) => {
+      // 1. Prevent the popup from opening if the user is clicking on a UI panel or button
+      if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.closest('.hud-panel')) {
+        return;
+      }
+
+      // 2. If the targeting computer is locked onto a star, open its data panel
+      if (window.currentLockedSystem) {
+        const starMesh = window.currentLockedSystem;
+        const sysData = starMesh.userData.systemData;
+        const popupElement = document.getElementById('system-popup'); // Ensure this ID matches your HTML popup container
+        
+        // Call your existing popup function
+        showSystemPopup(sysData.name, starMesh.position, sysData, camera, popupElement);
+      }
+    });
     window.addEventListener('touchstart', (event) => {
       // Ignore multi-touch (like pinching to zoom)
       if (event.touches.length > 1) return;
