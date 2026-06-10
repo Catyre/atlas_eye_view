@@ -824,21 +824,30 @@ initializeScene().then(function(data) {
     });
 
     //window.addEventListener('click', onMouseClick);
-    window.addEventListener('click', (event) => {
-      // 1. Prevent the popup from opening if the user is clicking on a UI panel or button
-      if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.closest('.hud-panel')) {
+    renderer.domElement.addEventListener('click', (event) => {
+      // 1. Check if the targeting computer actually has a lock
+      if (!window.currentLockedSystem) {
+        console.log('[CLICK] No system locked. Aborting.');
         return;
       }
 
-      // 2. If the targeting computer is locked onto a star, open its data panel
-      if (window.currentLockedSystem) {
-        const starMesh = window.currentLockedSystem;
-        const sysData = starMesh.userData.systemData;
-        const popupElement = document.getElementById('system-popup'); // Ensure this ID matches your HTML popup container
-        
-        // Call your existing popup function
-        showSystemPopup(sysData.name, starMesh.position, sysData, camera, popupElement);
+      const starMesh = window.currentLockedSystem;
+      const sysData = starMesh.userData.systemData;
+      console.log(`[CLICK] Locked onto: ${sysData.name || sysData.id}`);
+
+      // 2. Find the popup container
+      // IMPORTANT: If your popup has a different ID, change 'system-popup' here!
+      const popupElement = document.getElementById('system-popup'); 
+      
+      if (!popupElement) {
+        console.error('[CLICK ERROR] Could not find HTML element with ID "system-popup"');
+        return;
       }
+
+      // 3. Fire the popup function
+      console.log('[CLICK] Firing showSystemPopup()...');
+    });
+  showSystemPopup(sysData.name, starMesh.position, sysData, camera, popupElement);
     });
     window.addEventListener('touchstart', (event) => {
       // Ignore multi-touch (like pinching to zoom)
