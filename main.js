@@ -30,7 +30,7 @@ let mouse = null;
 let raycaster = null;
 
 window.currentGalaxy = "euclid";
-let labelsVisible = true;
+let labelsVisible = false;
 let systemList = [];
 let stars = {};
 let firstPass = true;
@@ -247,6 +247,14 @@ async function placeStars(starData, scene) {
   let starsPlaced = 0;
   
   for (const system in starData) {
+    // Intercept and format the sanitized name
+    if (starData[system].name) {
+      starData[system].name = starData[system].name
+        .replace(/&amp;/g, '&') // 1. Decode HTML ampersands
+        .replace(/[-_]/g, ' ')  // 2. Convert hyphens/underscores to spaces
+        .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); // 3. Capitalize only after a space or start of string
+    }
+
     const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
     
     if (starPos[0] === null || starPos[0] === undefined || 
@@ -494,7 +502,7 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
 const toggleLabelsBtn = document.createElement('button');
 toggleLabelsBtn.id = 'toggle-labels-btn';
 toggleLabelsBtn.className = 'hud-button';
-toggleLabelsBtn.textContent = 'Hide Labels';
+toggleLabelsBtn.textContent = 'Hide Labels [H]';
 toggleLabelsBtn.style.position = 'absolute';
 toggleLabelsBtn.style.top = '140px'; 
 toggleLabelsBtn.style.left = '20px';
@@ -505,7 +513,7 @@ document.body.appendChild(toggleLabelsBtn);
 toggleLabelsBtn.addEventListener('click', (event) => {
   event.stopPropagation(); 
   labelsVisible = !labelsVisible;
-  toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels' : 'Hide Labels';
+  toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels [H]' : 'Hide Labels [H]';
   scene.children.forEach(child => {
     if (child.userData && child.userData.isLabel) {
       child.visible = labelsVisible;
@@ -634,11 +642,11 @@ controlsTooltip.innerHTML = `
     <div style="grid-column: 1 / -1;"><span class="hud-key" style="color:#fff">WASD / ↑↓←→</span> Move</div>
     <div><span class="hud-key" style="color:#fff">Space</span> Up</div>
     <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
-    <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
-    <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
+    <div><span class="hud-key" style="color:#fff">F</span> Toggle filters</div>
+    <div><span class="hud-key" style="color:#fff">H</span> Toggle labels</div>
   </div>
   <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4;">
-    Left-click any star to initialize telemetry readout.
+    Left-click any star to initialize telemetry readout.  Right-click to close system panel.
   </div>
 `;
 document.body.appendChild(controlsTooltip);
