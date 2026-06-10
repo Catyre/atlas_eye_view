@@ -80,7 +80,7 @@ const calypsoRegionDictionary = {
   "HUB45": { x: "042F", y: "0076", z: "0D55" }
 };
 
-export function decodeHubtag(hubtag) {
+function decodeHubtag(hubtag) {
   // Parse the solar system index and region
   const tagMatch = hubtag.match(/HUB(\d+)-([A-Fa-f0-9]+)/i);
   
@@ -168,7 +168,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
         
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
           <div>
-            <div class="wiki-title"> ${systemName} </div>
+            <div class="wiki-title"> ${system.id} ${systemName} </div>
             <div style="color: #8892b0; font-size: 0.85em; font-family: monospace; margin-top: 4px;">
               DISTANCE: ${dist2capital.toFixed(0)} LY FROM CAPITAL
             </div>
