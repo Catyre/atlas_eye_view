@@ -366,7 +366,7 @@ export function updateTargetingComputer(camera, scene) {
   });
 
   if (closestSystem) {
-    window.currentLockedSystem = closestSystem; // <-- ADD THIS LINE
+    window.currentLockedSystem = closestSystem;
 
     const x = (lockedScreenPosition.x * 0.5 + 0.5) * window.innerWidth;
     const y = (-(lockedScreenPosition.y * 0.5) + 0.5) * window.innerHeight;
@@ -382,7 +382,7 @@ export function updateTargetingComputer(camera, scene) {
     const data = closestSystem.userData.systemData;
     crosshairLabel.textContent = data.name || data.id || 'Unknown System';
   } else {
-    window.currentLockedSystem = null; // <-- ADD THIS LINE
+    window.currentLockedSystem = null;
 
     crosshairContainer.style.transform = `translate(-50%, -50%) translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`;
     crosshairContainer.style.opacity = '0.3'; 
