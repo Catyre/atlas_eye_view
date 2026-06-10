@@ -52,6 +52,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
           <option value="red">Red</option>
           <option value="green">Green</option>
           <option value="blue">Blue</option>
+          <option value="purple">Purple</option>
         </select>
       </div>
       <div style="flex: 1;">
@@ -88,6 +89,9 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
       </label>
       <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #8892b0; cursor: pointer;">
         <input type="checkbox" id="filter-haswiki"> Wiki Page
+      </label>
+      <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: #8892b0; cursor: pointer;">
+        <input type="checkbox" id="filter-personallog"> Has Log
       </label>
     </div>
 
@@ -136,6 +140,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
   const filterWaterInput = document.getElementById('filter-water');
   const filterNoWikiInput = document.getElementById('filter-nowiki');
   const filterHasWikiInput = document.getElementById('filter-haswiki');
+  const filterPersonalLogInput = document.getElementById('filter-personallog');
 
   function runFilters() {
     const searchTerm = filterTextInput.value.toLowerCase().trim();
@@ -147,6 +152,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
     const requireWater = filterWaterInput.checked;
     const requireNoWiki = filterNoWikiInput.checked;
     const requireHasWiki = filterHasWikiInput.checked;
+    const requirePersonalLog = filterPersonalLogInput.checked;
 
     let totalChecked = 0;
     let matchCount = 0;
@@ -230,6 +236,14 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
         if (requireHasWiki && isMatch) {
           const hasDedicatedPage = wiki.title && wiki.title !== 'Reference Only';
           if (!hasDedicatedPage) {
+            isMatch = false;
+          }
+        }
+
+        if (requirePersonalLog && isMatch) {
+          const storageKey = `gh_notes_${data.name}`;
+          const note = localStorage.getItem(storageKey);
+          if (!note || note.trim() === '') {
             isMatch = false;
           }
         }

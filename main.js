@@ -706,7 +706,7 @@ async function placeStars(starData, scene) {
     const renderZ = starPos[2] * scale;
 
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
-    const geometry = new THREE.SphereGeometry(1, 16, 16);
+    const geometry = new THREE.SphereGeometry(0.5, 16, 16);
     const star = new THREE.Mesh(geometry, starMaterial);
     
     star.position.set(renderX, renderY, renderZ);
