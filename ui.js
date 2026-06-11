@@ -442,12 +442,12 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
     
     readerPanel.style.cssText = `
       position: absolute;
-      top: 5vh;
-      left: 5vw;
-      width: 90vw;
-      height: 90vh;
+      top: 2.5vh;
+      left: 2.5vw;
+      width: 95vw;
+      height: 95vh;
       z-index: 9999;
-      background: rgba(5, 5, 16, 0.85);
+      background: rgba(5, 5, 16, 0.55);
       backdrop-filter: blur(6px); 
       -webkit-backdrop-filter: blur(6px);
       overflow-y: auto;
@@ -495,7 +495,7 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       .mw-parser-output a { color: #00ffff !important; text-decoration: none; }
       .mw-parser-output a:hover { text-decoration: underline; }
       
-      .infobox {
+      .infoboxWrap {
         float: right !important;
         clear: right !important;
         width: 300px !important;
