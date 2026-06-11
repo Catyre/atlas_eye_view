@@ -380,7 +380,7 @@ export function updateTargetingComputer(camera, scene) {
     crosshairContainer.children[3].style.height = '14px';
     
     const data = closestSystem.userData.systemData;
-    crosshairLabel.textContent = data.name || data.id || 'Unknown System';
+    crosshairLabel.textContent = data.id + " " + data.name || 'Unknown System';
   } else {
     window.currentLockedSystem = null;
 

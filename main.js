@@ -28,6 +28,7 @@ let composer = null;
 let popup = null;
 let mouse = null;
 let raycaster = null;
+window.activePivotNode = null;
 
 window.currentGalaxy = "euclid";
 let labelsVisible = false;
@@ -250,9 +251,10 @@ async function placeStars(starData, scene) {
     // Intercept and format the sanitized name
     if (starData[system].name) {
       starData[system].name = starData[system].name
-        .replace(/&amp;/g, '&') // 1. Decode HTML ampersands
-        .replace(/[-_]/g, ' ')  // 2. Convert hyphens/underscores to spaces
-        .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); // 3. Capitalize only after a space or start of string
+        .replace(/&amp;/g, '&') // Decode HTML ampersands
+        .replace(/&#x27;/g, '\'') // Decode HTML apostrophe
+        .replace(/[-_]/g, ' ')  // Convert hyphens/underscores to spaces
+        .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); // Capitalize only after a space or start of string
     }
 
     const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
@@ -302,10 +304,32 @@ async function placeStars(starData, scene) {
   console.log(`Placed ${starsPlaced} stars and labels in scene.`);
 }
 
-// CAMERA MATH AND MOVEMENT PHYSICS
 function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
   if (!cameraObj || !controlsObj) return;
 
+  // --- ORBITAL FLIGHT MODE ---
+  // If we are locked onto a system, map WASD to orbital rotation 
+  // and Space/Shift to zoom distance.
+  if (window.activePivotNode) {
+    const orbitSpeed = 1.5 * delta;
+    const zoomSpeed = 50.0 * delta;
+
+    if (keysPressed.w || keysPressed.arrowup) controlsObj.distance -= zoomSpeed;
+    if (keysPressed.s || keysPressed.arrowdown) controlsObj.distance += zoomSpeed;
+    if (keysPressed.a || keysPressed.arrowleft) controlsObj.azimuthAngle -= orbitSpeed;
+    if (keysPressed.d || keysPressed.arrowright) controlsObj.azimuthAngle += orbitSpeed;
+
+    if (keysPressed[' ']) controlsObj.polarAngle -= orbitSpeed; // Space to zoom in
+    if (keysPressed.shift) controlsObj.polarAngle += orbitSpeed; // Shift to zoom out
+
+    // Instantly kill any leftover free-flight momentum so the camera doesn't drift
+    velocity.set(0, 0, 0);
+    holdTime = 0;
+
+    return; // Exit the function early so free-flight logic doesn't run
+  }
+
+  // --- FREE FLIGHT MODE ---
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraObj.quaternion);
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraObj.quaternion);
   const up = new THREE.Vector3(0, 1, 0); 
@@ -363,11 +387,13 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
 }
 
 function resetCamera() {
+  window.activePivotNode = null; // <-- ADD THIS LINE
   cameraControls.setLookAt(20, 20, 20, 0, 0, 0, true);
   hidePopup();
 }
 
 function unsnapCamera() {
+  window.activePivotNode = null;
   hidePopup();
 
   const currentPos = new THREE.Vector3();
@@ -397,6 +423,7 @@ function animate() {
   const updated = cameraControls.update(delta);
   handleCameraMovement(keys, camera, cameraControls, delta);
   
+  camera.updateMatrixWorld();
   updateCameraPositionDisplay();
   ui.updateTargetingComputer(camera, scene);
 
@@ -743,6 +770,7 @@ export function updateSystemDropdown(systems = null) {
 }
 
 function snapToSelectedAnchor() {
+  window.activePivotNode = null;
   const targetName = systemSearchInput.value;
   const targetSystem = Object.entries(systemList).find(([name, data]) => name === targetName)?.[1];
 
@@ -782,6 +810,17 @@ function onMouseClick(event) {
 
   const starMesh = window.currentLockedSystem;
   const sysData = starMesh.userData.systemData;
+  const closestSystem = window.currentLockedSystem;
+
+  if (window.cameraControls) {
+    window.activePivotNode = starMesh; // <-- ADD THIS LINE
+    window.cameraControls.setTarget(
+      starMesh.position.x,
+      starMesh.position.y,
+      starMesh.position.z,
+      true 
+    );
+  }
 
   let popupElement = document.getElementById('system-popup'); 
   
