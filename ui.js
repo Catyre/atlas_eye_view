@@ -283,7 +283,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   if (readWikiBtn && wikiData && wikiData.title) {
     readWikiBtn.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent the click from passing through to the canvas
-      openArticleReader(wikiData.title);
+      openArticleReader(wikiData);
     });
   }
 
@@ -422,7 +422,24 @@ if (mobileCloseBtn) {
   });
 }
 
-export async function openArticleReader(pageTitle, isBackNavigation = false) {
+export async function openArticleReader(wikiData, isBackNavigation = false, redirectedFrom = null) {
+  let pageTitle = "";
+  let fallbackMentions = [];
+  let hasDirectArticle = true;
+
+  if (typeof wikiData === 'string') {
+    pageTitle = wikiData;
+  } else if (wikiData && typeof wikiData === 'object') {
+    pageTitle = wikiData.title;
+    fallbackMentions = wikiData.mentioned_in || [];
+    
+    if (!wikiData.url) {
+      hasDirectArticle = false;
+    }
+  }
+
+  if (!pageTitle) return;
+
   if (!window.wikiHistory) window.wikiHistory = [];
 
   let readerPanel = document.getElementById('wiki-reader-panel');
@@ -472,13 +489,11 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       if (activePanel && activePanel.style.display === 'block') {
         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
 
-        // Escape or X to close
         if (e.key === 'Escape' || e.key.toLowerCase() === 'x') {
           const closeBtn = document.getElementById('close-reader-btn');
           if (closeBtn) closeBtn.click();
         }
         
-        // Delete or Backspace to go back
         if (e.key === 'Delete' || e.key === 'Backspace') {
           const backBtn = document.getElementById('back-reader-btn');
           if (backBtn) backBtn.click();
@@ -488,6 +503,14 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
 
     const wikiStyles = document.createElement('style');
     wikiStyles.textContent = `
+      /* TOAST NOTIFICATION ANIMATION */
+      @keyframes hudToastFade {
+        0% { opacity: 0; transform: translateY(-10px); }
+        5% { opacity: 1; transform: translateY(0); }
+        85% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); pointer-events: none; visibility: hidden; }
+      }
+
       .mw-parser-output * {
         background-color: transparent !important;
         color: inherit !important;
@@ -631,6 +654,13 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
   readerPanel.innerHTML = `
     <style>${readerPanel.querySelector('style').textContent}</style>
     
+    ${redirectedFrom ? `
+      <div style="position: absolute; top: 80px; right: 20px; z-index: 100; background: rgba(20, 25, 40, 0.95); border: 1px dashed #00ffff; color: #e0e0e0; padding: 15px 20px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,255,0.1); animation: hudToastFade 6.5s forwards; max-width: 350px;">
+        <div style="color: #00ffff; font-size: 0.85em; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Redirect Notice</div>
+        Direct entry missing for <span style="color: #fff;">${redirectedFrom.replace(/_/g, ' ')}</span>.<br>Loaded related record instead.
+      </div>
+    ` : ''}
+
     <div style="position: absolute; top: 20px; right: 20px; z-index: 50; display: flex; gap: 10px;">
       ${hasHistory ? '<button id="back-reader-btn" class="hud-button" style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff;">[BckSpce] Back</button>' : ''}
       <button id="close-reader-btn" class="hud-button warning">[X] Close</button>
@@ -662,12 +692,28 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
   }
 
   try {
+    // Instant Redirect: Pass the original title forward to trigger the toast UI
+    if (!hasDirectArticle && fallbackMentions.length > 0) {
+      window.wikiHistory.pop();
+      const foundTitle = fallbackMentions[0];
+      openArticleReader(foundTitle, false, pageTitle);
+      return;
+    }
+
     const apiUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&format=json&origin=*&disableeditsection=true`;
     
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (data.error) throw new Error(data.error.info);
+    if (data.error) {
+      if (data.error.code === 'missingtitle' && fallbackMentions.length > 0) {
+        window.wikiHistory.pop();
+        const foundTitle = fallbackMentions[0];
+        openArticleReader(foundTitle, false, pageTitle);
+        return;
+      }
+      throw new Error(data.error.info);
+    }
 
     const contentArea = document.getElementById('wiki-content-area');
     contentArea.innerHTML = data.parse.text['*'];
