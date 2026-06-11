@@ -423,17 +423,14 @@ if (mobileCloseBtn) {
 }
 
 export async function openArticleReader(pageTitle, isBackNavigation = false) {
-  // 1. Initialize or update the browsing history
   if (!window.wikiHistory) window.wikiHistory = [];
 
   let readerPanel = document.getElementById('wiki-reader-panel');
   let isFirstOpen = (!readerPanel || readerPanel.style.display === 'none' || readerPanel.style.display === '');
 
-  // If opening from the 3D map, start a fresh history
   if (isFirstOpen) {
     window.wikiHistory = [pageTitle];
   } 
-  // If clicking a link inside the reader, add to history (preventing duplicates)
   else if (!isBackNavigation && window.wikiHistory[window.wikiHistory.length - 1] !== pageTitle) {
     window.wikiHistory.push(pageTitle);
   }
@@ -450,9 +447,9 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       width: 90vw;
       height: 90vh;
       z-index: 9999;
-      background: rgba(5, 5, 16, 0.45);
-      backdrop-filter: blur(4px); 
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(5, 5, 16, 0.85);
+      backdrop-filter: blur(6px); 
+      -webkit-backdrop-filter: blur(6px);
       overflow-y: auto;
       padding: 40px 10%;
       box-sizing: border-box;
@@ -465,21 +462,26 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       border-radius: 4px;
     `;
 
-    // Prevent map interactions while reader is open
     readerPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
     readerPanel.addEventListener('pointerup', (e) => e.stopPropagation());
     readerPanel.addEventListener('click', (e) => e.stopPropagation());
     readerPanel.addEventListener('wheel', (e) => e.stopPropagation());
 
-    // Route escape keys to the close button so history clears properly
     document.addEventListener('keydown', (e) => {
       const activePanel = document.getElementById('wiki-reader-panel');
       if (activePanel && activePanel.style.display === 'block') {
         if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
 
+        // Escape or X to close
         if (e.key === 'Escape' || e.key.toLowerCase() === 'x') {
           const closeBtn = document.getElementById('close-reader-btn');
           if (closeBtn) closeBtn.click();
+        }
+        
+        // Delete or Backspace to go back
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          const backBtn = document.getElementById('back-reader-btn');
+          if (backBtn) backBtn.click();
         }
       }
     });
@@ -493,8 +495,7 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       .mw-parser-output a { color: #00ffff !important; text-decoration: none; }
       .mw-parser-output a:hover { text-decoration: underline; }
       
-      /* ISOLATE AND SHRINK THE INFOBOX */
-      .infoboxWrap {
+      .infobox {
         float: right !important;
         clear: right !important;
         width: 300px !important;
@@ -510,7 +511,6 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
         padding: 6px !important; 
       }
 
-      /* PORTABLE INFOBOX EXTENSION SUPPORT */
       .portable-infobox {
         float: right !important;
         clear: right !important;
@@ -563,7 +563,6 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
         word-break: break-word !important;
       }
 
-      /* STANDARD TABLES AND NAVBOXES */
       .wikitable, .navbox, table:not(.infobox) { 
         float: none !important;
         display: block !important;
@@ -592,7 +591,6 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
         text-align: left;
       }
 
-      /* FIX IMAGES AND THUMBNAILS */
       .thumb, .thumbinner, .tright, .tleft { 
         float: none !important; 
         margin: 1.5em auto !important; 
@@ -606,7 +604,6 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
       .thumbcaption { font-size: 0.85em; color: #8892b0 !important; padding-top: 8px; }
       .mw-parser-output img { max-width: 100% !important; height: auto !important; }
 
-      /* CLEAN UP TYPOGRAPHY */
       .mw-parser-output h2, .mw-parser-output h3 { 
         border-bottom: 1px solid rgba(0, 255, 255, 0.3); 
         padding-bottom: 5px; 
@@ -629,14 +626,13 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
     document.body.appendChild(readerPanel);
   }
 
-  // Check if we should render the Back button
   const hasHistory = window.wikiHistory.length > 1;
 
   readerPanel.innerHTML = `
     <style>${readerPanel.querySelector('style').textContent}</style>
     
     <div style="position: absolute; top: 20px; right: 20px; z-index: 50; display: flex; gap: 10px;">
-      ${hasHistory ? '<button id="back-reader-btn" class="hud-button" style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff;">[<] Back</button>' : ''}
+      ${hasHistory ? '<button id="back-reader-btn" class="hud-button" style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff;">[BckSpce] Back</button>' : ''}
       <button id="close-reader-btn" class="hud-button warning">[X] Close</button>
     </div>
 
@@ -651,19 +647,17 @@ export async function openArticleReader(pageTitle, isBackNavigation = false) {
   
   readerPanel.style.display = 'block';
 
-  // Attach Close Listener (Clears history entirely)
   document.getElementById('close-reader-btn').addEventListener('click', () => {
     document.getElementById('wiki-reader-panel').style.display = 'none';
     window.wikiHistory = []; 
   });
 
-  // Attach Back Listener (Pops current page, reloads previous page)
   const backBtn = document.getElementById('back-reader-btn');
   if (backBtn) {
     backBtn.addEventListener('click', () => {
-      window.wikiHistory.pop(); // Remove the page we are currently looking at
-      const prevPage = window.wikiHistory[window.wikiHistory.length - 1]; // Grab the one before it
-      openArticleReader(prevPage, true); // True flag tells the script NOT to add it to history again
+      window.wikiHistory.pop(); 
+      const prevPage = window.wikiHistory[window.wikiHistory.length - 1]; 
+      openArticleReader(prevPage, true); 
     });
   }
 
