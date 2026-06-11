@@ -309,22 +309,41 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
 
   // --- ORBITAL FLIGHT MODE ---
   // If we are locked onto a system, map WASD to orbital rotation 
-  // and Space/Shift to zoom distance.
+  // and Space/Shift to zoom distance, with acceleration.
   if (window.activePivotNode) {
-    const orbitSpeed = 1.5 * delta;
-    const zoomSpeed = 50.0 * delta;
+    let isOrbitMoving = false;
+    let dAzimuth = 0;
+    let dPolar = 0;
+    let dZoom = 0;
 
-    if (keysPressed.w || keysPressed.arrowup) controlsObj.distance -= zoomSpeed;
-    if (keysPressed.s || keysPressed.arrowdown) controlsObj.distance += zoomSpeed;
-    if (keysPressed.a || keysPressed.arrowleft) controlsObj.azimuthAngle -= orbitSpeed;
-    if (keysPressed.d || keysPressed.arrowright) controlsObj.azimuthAngle += orbitSpeed;
+    if (keysPressed.w || keysPressed.arrowup) { dZoom -= 1; isOrbitMoving = true; }
+    if (keysPressed.s || keysPressed.arrowdown) { dZoom += 1; isOrbitMoving = true; }
+    if (keysPressed.a || keysPressed.arrowleft) { dAzimuth -= 1; isOrbitMoving = true; }
+    if (keysPressed.d || keysPressed.arrowright) { dAzimuth += 1; isOrbitMoving = true; }
+    if (keysPressed[' ']) { dPolar -= 1; isOrbitMoving = true; } 
+    if (keysPressed.shift) { dPolar += 1; isOrbitMoving = true; } 
 
-    if (keysPressed[' ']) controlsObj.polarAngle -= orbitSpeed; // Space to zoom in
-    if (keysPressed.shift) controlsObj.polarAngle += orbitSpeed; // Shift to zoom out
+    if (isOrbitMoving) {
+      holdTime += delta;
+      
+      const rampUp = Math.min(holdTime / timeToMax, 1.0);
+      
+      // Calculate current speeds based on hold time
+      // The min and max values here can be adjusted to tune the feel
+      const currentOrbitSpeed = (0.5 + ((2.5 - 0.5) * rampUp)) * delta;
+      const currentZoomSpeed = (15.0 + ((80.0 - 15.0) * rampUp)) * delta;
+
+      controlsObj.distance += dZoom * currentZoomSpeed;
+      controlsObj.azimuthAngle += dAzimuth * currentOrbitSpeed;
+      controlsObj.polarAngle += dPolar * currentOrbitSpeed;
+    } else {
+      // Decay the hold time when keys are released so the next movement starts slowly
+      holdTime -= delta * 3.0; 
+      if (holdTime < 0) holdTime = 0;
+    }
 
     // Instantly kill any leftover free-flight momentum so the camera doesn't drift
     velocity.set(0, 0, 0);
-    holdTime = 0;
 
     return; // Exit the function early so free-flight logic doesn't run
   }
@@ -630,8 +649,8 @@ const toggleControlsBtn = document.createElement('button');
 toggleControlsBtn.id = 'toggle-controls-btn';
 toggleControlsBtn.className = 'hud-button';
 toggleControlsBtn.textContent = '?';
-toggleControlsBtn.style.position = 'relative';
-toggleControlsBtn.style.bottom = '10px'; 
+toggleControlsBtn.style.position = 'absolute';
+toggleControlsBtn.style.top = '165px'; 
 toggleControlsBtn.style.left = '20px'; 
 toggleControlsBtn.style.zIndex = '101';
 toggleControlsBtn.style.width = '35px';
@@ -648,17 +667,18 @@ const controlsTooltip = document.createElement('div');
 controlsTooltip.id = 'controls-tooltip';
 controlsTooltip.className = 'hud-panel';
 controlsTooltip.style.position = 'absolute';
-controlsTooltip.style.bottom = '155px'; 
-controlsTooltip.style.left = '20px'; 
+controlsTooltip.style.top = '165px'; 
+controlsTooltip.style.left = '60px'; 
 controlsTooltip.style.zIndex = '100';
 controlsTooltip.style.width = '260px';
+controlsTooltip.style.height = 'max-content';
 controlsTooltip.style.background = 'rgba(10, 15, 30, 0.85)';
 controlsTooltip.style.border = '1px solid rgba(0, 255, 255, 0.3)';
 controlsTooltip.style.padding = '15px';
 controlsTooltip.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.1)';
 controlsTooltip.style.fontFamily = 'monospace';
 controlsTooltip.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
-controlsTooltip.style.transform = 'translateY(20px)';
+controlsTooltip.style.transform = 'translateX(20px)';
 controlsTooltip.style.opacity = '0';
 controlsTooltip.style.pointerEvents = 'none';
 controlsTooltip.innerHTML = `
@@ -672,6 +692,8 @@ controlsTooltip.innerHTML = `
     <div><span class="hud-key" style="color:#fff">F</span> Toggle filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Toggle labels</div>
   </div>
+  <div style="font-size: 0.8rem; color: #8892b0;"><span class="hud-key" style="color:#fff">C</span> Toggle mouse between free pointer and camera</div>
+
   <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4;">
     Left-click any star to initialize telemetry readout.  Right-click to close system panel.
   </div>
@@ -704,6 +726,24 @@ hyperOverlay.innerHTML = `
   <div class="hyper-text" id="hyper-text-content">INITIATING WARP...</div>
 `;
 document.body.appendChild(hyperOverlay);
+
+const fullscreenBtn = document.createElement('button');
+fullscreenBtn.id = 'fullscreen-btn';
+fullscreenBtn.className = 'hud-button';
+fullscreenBtn.textContent = '[ ] Fullscreen';
+fullscreenBtn.style.position = 'absolute';
+fullscreenBtn.style.bottom = '100px';
+fullscreenBtn.style.left = '20px';
+fullscreenBtn.style.zIndex = '100';
+
+// Forced Overrides
+fullscreenBtn.style.setProperty('display', 'inline-block', 'important');
+fullscreenBtn.style.setProperty('width', 'max-content', 'important');
+fullscreenBtn.style.setProperty('height', 'max-content', 'important');
+fullscreenBtn.style.setProperty('min-width', '0', 'important');
+fullscreenBtn.style.setProperty('padding', '10px 15px', 'important');
+fullscreenBtn.style.setProperty('white-space', 'nowrap', 'important');
+document.body.appendChild(fullscreenBtn);
 
 const dataManagementPanel = document.createElement('div');
 dataManagementPanel.id = 'data-management-panel';
@@ -875,6 +915,35 @@ function onKeyUp(event) {
 }
 
 // UI Event Binding
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch((err) => {
+      console.error(`Error attempting to enable fullscreen: ${err.message}`);
+    });
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+}
+
+fullscreenBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleFullscreen();
+});
+
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement) {
+    fullscreenBtn.textContent = '>< Exit Fullscreen';
+    fullscreenBtn.style.background = 'rgba(0, 255, 255, 0.2)';
+    fullscreenBtn.style.color = '#fff';
+  } else {
+    fullscreenBtn.textContent = '[ ] Fullscreen';
+    fullscreenBtn.style.background = '';
+    fullscreenBtn.style.color = '';
+  }
+});
+
 if (snapButton) snapButton.addEventListener('click', snapToSelectedAnchor);
 if (systemSearchInput) {
   systemSearchInput.addEventListener('keypress', (e) => {
@@ -1068,6 +1137,44 @@ window.addEventListener('mousedown', (event) => {
 
 window.addEventListener('contextmenu', (event) => event.preventDefault());
 
+// Global state flag to track the camera's lock status
+window.isCursorFreed = false;
+
+document.addEventListener('keydown', (e) => {
+  // Ignore inputs if the user is typing in a search bar or text box
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+  // Use the 'C' key to toggle the mouse between UI mode and Flight mode
+  if (e.key.toLowerCase() === 'c') {
+    window.isCursorFreed = !window.isCursorFreed;
+    
+    if (window.isCursorFreed) {
+      // Disable the camera controls from responding to mouse movements
+      if (window.cameraControls) window.cameraControls.enabled = false;
+      
+      // If engine uses the native Pointer Lock API for first-person flight, 
+      // this releases the mouse without triggering an exit from Fullscreen.
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+      
+      // Optional: Change the cursor style to explicitly show it is freed
+      document.body.style.cursor = 'default';
+      
+    } else {
+      // 2. LOCK THE MOUSE
+      // Re-enable the camera controls
+      if (window.cameraControls) window.cameraControls.enabled = true;
+      
+      // Optional: Re-hide the cursor or switch back to a crosshair
+      document.body.style.cursor = 'crosshair'; 
+      
+      // If you are using Pointer Lock, you can request it back here
+      document.body.requestPointerLock();
+    }
+  }
+});
+
 // MAIN ENTRY POINT
 initializeScene().then(function(data) {
   clock = data.clock;
@@ -1096,6 +1203,7 @@ initializeScene().then(function(data) {
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+
     
     renderer.domElement.setAttribute('tabindex', '0');
     renderer.domElement.style.outline = 'none';
