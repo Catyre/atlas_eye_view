@@ -234,9 +234,9 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
         </div>
         
         <div style="margin-top: 18px; text-align: center;">
-          <a href="${wikiData.url}" target="_blank" rel="noopener noreferrer" style="display: block; padding: 10px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 2px; font-size: 0.8em; letter-spacing: 2px; text-transform: uppercase;">
+          <button id="open-wiki-reader-btn" style="display: block; width: 100%; cursor: pointer; padding: 10px; background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff; text-decoration: none; border-radius: 2px; font-size: 0.8em; letter-spacing: 2px; text-transform: uppercase;">
             Access Full Database Entry
-          </a>
+          </button>
         </div>
       </div>
     `;
@@ -275,6 +275,17 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     </button>
     ${coordsHtml}
     `;
+
+
+  // Connect the Wiki Reader Button
+  const readWikiBtn = document.getElementById('open-wiki-reader-btn');
+
+  if (readWikiBtn && wikiData && wikiData.title) {
+    readWikiBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent the click from passing through to the canvas
+      openArticleReader(wikiData.title);
+    });
+  }
 
   // Generate a unique key for this specific system
   const storageKey = `gh_notes_${system.name}`;
@@ -409,4 +420,335 @@ if (mobileCloseBtn) {
       window.unsnapCamera();
     }
   });
+}
+
+export async function openArticleReader(pageTitle, isBackNavigation = false) {
+  // 1. Initialize or update the browsing history
+  if (!window.wikiHistory) window.wikiHistory = [];
+
+  let readerPanel = document.getElementById('wiki-reader-panel');
+  let isFirstOpen = (!readerPanel || readerPanel.style.display === 'none' || readerPanel.style.display === '');
+
+  // If opening from the 3D map, start a fresh history
+  if (isFirstOpen) {
+    window.wikiHistory = [pageTitle];
+  } 
+  // If clicking a link inside the reader, add to history (preventing duplicates)
+  else if (!isBackNavigation && window.wikiHistory[window.wikiHistory.length - 1] !== pageTitle) {
+    window.wikiHistory.push(pageTitle);
+  }
+
+  if (!readerPanel) {
+    readerPanel = document.createElement('div');
+    readerPanel.id = 'wiki-reader-panel';
+    readerPanel.className = 'hud-panel';
+    
+    readerPanel.style.cssText = `
+      position: absolute;
+      top: 5vh;
+      left: 5vw;
+      width: 90vw;
+      height: 90vh;
+      z-index: 9999;
+      background: rgba(5, 5, 16, 0.45);
+      backdrop-filter: blur(4px); 
+      -webkit-backdrop-filter: blur(4px);
+      overflow-y: auto;
+      padding: 40px 10%;
+      box-sizing: border-box;
+      color: #e0e0e0;
+      font-family: sans-serif;
+      border: 2px solid #00ffff;
+      outline: 1px solid rgba(0, 255, 255, 0.4);
+      outline-offset: -12px;
+      box-shadow: inset 0 0 40px rgba(0, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.9);
+      border-radius: 4px;
+    `;
+
+    // Prevent map interactions while reader is open
+    readerPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+    readerPanel.addEventListener('pointerup', (e) => e.stopPropagation());
+    readerPanel.addEventListener('click', (e) => e.stopPropagation());
+    readerPanel.addEventListener('wheel', (e) => e.stopPropagation());
+
+    // Route escape keys to the close button so history clears properly
+    document.addEventListener('keydown', (e) => {
+      const activePanel = document.getElementById('wiki-reader-panel');
+      if (activePanel && activePanel.style.display === 'block') {
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'Escape' || e.key.toLowerCase() === 'x') {
+          const closeBtn = document.getElementById('close-reader-btn');
+          if (closeBtn) closeBtn.click();
+        }
+      }
+    });
+
+    const wikiStyles = document.createElement('style');
+    wikiStyles.textContent = `
+      .mw-parser-output * {
+        background-color: transparent !important;
+        color: inherit !important;
+      }
+      .mw-parser-output a { color: #00ffff !important; text-decoration: none; }
+      .mw-parser-output a:hover { text-decoration: underline; }
+      
+      /* ISOLATE AND SHRINK THE INFOBOX */
+      .infoboxWrap {
+        float: right !important;
+        clear: right !important;
+        width: 300px !important;
+        max-width: 100% !important;
+        margin: 0 0 1.5em 1.5em !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        border: 1px solid rgba(0, 255, 255, 0.3) !important;
+        box-sizing: border-box !important;
+        font-size: 0.8em !important; 
+        line-height: 1.4 !important;
+      }
+      .infobox th, .infobox td {
+        padding: 6px !important; 
+      }
+
+      /* PORTABLE INFOBOX EXTENSION SUPPORT */
+      .portable-infobox {
+        float: right !important;
+        clear: right !important;
+        width: 320px !important;
+        max-width: 100% !important;
+        margin: 0 0 1.5em 1.5em !important;
+        background: rgba(0, 0, 0, 0.6) !important;
+        border: 1px solid rgba(0, 255, 255, 0.3) !important;
+        box-sizing: border-box !important;
+        font-size: 0.85em !important;
+      }
+      
+      .portable-infobox .pi-title {
+        background: rgba(0, 255, 255, 0.15) !important;
+        color: #00ffff !important;
+        text-align: center !important;
+        padding: 12px !important;
+        margin: 0 !important;
+        font-size: 1.2em !important;
+        text-transform: uppercase !important;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3) !important;
+      }
+      
+      .portable-infobox .pi-image {
+        padding: 10px !important;
+        text-align: center !important;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.15) !important;
+      }
+      
+      .portable-infobox .pi-data {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 8px 10px !important;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
+      }
+      
+      .portable-infobox .pi-data-label {
+        color: #8892b0 !important;
+        font-weight: normal !important;
+        margin: 0 !important;
+        flex: 1 !important;
+        text-align: left !important;
+      }
+      
+      .portable-infobox .pi-data-value {
+        color: #fff !important;
+        flex: 1.2 !important;
+        text-align: right !important;
+        word-break: break-word !important;
+      }
+
+      /* STANDARD TABLES AND NAVBOXES */
+      .wikitable, .navbox, table:not(.infobox) { 
+        float: none !important;
+        display: block !important;
+        width: 100% !important; 
+        max-width: 100% !important; 
+        overflow-x: auto !important;
+        border-collapse: collapse !important; 
+        margin: 1.5em 0 !important; 
+        background: rgba(0, 0, 0, 0.6) !important; 
+        border: 1px solid rgba(0, 255, 255, 0.3) !important;
+        box-sizing: border-box !important;
+        -webkit-overflow-scrolling: touch; 
+      }
+      
+      th, td { 
+        border: 1px solid rgba(0, 255, 255, 0.15) !important; 
+        padding: 10px !important; 
+        white-space: normal !important;
+        word-break: break-word !important; 
+        overflow-wrap: break-word !important;
+        min-width: 100px; 
+      }
+      th { 
+        background: rgba(0, 255, 255, 0.1) !important; 
+        color: #00ffff !important; 
+        text-align: left;
+      }
+
+      /* FIX IMAGES AND THUMBNAILS */
+      .thumb, .thumbinner, .tright, .tleft { 
+        float: none !important; 
+        margin: 1.5em auto !important; 
+        background: rgba(0, 0, 0, 0.4) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+        padding: 10px !important; 
+        max-width: 100% !important; 
+        text-align: center;
+        box-sizing: border-box !important;
+      }
+      .thumbcaption { font-size: 0.85em; color: #8892b0 !important; padding-top: 8px; }
+      .mw-parser-output img { max-width: 100% !important; height: auto !important; }
+
+      /* CLEAN UP TYPOGRAPHY */
+      .mw-parser-output h2, .mw-parser-output h3 { 
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3); 
+        padding-bottom: 5px; 
+        margin-top: 2em; 
+        color: #fff !important; 
+      }
+      .mw-parser-output ul { margin-left: 1.5em; padding-left: 0; }
+      .toc { 
+        background: rgba(0, 0, 0, 0.5) !important; 
+        border: 1px solid rgba(0, 255, 255, 0.2) !important; 
+        padding: 20px !important; 
+        display: inline-block; 
+        margin-bottom: 2em; 
+        max-width: 100%; 
+        overflow-x: auto; 
+        box-sizing: border-box !important;
+      }
+    `;
+    readerPanel.appendChild(wikiStyles);
+    document.body.appendChild(readerPanel);
+  }
+
+  // Check if we should render the Back button
+  const hasHistory = window.wikiHistory.length > 1;
+
+  readerPanel.innerHTML = `
+    <style>${readerPanel.querySelector('style').textContent}</style>
+    
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 50; display: flex; gap: 10px;">
+      ${hasHistory ? '<button id="back-reader-btn" class="hud-button" style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff;">[<] Back</button>' : ''}
+      <button id="close-reader-btn" class="hud-button warning">[X] Close</button>
+    </div>
+
+    <div style="color: #00ffff; font-size: 1.5em; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,255,0.5); padding-bottom: 10px; position: relative; z-index: 10; padding-right: 150px;">
+      Accessing Database: ${pageTitle.replace(/_/g, ' ')}
+    </div>
+    
+    <div id="wiki-content-area" style="line-height: 1.6; font-size: 0.95em; clear: both; position: relative; z-index: 10;">
+      <div class="loading-spinner"></div>
+    </div>
+  `;
+  
+  readerPanel.style.display = 'block';
+
+  // Attach Close Listener (Clears history entirely)
+  document.getElementById('close-reader-btn').addEventListener('click', () => {
+    document.getElementById('wiki-reader-panel').style.display = 'none';
+    window.wikiHistory = []; 
+  });
+
+  // Attach Back Listener (Pops current page, reloads previous page)
+  const backBtn = document.getElementById('back-reader-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      window.wikiHistory.pop(); // Remove the page we are currently looking at
+      const prevPage = window.wikiHistory[window.wikiHistory.length - 1]; // Grab the one before it
+      openArticleReader(prevPage, true); // True flag tells the script NOT to add it to history again
+    });
+  }
+
+  try {
+    const apiUrl = `https://nmsgalactichub.miraheze.org/w/api.php?action=parse&page=${encodeURIComponent(pageTitle)}&format=json&origin=*&disableeditsection=true`;
+    
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+
+    if (data.error) throw new Error(data.error.info);
+
+    const contentArea = document.getElementById('wiki-content-area');
+    contentArea.innerHTML = data.parse.text['*'];
+
+    const images = contentArea.querySelectorAll('img');
+    images.forEach(img => {
+      const src = img.getAttribute('src');
+      if (src && src.startsWith('//')) {
+        img.src = 'https:' + src;
+      } else if (src && src.startsWith('/')) {
+        img.src = 'https://nmsgalactichub.miraheze.org' + src;
+      }
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+    });
+
+    const links = contentArea.querySelectorAll('a');
+    links.forEach(link => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      if (href.startsWith('#')) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          try {
+            const targetId = href.substring(1);
+            const targetElement = contentArea.querySelector(`[id="${CSS.escape(targetId)}"]`);
+            if (targetElement) {
+              targetElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          } catch(err) {}
+        });
+        return;
+      }
+
+      if (href.startsWith('/wiki/')) {
+        link.href = '#';
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const cleanPath = href.replace('/wiki/', '').split('#')[0];
+          const newPageTitle = decodeURIComponent(cleanPath);
+          openArticleReader(newPageTitle);
+        });
+        return;
+      }
+
+      if (href.includes('/w/index.php?title=')) {
+        link.href = '#';
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          try {
+            const url = new URL(href, 'https://nmsgalactichub.miraheze.org');
+            const newPageTitle = url.searchParams.get('title');
+            if (newPageTitle) openArticleReader(newPageTitle);
+          } catch (err) {}
+        });
+        return;
+      }
+
+      if (href.startsWith('//')) {
+        link.href = 'https:' + href;
+      } else if (href.startsWith('/')) {
+        link.href = 'https://nmsgalactichub.miraheze.org' + href;
+      }
+      
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    });
+
+  } catch (error) {
+    document.getElementById('wiki-content-area').innerHTML = `
+      <div style="color: #ff4757; margin-top: 20px; border: 1px solid #ff4757; padding: 15px; background: rgba(255, 71, 87, 0.1);">
+        Database Error: Could not retrieve article.
+        <br>Reason: ${error.message}
+      </div>
+    `;
+  }
 }
