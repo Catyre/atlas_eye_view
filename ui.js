@@ -267,11 +267,11 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   `;
 
   let parsedBases = [];
-  if (systemData.bases) {
+  if (system.bases) {
     try {
-      parsedBases = typeof systemData.bases === 'string' 
-        ? JSON.parse(systemData.bases) 
-        : systemData.bases;
+      parsedBases = typeof system.bases === 'string' 
+        ? JSON.parse(system.bases) 
+        : system.bases;
     } catch (e) {}
   }
 
@@ -296,18 +296,26 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     `;
   }
 
-  // Ensure you append the basesHtml variable to your panel's innerHTML output
-
   popup.innerHTML = `
     ${wikiSection}
     <br>
     ${personalLog}
-    ${basesHTML}
+    ${basesHtml}
     <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">
       [X]
     </button>
     ${coordsHtml}
     `;
+
+  const baseTags = document.querySelectorAll('.base-preview-tag');
+  baseTags.forEach(tag => {
+    tag.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const baseName = tag.getAttribute('data-basename');
+      
+      openArticleReader(baseName);
+    });
+  });
 
 
   // Connect the Wiki Reader Button
