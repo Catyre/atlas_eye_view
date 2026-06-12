@@ -857,6 +857,68 @@ controlsTooltip.innerHTML = `
 `;
 document.body.appendChild(controlsTooltip);
 
+// --- TOAST ANIMATION STYLES ---
+const toastStyles = document.createElement('style');
+toastStyles.textContent = `
+  @keyframes systemToastEnter {
+    0% { opacity: 0; transform: translate(-50%, 20px); }
+    100% { opacity: 1; transform: translate(-50%, 0); }
+  }
+`;
+document.head.appendChild(toastStyles);
+
+// --- INTERACTIVE CONTROLS TOAST ---
+const controlsToast = document.createElement('div');
+controlsToast.id = 'controls-toast';
+controlsToast.className = 'hud-panel';
+
+controlsToast.style.position = 'absolute';
+controlsToast.style.top = '25px'; 
+controlsToast.style.left = '350px'; 
+controlsToast.style.zIndex = '1000';
+controlsToast.style.width = '260px';
+controlsToast.style.background = 'rgba(10, 15, 30, 0.85)';
+controlsToast.style.border = '1px solid rgba(0, 255, 255, 0.3)';
+controlsToast.style.padding = '15px';
+controlsToast.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.1)';
+controlsToast.style.fontFamily = 'monospace';
+
+// Trigger only the entrance animation
+controlsToast.style.animation = 'systemToastEnter 0.5s forwards cubic-bezier(0.4, 0, 0.2, 1)';
+
+controlsToast.innerHTML = `
+  <div style="color: #00ffff; font-size: 0.9rem; letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid rgba(0,255,255,0.3); padding-bottom: 5px; text-align: center;">
+    [ SYSTEM CONTROLS ]
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; color: #8892b0; margin-bottom: 12px;">
+    <div style="grid-column: 1 / -1;"><span class="hud-key" style="color:#fff">WASD / ↑↓←→</span> Move</div>
+    <div><span class="hud-key" style="color:#fff">Space</span> Up</div>
+    <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
+    <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
+    <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
+  </div>
+  <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4; text-align: center; margin-bottom: 15px;">
+    Left-click any star to initialize telemetry readout.
+  </div>
+  <div style="text-align: center;">
+    <button id="dismiss-controls-btn" class="hud-button" style="width: auto; padding: 6px 20px; cursor: pointer;">[ Acknowledge ]</button>
+  </div>
+`;
+document.body.appendChild(controlsToast);
+
+// Prevent interactions from bleeding through to the map behind the toast
+controlsToast.addEventListener('pointerdown', (e) => e.stopPropagation());
+controlsToast.addEventListener('pointerup', (e) => e.stopPropagation());
+controlsToast.addEventListener('click', (e) => e.stopPropagation());
+controlsToast.addEventListener('wheel', (e) => e.stopPropagation());
+
+// --- DISMISSAL LOGIC ---
+document.getElementById('dismiss-controls-btn').addEventListener('click', () => {
+  if (controlsToast.parentNode) {
+    controlsToast.parentNode.removeChild(controlsToast);
+  }
+});
+
 const galaxySelector = document.createElement('div');
 galaxySelector.id = 'galaxy-selector';
 galaxySelector.className = 'hud-panel';
