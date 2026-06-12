@@ -897,6 +897,7 @@ controlsToast.innerHTML = `
     <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
   </div>
+  <div><span class="hud-key" style="color:#fff">C</span> Free mouse from camera</div>
   <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4; text-align: center; margin-bottom: 15px;">
     Left-click any star to initialize telemetry readout.  Right-click to close system panel.
   </div>
