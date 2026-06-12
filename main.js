@@ -232,6 +232,27 @@ function createTextSprite(message) {
   return sprite;
 }
 
+function createBaseMarkerTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+
+  // Draw a holographic diamond
+  ctx.fillStyle = '#00ffff';
+  ctx.shadowColor = '#00ffff';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(16, 4);
+  ctx.lineTo(28, 16);
+  ctx.lineTo(16, 28);
+  ctx.lineTo(4, 16);
+  ctx.fill();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
 async function placeStars(starData, scene) {
   const starsToRemove = scene.children.filter(child => child.userData && child.userData.isSystemStar);
   
@@ -248,6 +269,13 @@ async function placeStars(starData, scene) {
   let starsPlaced = 0;
   
   for (const system in starData) {
+    // Set up the geometry arrays before your main loop
+    const starPositions = [];
+
+    const x = starData[system].ghc_x;
+    const y = starData[system].ghc_y;
+    const z = starData[system].ghc_z;
+
     // Intercept and format the sanitized name
     if (starData[system].name) {
       starData[system].name = starData[system].name
@@ -257,8 +285,14 @@ async function placeStars(starData, scene) {
         .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); // Capitalize only after a space or start of string
     }
 
-    const starPos = [starData[system].ghc_x, starData[system].ghc_y, starData[system].ghc_z];
-    
+    const starPos = [x, y, z];
+    const baseMarkerPositions = [];
+    // Check database flag
+    if (starData[system].hasBase || (starData[system].bases && starData[system].bases.length > 0)) {
+      // Offset the marker slightly on the Y axis so it floats above the star
+      baseMarkerPositions.push(x, y + 2.5, z);
+    }
+
     if (starPos[0] === null || starPos[0] === undefined || 
         starPos[1] === null || starPos[1] === undefined || 
         starPos[2] === null || starPos[2] === undefined) {
@@ -283,6 +317,22 @@ async function placeStars(starData, scene) {
     star.userData.wikiData = wikiData; 
 
     scene.add(star);
+
+    // Create the new base marker particle system
+    const baseGeometry = new THREE.BufferGeometry();
+    baseGeometry.setAttribute('position', new THREE.Float32BufferAttribute(baseMarkerPositions, 3));
+
+    const baseMaterial = new THREE.PointsMaterial({
+      size: 4, 
+      map: createBaseMarkerTexture(),
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false, // Prevents z-fighting with the star glow
+      blending: THREE.AdditiveBlending
+    });
+
+    const baseParticleSystem = new THREE.Points(baseGeometry, baseMaterial);
+    scene.add(baseParticleSystem);
 
     const hubtag = starData[system].id  + " " + starData[system].name; 
     
