@@ -266,10 +266,43 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     </div>
   `;
 
+  let parsedBases = [];
+  if (systemData.bases) {
+    try {
+      parsedBases = typeof systemData.bases === 'string' 
+        ? JSON.parse(systemData.bases) 
+        : systemData.bases;
+    } catch (e) {}
+  }
+
+  let basesHtml = '';
+  if (parsedBases.length > 0) {
+    const basesListHtml = parsedBases.map(baseName => {
+      const displayName = baseName.replace(/_/g, ' ');
+      return `<div class="base-preview-tag" data-basename="${baseName}">
+                <span style="color: #00ffff; margin-right: 5px;">[+]</span>${displayName}
+              </div>`;
+    }).join('');
+
+    basesHtml = `
+      <div class="system-bases-section" style="margin-top: 15px; border-top: 1px solid rgba(0, 255, 255, 0.3); padding-top: 10px;">
+        <div style="color: #00ffff; font-size: 0.85em; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">
+          Registered Habitats (${parsedBases.length})
+        </div>
+        <div class="bases-container" style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto; padding-right: 5px;">
+          ${basesListHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  // Ensure you append the basesHtml variable to your panel's innerHTML output
+
   popup.innerHTML = `
     ${wikiSection}
     <br>
     ${personalLog}
+    ${basesHTML}
     <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">
       [X]
     </button>
