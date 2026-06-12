@@ -685,11 +685,11 @@ toggleBasesBtn.addEventListener('click', (event) => {
   window.basesVisible = !window.basesVisible;
   
   if (window.basesVisible) {
-    toggleBasesBtn.textContent = 'Hide Bases';
+    toggleBasesBtn.textContent = 'Hide Bases [B]';
     toggleBasesBtn.style.background = '';
     toggleBasesBtn.style.color = '';
   } else {
-    toggleBasesBtn.textContent = 'Show Bases';
+    toggleBasesBtn.textContent = 'Show Bases [B]';
     toggleBasesBtn.style.background = 'rgba(255, 71, 87, 0.2)'; 
     toggleBasesBtn.style.color = '#ff4757';
   }
