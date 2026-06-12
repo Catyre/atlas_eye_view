@@ -49,7 +49,8 @@ const keys = {
   shift: false, 
   h: false,
   f: false,
-  fToggle: true
+  fToggle: true,
+  b: false
 };
 
 const CAMERA_MOVE_SPEED = 125; 
@@ -234,22 +235,59 @@ function createTextSprite(message) {
 
 function createBaseMarkerTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
+  // Double the resolution for a much sharper icon
+  canvas.width = 64; 
+  canvas.height = 64;
   const ctx = canvas.getContext('2d');
 
-  // Draw a holographic diamond
-  ctx.fillStyle = '#00ffff';
-  ctx.shadowColor = '#00ffff';
-  ctx.shadowBlur = 8;
+  const centerX = 32;
+  const centerY = 32;
+  const glowColor = '#00ffff'; // You can change this to #a200ff for NMS Purple
+
+  // 1. Draw the holographic outer targeting ring
+  ctx.strokeStyle = glowColor;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = 1;
   ctx.beginPath();
-  ctx.moveTo(16, 4);
-  ctx.lineTo(28, 16);
-  ctx.lineTo(16, 28);
-  ctx.lineTo(4, 16);
+  ctx.arc(centerX, centerY, 28, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Remove shadow for the crisp inner geometry to prevent blurring into a blob
+  ctx.shadowBlur = 0; 
+
+  // 2. Draw the Base Roof
+  ctx.fillStyle = glowColor;
+  ctx.beginPath();
+  ctx.moveTo(32, 12); // Peak
+  ctx.lineTo(50, 28); // Right eaves
+  ctx.lineTo(14, 28); // Left eaves
+  ctx.closePath();
   ctx.fill();
 
+  // 3. Draw the Base Foundation (Main Building)
+  ctx.fillRect(20, 28, 24, 18);
+
+  // 4. Punch out a transparent door so the galaxy shows through
+  // This physically erases pixels from the canvas
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  // Draw an arched door
+  ctx.moveTo(26, 46);
+  ctx.lineTo(26, 36);
+  ctx.arc(32, 36, 6, Math.PI, 0); 
+  ctx.lineTo(38, 46);
+  ctx.closePath();
+  ctx.fill();
+
+  // Reset the composite operation just in case
+  ctx.globalCompositeOperation = 'source-over';
+
   const texture = new THREE.CanvasTexture(canvas);
+  // Ensure the texture scales sharply
+  texture.minFilter = THREE.LinearMipMapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  
   return texture;
 }
 
@@ -266,43 +304,58 @@ async function placeStars(starData, scene) {
   });
 
   console.log("placeStars called with", Object.keys(starData).length, "systems");
+  
   let starsPlaced = 0;
   
+  // Set up the array to collect all base markers outside the loop for performance
+  const baseMarkerPositions = [];
+  
   for (const system in starData) {
-    // Set up the geometry arrays before your main loop
-    const starPositions = [];
+    // Force coordinates to strict floats
+    const x = parseFloat(starData[system].ghc_x);
+    const y = parseFloat(starData[system].ghc_y);
+    const z = parseFloat(starData[system].ghc_z);
 
-    const x = starData[system].ghc_x;
-    const y = starData[system].ghc_y;
-    const z = starData[system].ghc_z;
+    if (isNaN(x) || isNaN(y) || isNaN(z)) {
+      continue;
+    }
 
     // Intercept and format the sanitized name
     if (starData[system].name) {
       starData[system].name = starData[system].name
-        .replace(/&amp;/g, '&') // Decode HTML ampersands
-        .replace(/&#x27;/g, '\'') // Decode HTML apostrophe
-        .replace(/[-_]/g, ' ')  // Convert hyphens/underscores to spaces
-        .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); // Capitalize only after a space or start of string
-    }
-
-    const starPos = [x, y, z];
-    const baseMarkerPositions = [];
-    // Check database flag
-    if (starData[system].hasBase || (starData[system].bases && starData[system].bases.length > 0)) {
-      // Offset the marker slightly on the Y axis so it floats above the star
-      baseMarkerPositions.push(x, y + 2.5, z);
-    }
-
-    if (starPos[0] === null || starPos[0] === undefined || 
-        starPos[1] === null || starPos[1] === undefined || 
-        starPos[2] === null || starPos[2] === undefined) {
-      continue;
+        .replace(/&amp;/g, '&') 
+        .replace(/&#x27;/g, '\'') 
+        .replace(/[-_]/g, ' ')  
+        .replace(/(^|\s)\w/g, (match) => match.toUpperCase()); 
     }
 
     const scale = 1;
-    const renderX = -starPos[0] * scale;
-    const renderY = starPos[1] * scale;
-    const renderZ = starPos[2] * scale;
+    // Apply your specific coordinate inversion and scaling
+    const renderX = -x * scale;
+    const renderY = y * scale;
+    const renderZ = z * scale;
+
+    // Safely parse the SQLite booleans and JSON arrays
+    const hasBase = Number(starData[system].hasBase) === 1;
+    
+    let baseCount = 0;
+    if (starData[system].bases) {
+      try {
+        const parsedBases = typeof starData[system].bases === 'string' 
+          ? JSON.parse(starData[system].bases) 
+          : starData[system].bases;
+        baseCount = parsedBases.length;
+      } catch (e) {
+        // Ignore JSON parsing errors for corrupted strings
+      }
+    }
+
+    // Check database flag using safely parsed data
+    if (hasBase || baseCount > 0) {
+      // Offset the marker slightly on the Y axis so it floats above the star
+      // Ensure we use the scaled render coordinates, not the raw database coordinates
+      baseMarkerPositions.push(renderX, renderY + 2.5, renderZ);
+    }
 
     const starMaterial = new THREE.MeshBasicMaterial({ color: starData[system].color || 0xffffff});
     const geometry = new THREE.SphereGeometry(0.5, 16, 16);
@@ -317,22 +370,6 @@ async function placeStars(starData, scene) {
     star.userData.wikiData = wikiData; 
 
     scene.add(star);
-
-    // Create the new base marker particle system
-    const baseGeometry = new THREE.BufferGeometry();
-    baseGeometry.setAttribute('position', new THREE.Float32BufferAttribute(baseMarkerPositions, 3));
-
-    const baseMaterial = new THREE.PointsMaterial({
-      size: 4, 
-      map: createBaseMarkerTexture(),
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false, // Prevents z-fighting with the star glow
-      blending: THREE.AdditiveBlending
-    });
-
-    const baseParticleSystem = new THREE.Points(baseGeometry, baseMaterial);
-    scene.add(baseParticleSystem);
 
     const hubtag = starData[system].id  + " " + starData[system].name; 
     
@@ -349,6 +386,37 @@ async function placeStars(starData, scene) {
     }
 
     starsPlaced++;
+  }
+
+  // Create ONE particle system for ALL base markers outside the loop
+  if (baseMarkerPositions.length > 0) {
+    const baseGeometry = new THREE.BufferGeometry();
+    baseGeometry.setAttribute('position', new THREE.Float32BufferAttribute(baseMarkerPositions, 3));
+
+    const baseMaterial = new THREE.PointsMaterial({
+      size: 4, 
+      map: createBaseMarkerTexture(),
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false, // Prevents z-fighting with the star glow
+      blending: THREE.AdditiveBlending
+    });
+
+    const baseParticleSystem = new THREE.Points(baseGeometry, baseMaterial);
+
+    // Assign a unique name so the UI toggle can locate this specific mesh
+    baseParticleSystem.name = 'BaseMarkerLayer';
+    
+    // Inherit the global visibility state upon creation
+    baseParticleSystem.visible = window.basesVisible !== false;
+    
+    // Tag the particle system so it gets removed and refreshed if placeStars is called again
+    baseParticleSystem.userData.isSystemStar = true; 
+
+    scene.add(baseParticleSystem);
+    window.activeBaseLayer = baseParticleSystem;
+
+    console.log(`Plotted ${baseMarkerPositions.length / 3} base markers.`);
   }
   
   console.log(`Placed ${starsPlaced} stars and labels in scene.`);
@@ -595,10 +663,49 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
 }
 
 // USER INTERFACE CONSTRUCTION
+const toggleBasesBtn = document.createElement('button');
+toggleBasesBtn.id = 'toggle-bases-btn';
+toggleBasesBtn.className = 'hud-button';
+toggleBasesBtn.textContent = 'Hide Bases';
+toggleBasesBtn.style.position = 'absolute';
+toggleBasesBtn.style.top = '165px'; 
+toggleBasesBtn.style.left = '20px';
+toggleBasesBtn.style.zIndex = '100';
+
+toggleBasesBtn.style.setProperty('display', 'inline-block', 'important');
+toggleBasesBtn.style.setProperty('width', 'max-content', 'important');
+toggleBasesBtn.style.setProperty('min-width', '0', 'important');
+toggleBasesBtn.style.setProperty('padding', '10px 15px', 'important');
+toggleBasesBtn.style.setProperty('white-space', 'nowrap', 'important');
+
+window.basesVisible = true;
+
+toggleBasesBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  window.basesVisible = !window.basesVisible;
+  
+  if (window.basesVisible) {
+    toggleBasesBtn.textContent = 'Hide Bases';
+    toggleBasesBtn.style.background = '';
+    toggleBasesBtn.style.color = '';
+  } else {
+    toggleBasesBtn.textContent = 'Show Bases';
+    toggleBasesBtn.style.background = 'rgba(255, 71, 87, 0.2)'; 
+    toggleBasesBtn.style.color = '#ff4757';
+  }
+
+  // Directly target the global reference established by placeStars
+  if (window.activeBaseLayer) {
+    window.activeBaseLayer.visible = window.basesVisible;
+  }
+});
+document.body.appendChild(toggleBasesBtn);
+
+
 const toggleLabelsBtn = document.createElement('button');
 toggleLabelsBtn.id = 'toggle-labels-btn';
 toggleLabelsBtn.className = 'hud-button';
-toggleLabelsBtn.textContent = 'Hide Labels [H]';
+toggleLabelsBtn.textContent = 'Show Labels [H]';
 toggleLabelsBtn.style.position = 'absolute';
 toggleLabelsBtn.style.top = '140px'; 
 toggleLabelsBtn.style.left = '20px';
@@ -609,7 +716,7 @@ document.body.appendChild(toggleLabelsBtn);
 toggleLabelsBtn.addEventListener('click', (event) => {
   event.stopPropagation(); 
   labelsVisible = !labelsVisible;
-  toggleLabelsBtn.textContent = labelsVisible ? 'Show Labels [H]' : 'Hide Labels [H]';
+  toggleLabelsBtn.textContent = labelsVisible ? 'Hide Labels [H]' : 'Show Labels [H]';
   scene.children.forEach(child => {
     if (child.userData && child.userData.isLabel) {
       child.visible = labelsVisible;
@@ -700,8 +807,8 @@ toggleControlsBtn.id = 'toggle-controls-btn';
 toggleControlsBtn.className = 'hud-button';
 toggleControlsBtn.textContent = '?';
 toggleControlsBtn.style.position = 'absolute';
-toggleControlsBtn.style.top = '165px'; 
-toggleControlsBtn.style.left = '20px'; 
+toggleControlsBtn.style.top = '25px'; 
+toggleControlsBtn.style.left = '210px'; 
 toggleControlsBtn.style.zIndex = '101';
 toggleControlsBtn.style.width = '35px';
 toggleControlsBtn.style.height = '35px';
@@ -717,8 +824,8 @@ const controlsTooltip = document.createElement('div');
 controlsTooltip.id = 'controls-tooltip';
 controlsTooltip.className = 'hud-panel';
 controlsTooltip.style.position = 'absolute';
-controlsTooltip.style.top = '165px'; 
-controlsTooltip.style.left = '60px'; 
+controlsTooltip.style.top = '25px'; 
+controlsTooltip.style.left = '250px'; 
 controlsTooltip.style.zIndex = '100';
 controlsTooltip.style.width = '260px';
 controlsTooltip.style.height = 'max-content';
@@ -946,6 +1053,13 @@ function onKeyDown(event) {
   if (key === 'h') {
     const labelsBtn = document.getElementById('toggle-labels-btn');
     if (labelsBtn) labelsBtn.click();
+  }
+
+  if (key === 'b') {
+    const toggleBtn = document.getElementById('toggle-bases-btn');
+    if (toggleBtn) {
+      toggleBtn.click();
+    }
   }
 
   if (key in keys) {
