@@ -666,7 +666,7 @@ async function switchGalaxy(newGalaxy, activeBtn, inactiveBtn) {
 const toggleBasesBtn = document.createElement('button');
 toggleBasesBtn.id = 'toggle-bases-btn';
 toggleBasesBtn.className = 'hud-button';
-toggleBasesBtn.textContent = 'Hide Bases';
+toggleBasesBtn.textContent = 'Hide Bases [B]';
 toggleBasesBtn.style.position = 'absolute';
 toggleBasesBtn.style.top = '165px'; 
 toggleBasesBtn.style.left = '20px';
@@ -848,6 +848,7 @@ controlsTooltip.innerHTML = `
     <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
     <div><span class="hud-key" style="color:#fff">F</span> Toggle filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Toggle labels</div>
+    <div><span class="hud-key" style="color:#fff">B</span> Base markers</div>
   </div>
   <div style="font-size: 0.8rem; color: #8892b0;"><span class="hud-key" style="color:#fff">C</span> Toggle mouse between free pointer and camera</div>
 
@@ -896,8 +897,9 @@ controlsToast.innerHTML = `
     <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
     <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
+    <div><span class="hud-key" style="color:#fff">C</span> Free mouse from camera</div>
+    <div><span class="hud-key" style="color:#fff">B</span> Base markers</div>
   </div>
-  <div><span class="hud-key" style="color:#fff">C</span> Free mouse from camera</div>
   <div style="color: rgba(224, 255, 255, 0.7); font-size: 0.75rem; border-top: 1px solid rgba(0,255,255,0.1); padding-top: 10px; line-height: 1.4; text-align: center; margin-bottom: 15px;">
     Left-click any star to initialize telemetry readout.  Right-click to close system panel.
   </div>
