@@ -195,13 +195,20 @@ function initializeScene() {
       e.preventDefault();
     });
 
+    // Trigger your context menu or system panel popup here
     function triggerMobileRightClick(event) {
-      const touch = event.touches[0];
-      const x = touch.clientX;
-      const y = touch.clientY;
-      console.log(`Custom right-click triggered at X: ${x}, Y: ${y}`);
+      // Prevent the touch from also registering as a standard tap or click
+      if (event.cancelable) {
+        event.preventDefault();
+      }
       
-      // Trigger your context menu or system panel popup here
+      console.log("Mobile right-click (long press) triggered.");
+      
+      // Fire the exact same function the desktop right-click uses
+      if (typeof unsnapCamera === 'function') {
+        unsnapCamera();
+      }
+
     }
   });
 }
@@ -1118,7 +1125,7 @@ function onMouseClick(event) {
   const closestSystem = window.currentLockedSystem;
 
   if (window.cameraControls) {
-    window.activePivotNode = starMesh; // <-- ADD THIS LINE
+    window.activePivotNode = starMesh;
     window.cameraControls.setTarget(
       starMesh.position.x,
       starMesh.position.y,
