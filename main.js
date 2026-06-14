@@ -47,6 +47,8 @@ const keys = {
   arrowright: false,
   ' ': false, 
   shift: false, 
+  e: false,
+  q: false,
   h: false,
   f: false,
   fToggle: true,
@@ -438,8 +440,8 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
     if (keysPressed.s || keysPressed.arrowdown) { dZoom += 1; isOrbitMoving = true; }
     if (keysPressed.a || keysPressed.arrowleft) { dAzimuth -= 1; isOrbitMoving = true; }
     if (keysPressed.d || keysPressed.arrowright) { dAzimuth += 1; isOrbitMoving = true; }
-    if (keysPressed[' ']) { dPolar -= 1; isOrbitMoving = true; } 
-    if (keysPressed.shift) { dPolar += 1; isOrbitMoving = true; } 
+    if (keysPressed[' '] || keysPressed.q) { dPolar -= 1; isOrbitMoving = true; } 
+    if (keysPressed.shift || keysPressed.e) { dPolar += 1; isOrbitMoving = true; } 
 
     if (isOrbitMoving) {
       holdTime += delta;
@@ -481,8 +483,8 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
   if (keysPressed.s || keysPressed.arrowdown) { moveDir.sub(forward); isMoving = true; }
   if (keysPressed.a || keysPressed.arrowleft) { moveDir.sub(right); isMoving = true; }
   if (keysPressed.d || keysPressed.arrowright) { moveDir.add(right); isMoving = true; }
-  if (keysPressed[' ']) { moveDir.add(up); isMoving = true; } 
-  if (keysPressed.shift) { moveDir.sub(up); isMoving = true; }
+  if (keysPressed[' '] || keysPressed.q) { moveDir.add(up); isMoving = true; } 
+  if (keysPressed.shift || keysPressed.e) { moveDir.sub(up); isMoving = true; }
 
   if (isMoving) {
     holdTime += delta;
@@ -844,8 +846,8 @@ controlsTooltip.innerHTML = `
   </div>
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; color: #8892b0; margin-bottom: 12px;">
     <div style="grid-column: 1 / -1;"><span class="hud-key" style="color:#fff">WASD / ↑↓←→</span> Move</div>
-    <div><span class="hud-key" style="color:#fff">Space</span> Up</div>
-    <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
+    <div><span class="hud-key" style="color:#fff">Space/Q</span> Up</div>
+    <div><span class="hud-key" style="color:#fff">Shift/E</span> Down</div>
     <div><span class="hud-key" style="color:#fff">F</span> Toggle filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Toggle labels</div>
     <div><span class="hud-key" style="color:#fff">B</span> Base markers</div>
@@ -893,8 +895,8 @@ controlsToast.innerHTML = `
   </div>
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; color: #8892b0; margin-bottom: 12px;">
     <div style="grid-column: 1 / -1;"><span class="hud-key" style="color:#fff">WASD / ↑↓←→</span> Move</div>
-    <div><span class="hud-key" style="color:#fff">Space</span> Up</div>
-    <div><span class="hud-key" style="color:#fff">Shift</span> Down</div>
+    <div><span class="hud-key" style="color:#fff">Space/Q</span> Up</div>
+    <div><span class="hud-key" style="color:#fff">Shift/E</span> Down</div>
     <div><span class="hud-key" style="color:#fff">F</span> Filters</div>
     <div><span class="hud-key" style="color:#fff">H</span> Labels</div>
     <div><span class="hud-key" style="color:#fff">C</span> Free mouse from camera</div>
