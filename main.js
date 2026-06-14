@@ -162,6 +162,47 @@ function initializeScene() {
 
     const data = {cameraControls: cameraControls, camera: camera, renderer: renderer, clock: clock, popup: popup, mouse: mouse, raycaster: raycaster};
     if (data) resolve(data);
+
+    // Apply the CSS class to the Three.js canvas so the mobile browser doesn't hijack it
+    renderer.domElement.classList.add('disable-native-touch');
+
+    // Target the Three.js canvas specifically, rather than the whole document
+    const targetElement = renderer.domElement; 
+
+    let pressTimer;
+    const LONG_PRESS_DURATION = 500;
+
+    targetElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) return; 
+      pressTimer = setTimeout(() => {
+        triggerMobileRightClick(e);
+      }, LONG_PRESS_DURATION);
+    }, { passive: false });
+
+    targetElement.addEventListener('touchmove', (e) => {
+      clearTimeout(pressTimer);
+    }, { passive: true });
+
+    targetElement.addEventListener('touchend', (e) => {
+      clearTimeout(pressTimer);
+    });
+
+    targetElement.addEventListener('touchcancel', (e) => {
+      clearTimeout(pressTimer);
+    });
+
+    targetElement.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    function triggerMobileRightClick(event) {
+      const touch = event.touches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      console.log(`Custom right-click triggered at X: ${x}, Y: ${y}`);
+      
+      // Trigger your context menu or system panel popup here
+    }
   });
 }
 

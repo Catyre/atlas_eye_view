@@ -700,3 +700,10 @@
 .bases-container::-webkit-scrollbar-thumb {
   background: rgba(0, 255, 255, 0.3);
 }
+
+.disable-native-touch {
+  -webkit-touch-callout: none; /* Disables the native iOS popup menu */
+  -webkit-user-select: none;   /* Disables text selection on iOS */
+  user-select: none;           /* Disables text selection standard */
+  touch-action: pan-x pan-y;   /* Allows scrolling but prevents double-tap zoom */
+}
