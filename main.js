@@ -14,6 +14,17 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { setupFilters } from './filter.js';
 import 'jquery-csv';
+import { registerSW } from 'virtual:pwa-register';
+
+// Initialize the auto-updating service worker
+const updateSW = registerSW({
+  onNeedRefresh() {
+    console.log('New content available, refreshing...');
+  },
+  onOfflineReady() {
+    console.log('App is ready to work offline.');
+  },
+});
 
 window.jQuery = $;
 const BACKEND = import.meta.env.VITE_BACKEND_URL;

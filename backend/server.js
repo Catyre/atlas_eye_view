@@ -8,7 +8,7 @@ import { fetchWikiData } from './wiki-sync.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+import { VitePWA } from 'vite-plugin-pwa';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'galaxy_data', 'astrometrics.sqlite');
 
 const app = express();
@@ -21,7 +21,8 @@ if (PORT === undefined) {
 
 const allowedOrigins = [
   'https://gh-cartography.onrender.com', 
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'https://localhost:4173'
 ];
 
 app.use(cors({
