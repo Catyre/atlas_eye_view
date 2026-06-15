@@ -186,10 +186,15 @@ function initializeScene() {
 
     let pressTimer;
     const LONG_PRESS_DURATION = 500;
+    window.wasLongPress = false;
 
     renderer.domElement.addEventListener('touchstart', (e) => {
       if (e.touches.length > 1) return;
+      
+      window.wasLongPress = false;
+      
       pressTimer = setTimeout(() => {
+        window.wasLongPress = true;
         if (e.cancelable) e.preventDefault();
         if (typeof unsnapCamera === 'function') unsnapCamera();
       }, LONG_PRESS_DURATION);
@@ -206,6 +211,7 @@ function initializeScene() {
     renderer.domElement.addEventListener('touchcancel', () => {
       clearTimeout(pressTimer);
     });
+
   });
 }
 
@@ -1111,6 +1117,11 @@ function snapToSelectedAnchor() {
 }
 
 function onMouseClick(event) {
+  if (window.wasLongPress) {
+    window.wasLongPress = false;
+    return;
+  }
+
   if (event.button !== 0) return;
 
   if (event.target.closest('.system-popup') || event.target.closest('.hud-panel') || event.target.tagName.toLowerCase() === 'a') {
