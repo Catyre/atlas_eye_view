@@ -77,6 +77,7 @@ const baseSpeed = 10.0;
 const maxSpeed = 500.0;
 const timeToMax = 1.5; 
 const friction = 0.92;
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
 // CORE WEBGL AND SCENE INITIALIZATION
 function initializeScene() { 
@@ -176,51 +177,13 @@ function initializeScene() {
 
     // Apply the CSS class to the Three.js canvas so the mobile browser doesn't hijack it
     renderer.domElement.classList.add('disable-native-touch');
+    window.cameraControls.touches.one = CameraControls.ACTION.TOUCH_ROTATE;
+    window.cameraControls.touches.two = CameraControls.ACTION.TOUCH_DOLLY_TRUCK;
+    window.cameraControls.touches.three = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
+    
+    window.cameraControls.infinityDolly = true;
+    window.cameraControls.dollyToCursor = true;
 
-    // Target the Three.js canvas specifically, rather than the whole document
-    const targetElement = renderer.domElement; 
-
-    let pressTimer;
-    const LONG_PRESS_DURATION = 500;
-
-    targetElement.addEventListener('touchstart', (e) => {
-      if (e.touches.length > 1) return; 
-      pressTimer = setTimeout(() => {
-        triggerMobileRightClick(e);
-      }, LONG_PRESS_DURATION);
-    }, { passive: false });
-
-    targetElement.addEventListener('touchmove', (e) => {
-      clearTimeout(pressTimer);
-    }, { passive: true });
-
-    targetElement.addEventListener('touchend', (e) => {
-      clearTimeout(pressTimer);
-    });
-
-    targetElement.addEventListener('touchcancel', (e) => {
-      clearTimeout(pressTimer);
-    });
-
-    targetElement.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-
-    // Trigger your context menu or system panel popup here
-    function triggerMobileRightClick(event) {
-      // Prevent the touch from also registering as a standard tap or click
-      if (event.cancelable) {
-        event.preventDefault();
-      }
-      
-      console.log("Mobile right-click (long press) triggered.");
-      
-      // Fire the exact same function the desktop right-click uses
-      if (typeof unsnapCamera === 'function') {
-        unsnapCamera();
-      }
-
-    }
   });
 }
 
@@ -606,6 +569,12 @@ function unsnapCamera() {
     newTarget.x, newTarget.y, newTarget.z,
     false 
   );
+
+  // Safely restore the cursor and pointer lock for desktop only
+  if (!isTouchDevice) {
+    document.body.style.cursor = 'crosshair'; 
+    document.body.requestPointerLock();
+  }
 }
 window.unsnapCamera = unsnapCamera;
 
@@ -1049,7 +1018,7 @@ document.body.appendChild(dataManagementPanel);
 // GLOBAL EVENT LISTENERS
 function hidePopup() {
   if (popup) popup.classList.remove('open');
-  if (document.activeElement.tagName !== 'INPUT') {
+  if (document.activeElement.tagName !== 'INPUT' && !isTouchDevice) {
     renderer.domElement.requestPointerLock();
   }
 }
@@ -1128,6 +1097,14 @@ function onMouseClick(event) {
 
   event.preventDefault();
   event.stopPropagation();
+
+  // Force an immediate coordinate update and raycast on touch devices
+  // to bypass the animation loop race condition
+  if (isTouchDevice && event.clientX && event.clientY) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    ui.updateTargetingComputer(camera, scene);
+  }
   
   if (!window.currentLockedSystem) return;
 
@@ -1509,7 +1486,9 @@ initializeScene().then(function(data) {
     });
 
     renderer.domElement.addEventListener('click', function() {
-      renderer.domElement.requestPointerLock();
+      if (!isTouchDevice){
+        renderer.domElement.requestPointerLock();
+      }
     });
 
     document.addEventListener('mousemove', function(event) {
