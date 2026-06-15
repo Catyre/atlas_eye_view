@@ -633,7 +633,7 @@ html, body {
     left: 10px !important;
     width: calc(100vw - 20px) !important;
     height: 40dvh !important;
-    transform: translate3d(0, 120%, 0) !important;
+    transform: translate3d(0, 60dvh, 0) !important;
   }
   .system-popup.open {
     transform: translate3d(0, 0, 0) !important;
@@ -666,7 +666,7 @@ html, body {
     left: 20px !important;
     width: calc(100dvw - 10px) !important;
     height: 55dvh !important;
-    transform: translate3d(0, 120%, 0) !important;
+    transform: translate3d(0, 60dvh, 0) !important;
   }
   .system-popup.open {
     transform: translate3d(0, 0, 0) !important;
@@ -687,7 +687,7 @@ html, body {
     left: 20px !important;
     width: 450px !important; 
     height: calc(100dvh - 140px) !important; 
-    transform: translate3d(-120%, 0, 0) !important;
+    transform: translate3d(-60dvh, 0, 0) !important;
   }
   .system-popup.open {
     transform: translate3d(0, 0, 0) !important;
