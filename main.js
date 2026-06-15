@@ -792,7 +792,7 @@ resetButton.addEventListener('click', resetCamera);
 const targetNavPanel = document.createElement('div');
 targetNavPanel.id = 'target-nav-panel';
 targetNavPanel.className = 'hud-panel';
-targetNavPanel.style.position = 'absolute';
+targetNavPanel.style.position = 'fixed';
 targetNavPanel.style.top = '20px';
 targetNavPanel.style.right = '20px';
 targetNavPanel.style.zIndex = '100';
@@ -1011,7 +1011,7 @@ const fullscreenBtn = document.createElement('button');
 fullscreenBtn.id = 'fullscreen-btn';
 fullscreenBtn.className = 'hud-button';
 fullscreenBtn.textContent = '[ ] Fullscreen';
-fullscreenBtn.style.position = 'absolute';
+fullscreenBtn.style.position = 'fixed';
 fullscreenBtn.style.bottom = '100px';
 fullscreenBtn.style.left = '20px';
 fullscreenBtn.style.zIndex = '100';
@@ -1028,7 +1028,7 @@ document.body.appendChild(fullscreenBtn);
 const dataManagementPanel = document.createElement('div');
 dataManagementPanel.id = 'data-management-panel';
 dataManagementPanel.className = 'hud-panel';
-dataManagementPanel.style.position = 'absolute';
+dataManagementPanel.style.position = 'fixed';
 dataManagementPanel.style.bottom = '20px';
 dataManagementPanel.style.left = '20px';
 dataManagementPanel.style.zIndex = '100';
@@ -1154,19 +1154,6 @@ function onMouseClick(event) {
       starMesh.position.z,
       true 
     );
-  }
-
-  let popupElement = document.getElementById('system-popup'); 
-  
-  if (popupElement) {
-    popupElement = document.createElement('div');
-    popupElement.id = 'system-popup';
-    popupElement.className = 'system-popup hud-panel'; 
-    popupElement.style.position = 'absolute';
-    popupElement.style.top = '20px';
-    popupElement.style.left = '20px'; 
-    popupElement.style.zIndex = '200';
-    document.body.appendChild(popupElement);
   }
 
   ui.showSystemPopup(sysData.name, starMesh.position, sysData, camera, popup);

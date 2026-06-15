@@ -4,7 +4,7 @@ export function setupFilters(scene, getLabelsVisible, triggerRender) {
   toggleFilterBtn.className = 'hud-button';
   toggleFilterBtn.textContent = 'DATABASE FILTERS >';
   
-  toggleFilterBtn.style.position = 'absolute';
+  toggleFilterBtn.style.position = 'fixed';
   toggleFilterBtn.style.top = '130px';
   toggleFilterBtn.style.right = '20px';
   toggleFilterBtn.style.zIndex = '101';
