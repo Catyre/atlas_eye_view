@@ -1,38 +1,32 @@
-/* Fonts */
+/* --- FONTS --- */
 @font-face {
   font-family: 'NMSGlyphs';
-  src: url('/fonts/NMS-Glyphs-Mono.ttf') format('truetype'); /* Adjust extension if using .woff */
+  src: url('/fonts/NMS-Glyphs-Mono.ttf') format('truetype'); 
   font-weight: normal;
   font-style: normal;
 }
 
-/* Create a styling class for the glyph text */
-.nms-glyph-text {
-  font-family: 'NMSGlyphs', monospace;
-  font-size: 1.5rem; /* Glyphs usually need to be a bit larger to read clearly */
-  letter-spacing: 4px; /* Space them out slightly */
-  color: #fff;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Optional: give them a slight glow */
-}
-
 @font-face {
-    font-family: 'NMSFuturaProBook';
-    src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot');
-    src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot?#iefix') format('embedded-opentype'),
-        url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.woff') format('woff'),
-        url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.ttf') format('truetype');
+  font-family: 'NMSFuturaProBook';
+  src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot');
+  src: url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.eot?#iefix') format('embedded-opentype'),
+       url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.woff') format('woff'),
+       url('https://font.nmscd.com/assets/font/NMSFuturaProBook_Kerned/Web-TT/NMSFuturaProBook_Kerned.ttf') format('truetype');
 }
 
-/* Make everything use the NMSFuturaProBook font */
 * {
-    font-family: 'NMSFuturaProBook';
-}
-  
-
-.glyphs {
-    font-family: "NMS-Glyphs-Mono", monospace;
+  font-family: 'NMSFuturaProBook';
 }
 
+.glyphs, .nms-glyph-text {
+  font-family: 'NMSGlyphs', monospace;
+  font-size: 1.5rem; 
+  letter-spacing: 4px; 
+  color: #fff;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); 
+}
+
+/* --- GLOBAL LAYOUT LOCK --- */
 html, body {
   margin: 0;
   padding: 0;
@@ -42,118 +36,7 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* Popup Styles */
-.system-popup {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.95);
-  color: white;
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #444;
-  font-size: 18px;
-  max-width: 450px;
-  max-height: 600px;
-  overflow-y: auto;
-  z-index: 1000;
-  display: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  line-height: 1.4;
-}
-
-.system-popup .system-name {
-  margin-bottom: 15px;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.system-popup .loading-container {
-  display: flex;
-  align-items: center;
-  color: #888;
-  font-style: italic;
-}
-
-.system-popup .loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #444;
-  border-top: 2px solid #4CAF50;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 8px;
-}
-
-.system-popup .wiki-section {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #444;
-}
-
-.system-popup .wiki-title {
-  margin-bottom: 8px;
-}
-
-.system-popup .wiki-title a {
-  color: #4CAF50;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.system-popup .wiki-summary {
-  margin-bottom: 8px;
-  font-size: 15px;
-  line-height: 1.4;
-}
-
-.system-popup .wiki-info {
-  font-size: 15px;
-  color: #ccc;
-}
-
-.system-popup .wiki-info strong {
-  color: #fff;
-}
-
-.system-popup .error-message {
-  color: #ff6b6b;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-.system-popup .error-text {
-  color: #888;
-  font-size: 11px;
-}
-
-/* Loading Animation */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Unsnap Button Styles */
-.unsnap-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 10px 15px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  border: 1px solid #444;
-  border-radius: 5px;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 1000;
-  display: none;
-}
-
-.unsnap-button:hover {
-  background: rgba(0, 0, 0, 0.9);
-  border-color: #666;
-} 
-
-/* Base HUD Panel Style */
+/* --- HUD BASE STYLES --- */
 .hud-panel {
   background: rgba(10, 15, 25, 0.75);
   backdrop-filter: blur(8px);
@@ -166,7 +49,6 @@ html, body {
   z-index: 1000;
 }
 
-/* Headers within HUD */
 .hud-panel h3 {
   margin-top: 0;
   text-transform: uppercase;
@@ -178,8 +60,6 @@ html, body {
 }
 
 .hud-button {
-  /*top: 500px;*/
-  /*right: 30px;*/
   background: rgba(0, 255, 255, 0.1);
   border: 1px solid rgba(0, 255, 255, 0.4);
   color: #00ffff;
@@ -198,7 +78,6 @@ html, body {
   text-shadow: 0 0 5px #00ffff;
 }
 
-/* Warning Buttons (Like Unsnap) */
 .hud-button.warning {
   border-color: rgba(255, 71, 87, 0.5);
   color: #ff4757;
@@ -211,7 +90,6 @@ html, body {
   text-shadow: 0 0 5px #ff4757;
 }
 
-/* Submit Buttons */
 .hud-button.submit {
   margin-top: 12px;
   padding: 8px;
@@ -226,7 +104,6 @@ html, body {
   text-shadow: 0 0 5px #20bf6b;
 }
 
-/* Input Fields */
 .hud-input {
   background: rgba(0, 0, 0, 0.4);
   border: none;
@@ -247,70 +124,6 @@ html, body {
   color: rgba(224, 255, 255, 0.4);
 }
 
-/* Specific Placements */
-#camera-position-box {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  padding: 12px 16px;
-}
-#add-system-btn {
-  position: fixed;
-  bottom: 120px; /* Sits exactly above the Active Database box */
-  right: 20px;
-  width: 220px;
-  padding: 8px 16px;
-  text-align: center;
-  white-space: nowrap;
-  z-index: 2000;
-  top: auto;
-}
-
-#add-system-panel {
-  position: fixed;
-  bottom: 165px; /* Sits exactly above the initialize button */
-  right: 20px;
-  width: 280px;
-  padding: 20px;
-  z-index: 2001;
-  display: none;
-}
-
-#unsnap-btn {
-  position: fixed;
-  top: 95px;
-  right: 140px;
-  padding: 6px 12px;
-  display: none;
-}
-
-#reset-btn {
-  position: fixed;
-  top: 95px;
-  right: 20px;
-  padding: 6px 12px;
-}
-
-/* Futuristic Crosshair */
-.crosshair-line {
-  position: absolute;
-  background: rgba(0, 255, 255, 0.8);
-  box-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
-}
-
-/* Navigation Panel Container */
-#nav-panel {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 260px;
-}
-
-/* Futuristic Dropdown Menu */
 .hud-select {
   background: rgba(10, 15, 25, 0.9);
   border: 1px solid rgba(0, 255, 255, 0.4);
@@ -338,14 +151,14 @@ html, body {
   padding: 4px;
 }
 
-/* Base Popup Container */
-/* Sidebar Container */
+/* --- SYSTEM POPUP (MAIN DATA PANEL) --- */
 .system-popup {
   position: fixed;
   top: 135px; 
   left: 20px;
-  width: 400px;
-  height: calc(100vh - 150px) !important; 
+  width: 500px;
+  height: auto !important; 
+  max-height: 65dvh;
   background: rgba(10, 15, 25, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -356,36 +169,36 @@ html, body {
   font-family: 'Courier New', monospace;
   z-index: 2000;
   padding: 24px 20px;
-  pointer-events: auto;
   overflow-y: auto;
   
-  /* Slide-in Mechanics from the left */
-  transform: translateX(-120%);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Strict Hiding Mechanics */
   display: block !important; 
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   
-  /* Custom scrollbar for HUD */
+  /* Slide-in Mechanics */
+  transform: translate3d(-120%, 0, 0);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease, visibility 0.3s;
+  
+  /* Custom scrollbar */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 255, 255, 0.5) rgba(10, 15, 25, 0.9);
 }
 
-/* The active state toggled by JavaScript */
 .system-popup.open {
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
 }
 
-.system-popup::-webkit-scrollbar {
-  width: 6px;
-}
-.system-popup::-webkit-scrollbar-track {
-  background: rgba(10, 15, 25, 0.9);
-}
-.system-popup::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.5);
-  border-radius: 3px;
-}
+.system-popup::-webkit-scrollbar { width: 6px; }
+.system-popup::-webkit-scrollbar-track { background: rgba(10, 15, 25, 0.9); }
+.system-popup::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.5); border-radius: 3px; }
 
-/* Headers and Titles */
+/* Popup Inner Elements */
 .system-name, .wiki-title {
   font-size: 1.2rem;
   text-transform: uppercase;
@@ -408,7 +221,6 @@ html, body {
   text-shadow: 0 0 12px #00ffff;
 }
 
-/* Data Sections */
 .wiki-summary {
   font-size: 0.9rem;
   color: rgba(224, 255, 255, 0.85);
@@ -433,7 +245,6 @@ html, body {
   letter-spacing: 0.5px;
 }
 
-/* Error States */
 .error-message {
   color: #ff4757;
   margin-top: 16px;
@@ -483,39 +294,72 @@ html, body {
   to { transform: rotate(360deg); }
 }
 
-/* Controls Tooltip */
-#controls-tooltip {
+/* Base Marker Preview Tags */
+.base-preview-tag {
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  color: #e0e0e0;
+  padding: 8px 10px;
+  font-size: 0.85em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.base-preview-tag:hover {
+  background: rgba(0, 255, 255, 0.15);
+  border-color: #00ffff;
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.bases-container::-webkit-scrollbar { width: 4px; }
+.bases-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+.bases-container::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.3); }
+
+/* --- PERIPHERAL HUD PANELS --- */
+#camera-position-box {
   position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(10, 15, 25, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
-  color: #e0ffff;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  padding: 12px 24px;
-  border-radius: 4px;
-  z-index: 1000;
+  top: 20px;
+  left: 20px;
+  padding: 12px 16px;
+}
+
+#nav-panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 260px;
+}
+
+#add-system-btn {
+  position: fixed;
+  bottom: 120px;
+  right: 20px;
+  width: 220px;
+  padding: 8px 16px;
   text-align: center;
-  pointer-events: none; /* Crucial: allows clicking stars behind the tooltip */
-  letter-spacing: 0.5px;
+  white-space: nowrap;
+  z-index: 2000;
 }
 
-.hud-key {
-  color: #00ffff;
-  border: 1px solid rgba(0, 255, 255, 0.5);
-  background: rgba(0, 255, 255, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin: 0 2px;
-  text-transform: uppercase;
+#add-system-panel {
+  position: fixed;
+  bottom: 165px;
+  right: 20px;
+  width: 280px;
+  padding: 20px;
+  z-index: 2001;
+  display: none;
 }
 
-/* Galaxy Selector */
 #galaxy-selector {
   position: fixed;
   bottom: 20px;
@@ -538,10 +382,7 @@ html, body {
   border-radius: 3px;
 }
 
-.hud-tab:hover {
-  border-color: rgba(0, 255, 255, 0.5);
-}
-
+.hud-tab:hover { border-color: rgba(0, 255, 255, 0.5); }
 .hud-tab.active {
   background: rgba(0, 255, 255, 0.15);
   border-color: #00ffff;
@@ -549,13 +390,41 @@ html, body {
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.2), inset 0 0 5px rgba(0, 255, 255, 0.1);
 }
 
-/* Hyperspace Transition Overlay */
+#controls-tooltip {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 15, 25, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+  color: #e0ffff;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  padding: 12px 24px;
+  border-radius: 4px;
+  z-index: 1000;
+  text-align: center;
+  pointer-events: none; 
+  letter-spacing: 0.5px;
+}
+
+.hud-key {
+  color: #00ffff;
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  background: rgba(0, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 0 2px;
+  text-transform: uppercase;
+}
+
+/* --- HYPERSPACE ANIMATION --- */
 #hyperspace-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(5, 8, 15, 0.90);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -575,8 +444,7 @@ html, body {
 }
 
 .hyper-spinner {
-  width: 120px;
-  height: 120px;
+  width: 120px; height: 120px;
   border: 3px solid transparent;
   border-top-color: #00ffff;
   border-bottom-color: #00ffff;
@@ -608,22 +476,31 @@ html, body {
   animation: hyper-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes hyper-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes hyper-spin-reverse {
-  0% { transform: rotate(360deg); }
-  100% { transform: rotate(0deg); }
-}
-
+@keyframes hyper-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes hyper-spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 @keyframes hyper-pulse {
   0%, 100% { opacity: 0.6; text-shadow: 0 0 8px rgba(0, 255, 255, 0.4); }
   50% { opacity: 1; text-shadow: 0 0 25px rgba(0, 255, 255, 0.9); }
 }
 
-/* --- RESPONSIVE LAYOUTS & TOUCH DEVICES --- */
+/* Utilities */
+.crosshair-line {
+  position: absolute;
+  background: rgba(0, 255, 255, 0.8);
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
+}
+
+.disable-native-touch {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-x pan-y;
+}
+
+
+/* =========================================================
+   RESPONSIVE LAYOUTS & TOUCH DEVICES
+   ========================================================= */
 
 /* 1. Phones (Vertical / Small Screens) */
 @media (max-width: 767px) {
@@ -661,11 +538,9 @@ html, body {
 /* 2. Tablets - Portrait Orientation */
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .system-popup {
-    top: 140px !important;
     bottom: 20px !important;
     left: 20px !important;
-    width: calc(100dvw - 10px) !important;
-    height: 55dvh !important;
+    width: calc(100vw - 300px) !important;
     transform: translate3d(0, 60dvh, 0) !important;
   }
   .system-popup.open {
@@ -682,11 +557,8 @@ html, body {
 /* 3. Tablets - Landscape Orientation */
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
   .system-popup {
-    top: 135px !important;
     bottom: auto !important;
     left: 20px !important;
-    width: 450px !important; 
-    height: calc(100dvh - 140px) !important; 
     transform: translate3d(-60dvh, 0, 0) !important;
   }
   .system-popup.open {
@@ -701,44 +573,4 @@ html, body {
   #data-management-panel {
     bottom: 20px !important;
   }
-}
-
-/* --- END MOBILE -- */
-
-.base-preview-tag {
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  color: #e0e0e0;
-  padding: 8px 10px;
-  font-size: 0.85em;
-  border-radius: 2px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.4;
-}
-
-.base-preview-tag:hover {
-  background: rgba(0, 255, 255, 0.15);
-  border-color: #00ffff;
-  color: #fff;
-  transform: translateX(4px);
-}
-
-.bases-container::-webkit-scrollbar {
-  width: 4px;
-}
-.bases-container::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-.bases-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-}
-
-.disable-native-touch {
-  -webkit-touch-callout: none; /* Disables the native iOS popup menu */
-  -webkit-user-select: none;   /* Disables text selection on iOS */
-  user-select: none;           /* Disables text selection standard */
-  touch-action: pan-x pan-y;   /* Allows scrolling but prevents double-tap zoom */
 }
