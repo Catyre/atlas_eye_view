@@ -727,6 +727,8 @@
 @media (max-width: 767px) {
   .system-popup {
     top: auto !important;
+    bottom: 20px !important;
+    left: 10px !important;
     width: calc(100vw - 20px) !important;
     height: 40vh !important;
     transform: translateY(120%) !important;
@@ -760,6 +762,8 @@
 /* Tablets - Portrait Orientation */
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
   .system-popup {
+    top: auto !important;
+    bottom: 20px !important;
     left: 20px !important;
     width: calc(100vw - 40px) !important;
     height: 35vh !important;
@@ -783,6 +787,8 @@
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
   .system-popup {
     top: 135px !important;
+    bottom: auto !important;
+    left: 20px !important;
     width: 320px !important; 
     height: calc(100vh - 160px) !important; 
     transform: translateX(-120%) !important;
@@ -799,7 +805,12 @@
   #add-system-panel {
     width: 280px !important;
   }
+  #data-management-panel {
+    bottom: 20px !important;
+  }
 }
+
+
 /* --- END MOBILE -- */
 
 .base-preview-tag {
