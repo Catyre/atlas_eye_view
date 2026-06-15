@@ -184,6 +184,28 @@ function initializeScene() {
     window.cameraControls.infinityDolly = true;
     window.cameraControls.dollyToCursor = true;
 
+    let pressTimer;
+    const LONG_PRESS_DURATION = 500;
+
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) return;
+      pressTimer = setTimeout(() => {
+        if (e.cancelable) e.preventDefault();
+        if (typeof unsnapCamera === 'function') unsnapCamera();
+      }, LONG_PRESS_DURATION);
+    }, { passive: false });
+
+    renderer.domElement.addEventListener('touchmove', () => {
+      clearTimeout(pressTimer);
+    }, { passive: true });
+
+    renderer.domElement.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
+    });
+
+    renderer.domElement.addEventListener('touchcancel', () => {
+      clearTimeout(pressTimer);
+    });
   });
 }
 
@@ -555,8 +577,8 @@ function resetCamera() {
 
 function unsnapCamera() {
   window.activePivotNode = null;
+  if (window.cameraControls) window.cameraControls.dollyToCursor = true;
   hidePopup();
-
   const currentPos = new THREE.Vector3();
   cameraControls.getPosition(currentPos);
 
@@ -1114,6 +1136,7 @@ function onMouseClick(event) {
 
   if (window.cameraControls) {
     window.activePivotNode = starMesh;
+    window.cameraControls.dollyToCursor = false;
     window.cameraControls.setTarget(
       starMesh.position.x,
       starMesh.position.y,
