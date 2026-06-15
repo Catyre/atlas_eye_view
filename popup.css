@@ -720,29 +720,8 @@
   50% { opacity: 1; text-shadow: 0 0 25px rgba(0, 255, 255, 0.9); }
 }
 
+
 /* --- RESPONSIVE LAYOUTS & TOUCH DEVICES --- */
-
-/* Universal Touch Target Adjustments */
-@media (pointer: coarse) {
-  .hud-button, .hud-input, .hud-tab, .hud-select {
-    min-height: 44px !important;
-    padding: 8px 12px !important;
-    font-size: 0.9rem !important;
-  }
-  
-  #toggle-controls-btn {
-    width: 44px !important;
-    height: 44px !important;
-  }
-
-  /* Override the main.js inline styles to prevent the 25px overlap */
-  #toggle-labels-btn {
-    top: 140px !important;
-  }
-  #toggle-bases-btn {
-    top: 195px !important; 
-  }
-}
 
 /* Phones (Vertical / Small Screens) */
 @media (max-width: 767px) {
@@ -768,7 +747,6 @@
   #add-system-btn {
     bottom: 80px !important;
     right: 10px !important;
-    width: 180px !important;
   }
   #add-system-panel {
     bottom: 120px !important;
@@ -828,7 +806,6 @@
     width: 280px !important;
   }
 }
-
 /* --- END MOBILE -- */
 
 .base-preview-tag {
