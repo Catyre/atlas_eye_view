@@ -127,9 +127,10 @@ function initializeScene() {
 
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
-
+    
     popup = document.createElement('div');
-    popup.className = 'system-popup';
+    popup.id = 'system-popup';
+    popup.className = 'system-popup hud-panel';
     document.body.appendChild(popup);
 
     let userDragging = false;
