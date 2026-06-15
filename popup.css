@@ -6,7 +6,7 @@
   font-style: normal;
 }
 
-/* 2. Create a styling class for the glyph text */
+/* Create a styling class for the glyph text */
 .nms-glyph-text {
   font-family: 'NMSGlyphs', monospace;
   font-size: 1.5rem; /* Glyphs usually need to be a bit larger to read clearly */
@@ -169,7 +169,110 @@
   font-weight: normal;
 }
 
-/* Standard HUD Buttons */
+/* Standard HUD Buttons *//* --- RESPONSIVE LAYOUTS & TOUCH DEVICES --- */
+
+/* 1. Universal Touch Target Adjustments */
+/* Detects any device using a touch screen and expands buttons for fingers */
+@media (pointer: coarse) {
+  .hud-button, .hud-input, .hud-tab, .hud-select {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+  
+  #toggle-controls-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* 2. Phones (Vertical / Small Screens) */
+@media (max-width: 767px) {
+  .system-popup {
+    top: auto;
+    bottom: 20px;
+    left: 10px;
+    width: calc(100vw - 60px);
+    height: 40vh !important;
+    transform: translateY(120%);
+  }
+  .system-popup.open {
+    transform: translateY(0);
+  }
+  #target-nav-panel {
+    top: 10px;
+    right: 10px;
+    width: calc(100vw - 52px);
+  }
+  #camera-position-box {
+    display: none;
+  }
+  #add-system-btn {
+    bottom: 80px;
+    right: 10px;
+    width: 180px;
+  }
+  #add-system-panel {
+    bottom: 120px;
+    right: 10px;
+    width: calc(100vw - 60px);
+  }
+  #galaxy-selector {
+    bottom: 20px;
+    right: 10px;
+  }
+  .hud-tab {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* 3. Tablets - Portrait Orientation */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* Switch to a bottom-sheet style to preserve the map viewing area */
+  .system-popup {
+    top: auto;
+    bottom: 20px;
+    left: 20px;
+    width: calc(100vw - 80px);
+    height: 35vh !important;
+    transform: translateY(120%);
+  }
+  .system-popup.open {
+    transform: translateY(0);
+  }
+  
+  #camera-position-box {
+    display: none; /* Hide telemetry to prevent top-screen clutter */
+  }
+  
+  #target-nav-panel {
+    width: 320px;
+  }
+  
+  #add-system-panel {
+    width: 320px;
+  }
+}
+
+/* 4. Tablets - Landscape Orientation */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Keep left-side orientation, but slim it down to expose more of the 3D canvas */
+  .system-popup {
+    top: 135px;
+    left: 20px;
+    width: 320px; /* Reduced from desktop's 400px */
+    height: calc(100vh - 160px) !important; 
+  }
+  
+  #target-nav-panel {
+    width: 260px; /* Slimmer than desktop */
+  }
+  
+  #add-system-panel {
+    width: 280px;
+  }
+}
 .hud-button {
   /*top: 500px;*/
   /*right: 30px;*/
@@ -617,56 +720,108 @@
   50% { opacity: 1; text-shadow: 0 0 25px rgba(0, 255, 255, 0.9); }
 }
 
-/* --- MOBILE RESPONSIVENESS --- */
-@media (max-width: 768px) {
-  /* Shrink the main telemetry popup */
+/* --- RESPONSIVE LAYOUTS & TOUCH DEVICES --- */
+
+/* Universal Touch Target Adjustments */
+/* Detects any device using a touch screen and expands buttons for fingers */
+@media (pointer: coarse) {
+  .hud-button, .hud-input, .hud-tab, .hud-select {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+  
+  #toggle-controls-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Phones (Vertical / Small Screens) */
+@media (max-width: 767px) {
   .system-popup {
     top: auto;
-    bottom: 20px; /* Snap to bottom instead of left side */
+    bottom: 20px;
     left: 10px;
-    width: calc(100vw - 60px); /* Fill the screen width minus padding */
-    height: 40vh !important; /* Only take up the bottom 40% of the screen */
-    transform: translateY(120%); /* Slide in from the bottom */
+    width: calc(100vw - 60px);
+    height: 40vh !important;
+    transform: translateY(120%);
   }
-
   .system-popup.open {
     transform: translateY(0);
   }
-
-  /* Shrink and stack the Target Navigation */
   #target-nav-panel {
     top: 10px;
     right: 10px;
     width: calc(100vw - 52px);
   }
-
-  /* Hide the sensor readout to save screen space */
   #camera-position-box {
     display: none;
   }
-
-  /* Adjust the Add System button and panel */
   #add-system-btn {
     bottom: 80px;
     right: 10px;
     width: 180px;
   }
-
   #add-system-panel {
     bottom: 120px;
     right: 10px;
     width: calc(100vw - 60px);
   }
-
-  /* Shrink the Galaxy Selector */
   #galaxy-selector {
     bottom: 20px;
     right: 10px;
   }
-  
   .hud-tab {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* Tablets - Portrait Orientation */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* Switch to a bottom-sheet style to preserve the map viewing area */
+  .system-popup {
+    top: auto;
+    bottom: 20px;
+    left: 20px;
+    width: calc(100vw - 80px);
+    height: 35vh !important;
+    transform: translateY(120%);
+  }
+  .system-popup.open {
+    transform: translateY(0);
+  }
+  
+  #camera-position-box {
+    display: none; /* Hide telemetry to prevent top-screen clutter */
+  }
+  
+  #target-nav-panel {
+    width: 320px;
+  }
+  
+  #add-system-panel {
+    width: 320px;
+  }
+}
+
+/* Tablets - Landscape Orientation */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Keep left-side orientation, but slim it down to expose more of the 3D canvas */
+  .system-popup {
+    top: 135px;
+    left: 20px;
+    width: 320px; /* Reduced from desktop's 400px */
+    height: calc(100vh - 160px) !important; 
+  }
+  
+  #target-nav-panel {
+    width: 260px; /* Slimmer than desktop */
+  }
+  
+  #add-system-panel {
+    width: 280px;
   }
 }
 
