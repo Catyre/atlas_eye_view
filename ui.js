@@ -502,8 +502,8 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
     readerPanel.style.cssText = `
       position: fixed;
       top: 2.5dvh;
-      left: 2.5vw;
-      width: 95vw;
+      left: 2.5dvw;
+      width: 95dvw;
       height: 95dvh;
       z-index: 9999;
       background: rgba(5, 5, 16, 0.85); /* Slightly darker for better mobile contrast */
@@ -681,7 +681,7 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
         #wiki-reader-panel {
           top: 0 !important;
           left: 0 !important;
-          width: 100vw !important;
+          width: 100dvw !important;
           height: 100dvh !important;
           padding: 60px 15px 20px 15px !important; /* Pad top to avoid close buttons */
           border-radius: 0 !important;
