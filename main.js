@@ -156,6 +156,7 @@ function initializeScene() {
       cameraControls.removeEventListener('rest', onRest);
       userDragging = true;
       disableAutoRotate = true;
+      window.isAutoOrbiting = false;
     });
 
     cameraControls.addEventListener('controlend', () => {
@@ -587,13 +588,15 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
 }
 
 function resetCamera() {
-  window.activePivotNode = null; // <-- ADD THIS LINE
+  window.activePivotNode = null;
   cameraControls.setLookAt(20, 20, 20, 0, 0, 0, true);
   hidePopup();
 }
 
 function unsnapCamera() {
   window.activePivotNode = null;
+  window.isAutoOrbiting = false;
+
   if (window.cameraControls) window.cameraControls.dollyToCursor = true;
   hidePopup();
   const currentPos = new THREE.Vector3();
@@ -626,6 +629,10 @@ function animate() {
     lookVelocity.multiplyScalar(lookFriction);
   }
   
+  if (window.activePivotNode && window.isAutoOrbiting) {
+    cameraControls.azimuthAngle -= 0.05 * delta;
+  }
+
   const updated = cameraControls.update(delta);
   handleCameraMovement(keys, camera, cameraControls, delta);
   
@@ -1154,17 +1161,26 @@ function onMouseClick(event) {
 
   const starMesh = window.currentLockedSystem;
   const sysData = starMesh.userData.systemData;
-  const closestSystem = window.currentLockedSystem;
 
   if (window.cameraControls) {
     window.activePivotNode = starMesh;
     window.cameraControls.dollyToCursor = false;
-    window.cameraControls.setTarget(
-      starMesh.position.x,
-      starMesh.position.y,
-      starMesh.position.z,
+    
+    // Calculate a slight offset position from the star
+    const offset = 20;
+    const camX = starMesh.position.x + offset;
+    const camY = starMesh.position.y + offset;
+    const camZ = starMesh.position.z + offset;
+
+    // Use setLookAt instead of setTarget to move the camera to the offset while looking at the star
+    window.cameraControls.setLookAt(
+      camX, camY, camZ,
+      starMesh.position.x, starMesh.position.y, starMesh.position.z,
       true 
     );
+
+    // Flag to trigger the orbital rotation in the animation loop
+    window.isAutoOrbiting = true;
   }
 
   ui.showSystemPopup(sysData.name, starMesh.position, sysData, camera, popup);
