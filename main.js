@@ -98,10 +98,20 @@ function initializeScene() {
     
     window.cameraControls = new CameraControls( camera, renderer.domElement );
     cameraControls = window.cameraControls;
-    
+
     window.cameraControls.touches.one = CameraControls.ACTION.TOUCH_ROTATE;
     window.cameraControls.touches.two = CameraControls.ACTION.TOUCH_DOLLY_TRUCK;
-    window.cameraControls.touches.three = CameraControls.ACTION.NONE;
+    window.cameraControls.touches.three = CameraControls.ACTION.TOUCH_DOLLY_OFFSET;
+    
+    window.cameraControls.infinityDolly = true;
+    window.cameraControls.dollyToCursor = true;
+
+    if (isTouchDevice) {
+      window.cameraControls.azimuthRotateSpeed = 2.5; 
+      window.cameraControls.polarRotateSpeed = 2.5;   
+      window.cameraControls.dollySpeed = 2.0;         
+      window.cameraControls.truckSpeed = 2.5;         
+    }
     
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.position = 'absolute';

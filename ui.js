@@ -498,17 +498,19 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
     readerPanel.id = 'wiki-reader-panel';
     readerPanel.className = 'hud-panel';
     
+    // Upgraded to position: fixed and dvh for rock-solid mobile viewport mapping
     readerPanel.style.cssText = `
-      position: absolute;
-      top: 2.5vh;
+      position: fixed;
+      top: 2.5dvh;
       left: 2.5vw;
       width: 95vw;
-      height: 95vh;
+      height: 95dvh;
       z-index: 9999;
-      background: rgba(5, 5, 16, 0.55);
-      backdrop-filter: blur(6px); 
-      -webkit-backdrop-filter: blur(6px);
+      background: rgba(5, 5, 16, 0.85); /* Slightly darker for better mobile contrast */
+      backdrop-filter: blur(8px); 
+      -webkit-backdrop-filter: blur(8px);
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* Momentum scrolling for iOS */
       padding: 40px 10%;
       box-sizing: border-box;
       color: #e0e0e0;
@@ -559,23 +561,7 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
       .mw-parser-output a { color: #00ffff !important; text-decoration: none; }
       .mw-parser-output a:hover { text-decoration: underline; }
       
-      .infoboxWrap {
-        float: right !important;
-        clear: right !important;
-        width: 300px !important;
-        max-width: 100% !important;
-        margin: 0 0 1.5em 1.5em !important;
-        background: rgba(0, 0, 0, 0.6) !important;
-        border: 1px solid rgba(0, 255, 255, 0.3) !important;
-        box-sizing: border-box !important;
-        font-size: 0.8em !important; 
-        line-height: 1.4 !important;
-      }
-      .infobox th, .infobox td {
-        padding: 6px !important; 
-      }
-
-      .portable-infobox {
+      .infoboxWrap, .portable-infobox {
         float: right !important;
         clear: right !important;
         width: 320px !important;
@@ -584,7 +570,11 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
         background: rgba(0, 0, 0, 0.6) !important;
         border: 1px solid rgba(0, 255, 255, 0.3) !important;
         box-sizing: border-box !important;
-        font-size: 0.85em !important;
+        font-size: 0.85em !important; 
+        line-height: 1.4 !important;
+      }
+      .infobox th, .infobox td {
+        padding: 6px !important; 
       }
       
       .portable-infobox .pi-title {
@@ -685,6 +675,40 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
         overflow-x: auto; 
         box-sizing: border-box !important;
       }
+
+      /* --- MOBILE OPTIMIZATIONS --- */
+      @media (max-width: 768px) {
+        #wiki-reader-panel {
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100dvh !important;
+          padding: 60px 15px 20px 15px !important; /* Pad top to avoid close buttons */
+          border-radius: 0 !important;
+          border: none !important;
+          outline: none !important;
+        }
+
+        /* Prevent infoboxes from crushing text on narrow screens */
+        .infoboxWrap, .portable-infobox {
+          float: none !important;
+          width: 100% !important;
+          margin: 1.5em 0 !important;
+        }
+
+        /* Adjust the main title so it fits below the header buttons */
+        .wiki-reader-title {
+          font-size: 1.25em !important;
+          padding-right: 0 !important;
+          margin-top: 20px !important;
+        }
+
+        /* Enlarge touch targets for comfortable mobile use */
+        #close-reader-btn, #back-reader-btn {
+          padding: 10px 14px !important;
+          font-size: 0.95em !important;
+        }
+      }
     `;
     readerPanel.appendChild(wikiStyles);
     document.body.appendChild(readerPanel);
@@ -702,12 +726,12 @@ export async function openArticleReader(wikiData, isBackNavigation = false, redi
       </div>
     ` : ''}
 
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 50; display: flex; gap: 10px;">
+    <div style="position: absolute; top: 15px; right: 15px; z-index: 50; display: flex; gap: 10px;">
       ${hasHistory ? '<button id="back-reader-btn" class="hud-button" style="background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; color: #00ffff;">[BckSpce] Back</button>' : ''}
       <button id="close-reader-btn" class="hud-button warning">[X] Close</button>
     </div>
 
-    <div style="color: #00ffff; font-size: 1.5em; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,255,0.5); padding-bottom: 10px; position: relative; z-index: 10; padding-right: 150px;">
+    <div class="wiki-reader-title" style="color: #00ffff; font-size: 1.5em; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid rgba(0,255,255,0.5); padding-bottom: 10px; position: relative; z-index: 10; padding-right: 150px;">
       Accessing Database: ${pageTitle.replace(/_/g, ' ')}
     </div>
     
