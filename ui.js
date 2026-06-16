@@ -143,9 +143,9 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   const ghc_system = [system.ghc_x, system.ghc_y, system.ghc_z];
   let ghc_capital = [0, 0, 0];
   if (window.currentGalaxy === 'euclid') {
-    ghc_capital = [-500.00390254377453, 236.72745822760584, -298.53842838766906]; // Hard coded for Bixiann for now
+    ghc_capital = [-500.00390254377453, 236.72745822760584, -298.53842838766906];
   } else if (window.currentGalaxy === 'calypso'){
-    ghc_capital = [0, 0, 0]; // Update for Edogya
+    ghc_capital = [0, 0, 0]; 
   }
   const dist2capital = calculateDistance(ghc_system, ghc_capital);
   
@@ -165,8 +165,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
   let wikiSection = '';
   if (wikiData === null) {
     wikiSection = `
-      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
-        
+      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif; margin-top: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
           <div>
             <div class="wiki-title"> ${system.id} ${systemName} </div>
@@ -190,8 +189,7 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     `;
   } else {
     wikiSection = `
-      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif;">
-        
+      <div class="wiki-section" style="background: rgba(10, 15, 30, 0.6); border: 1px solid rgba(0, 255, 255, 0.2); padding: 15px; font-family: sans-serif; margin-top: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(0, 255, 255, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
           <div>
             <div class="wiki-title" style="font-size: 1.25em; letter-spacing: 1px; text-transform: uppercase;">
@@ -215,22 +213,16 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
         ${wikiData.summary ? `<div class="wiki-summary" style="font-style: italic; color: #a8b2d1; font-size: 0.9em; margin-bottom: 15px; line-height: 1.4;">${wikiData.summary}</div>` : ''}
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
-          
           ${wikiData.galaxy ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">GALAXY</div><div style="color: #fff;">${wikiData.galaxy}</div></div>` : ''}
           ${wikiData.region ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">REGION</div><div style="color: #fff;">${wikiData.region}</div></div>` : ''}
-          
           ${wikiData.planets || wikiData.moons ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">CELESTIAL BODIES</div><div style="color: #fff;">${wikiData.planets || '0'} Planets, ${wikiData.moons || '0'} Moons</div></div>` : ''}
           ${wikiData.spectral_class ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">SPECTRAL CLASS</div><div style="color: #fff;">${wikiData.spectral_class}</div></div>` : ''}
-          
           ${wikiData.faction ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">DOMINANT FORM</div><div style="color: #fff;">${wikiData.faction}</div></div>` : ''}
           ${wikiData.conflict ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">CONFLICT LEVEL</div><div style="color: #fff;">${wikiData.conflict}</div></div>` : ''}
-          
           ${wikiData.economy || wikiData.wealth ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">ECONOMY</div><div style="color: #fff;">${wikiData.economy || 'Unknown'} ${wikiData.wealth ? `(${wikiData.wealth})` : ''}</div></div>` : ''}
           ${wikiData.dissonant ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">SYSTEM STATE</div><div style="color: #ff4757;">Dissonant</div></div>` : ''}
-          
           ${wikiData.waterworlds ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">WATERWORLDS</div><div style="color: #fff;">${wikiData.waterworlds}</div></div>` : ''}
           ${wikiData.discoveredBy ? `<div class="wiki-info"><div style="color: #00ffff; font-size: 0.75em; letter-spacing: 1px;">DISCOVERED BY</div><div style="color: #fff;">${wikiData.discoveredBy}</div></div>` : ''}
-
         </div>
         
         <div style="margin-top: 18px; text-align: center;">
@@ -296,34 +288,50 @@ export async function showSystemPopup(systemName, worldPosition, system, camera,
     `;
   }
 
+  // Universal Close Button Assembly
+  const closeBtnHtml = `
+    <div style="position: absolute; top: 15px; right: 15px; z-index: 50;">
+      <button id="close-system-btn" class="hud-button warning">[X] Close</button>
+    </div>
+  `;
+
   popup.innerHTML = `
+    ${closeBtnHtml}
     ${wikiSection}
     <br>
     ${personalLog}
     ${basesHtml}
-    <button id="mobile-unsnap-btn" class="hud-button warning" style="position: absolute; top: 15px; right: 15px; display: none;">
-      [X]
-    </button>
     ${coordsHtml}
-    `;
+  `;
+
+  // Bind the universal close button to the global unsnap function
+  const closeBtn = document.getElementById('close-system-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof window.unsnapCamera === 'function') {
+        window.unsnapCamera();
+      } else {
+        // Fallback if the function is somehow unlinked
+        popup.classList.remove('open');
+      }
+    });
+  }
 
   const baseTags = document.querySelectorAll('.base-preview-tag');
   baseTags.forEach(tag => {
     tag.addEventListener('click', (e) => {
       e.stopPropagation();
       const baseName = tag.getAttribute('data-basename');
-      
       openArticleReader(baseName);
     });
   });
 
-
   // Connect the Wiki Reader Button
   const readWikiBtn = document.getElementById('open-wiki-reader-btn');
-
   if (readWikiBtn && wikiData && wikiData.title) {
     readWikiBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent the click from passing through to the canvas
+      e.stopPropagation(); 
       openArticleReader(wikiData);
     });
   }

@@ -599,6 +599,7 @@ function unsnapCamera() {
 
   if (window.cameraControls) window.cameraControls.dollyToCursor = true;
   hidePopup();
+
   const currentPos = new THREE.Vector3();
   cameraControls.getPosition(currentPos);
 
@@ -613,7 +614,7 @@ function unsnapCamera() {
   );
 
   // Safely restore the cursor and pointer lock for desktop only
-  if (!isTouchDevice) {
+  if (!isTouchDevice && !window.isCursorFreed) {
     document.body.style.cursor = 'crosshair'; 
     document.body.requestPointerLock();
   }
@@ -1184,6 +1185,12 @@ function onMouseClick(event) {
   }
 
   ui.showSystemPopup(sysData.name, starMesh.position, sysData, camera, popup);
+
+  // Free the mouse for desktop users when the panel opens
+  if (!isTouchDevice && document.pointerLockElement) {
+    document.exitPointerLock();
+    document.body.style.cursor = 'default';
+  }
 }
 
 function onKeyDown(event) {
@@ -1439,11 +1446,14 @@ fileInput.addEventListener('change', (event) => {
 
 function resizeCanvas() {
   if(camera && renderer) {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    // Fallback to documentElement if window.innerWidth gets corrupted during rotation
+    const width = window.innerWidth || document.documentElement.clientWidth;
+    const height = window.innerHeight || document.documentElement.clientHeight;
+    
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    renderer.setSize(width, height, false);
+    
     if (composer) composer.setSize(width, height);
   }
 }
@@ -1451,8 +1461,11 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 
 window.addEventListener('orientationchange', () => {
+  // Fire three times to catch the tablet before, during, and after 
+  // the OS rotation animation finishes settling.
   setTimeout(resizeCanvas, 100);
   setTimeout(resizeCanvas, 300);
+  setTimeout(resizeCanvas, 600);
 });
 
 window.addEventListener('mousedown', (event) => {
