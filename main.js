@@ -1437,13 +1437,22 @@ fileInput.addEventListener('change', (event) => {
   reader.readAsText(file);
 });
 
-window.addEventListener('resize', () => {
+function resizeCanvas() {
   if(camera && renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
+    if (composer) composer.setSize(width, height);
   }
+}
+
+window.addEventListener('resize', resizeCanvas);
+
+window.addEventListener('orientationchange', () => {
+  setTimeout(resizeCanvas, 100);
+  setTimeout(resizeCanvas, 300);
 });
 
 window.addEventListener('mousedown', (event) => {

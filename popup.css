@@ -36,6 +36,12 @@ html, body {
   overscroll-behavior: none;
 }
 
+canvas {
+  width: 100vw !important;
+  height: 100dvh !important;
+  display: block;
+}
+
 /* --- HUD BASE STYLES --- */
 .hud-panel {
   background: rgba(10, 15, 25, 0.75);
