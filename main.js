@@ -502,8 +502,8 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
     if (keysPressed.s || keysPressed.arrowdown) { dZoom += 1; isOrbitMoving = true; }
     if (keysPressed.a || keysPressed.arrowleft) { dAzimuth -= 1; isOrbitMoving = true; }
     if (keysPressed.d || keysPressed.arrowright) { dAzimuth += 1; isOrbitMoving = true; }
-    if (keysPressed[' '] || keysPressed.q) { dPolar -= 1; isOrbitMoving = true; } 
-    if (keysPressed.shift || keysPressed.e) { dPolar += 1; isOrbitMoving = true; } 
+    if (keysPressed[' '] || keysPressed.e) { dPolar -= 1; isOrbitMoving = true; } 
+    if (keysPressed.shift || keysPressed.q) { dPolar += 1; isOrbitMoving = true; } 
 
     if (isOrbitMoving) {
       holdTime += delta;
@@ -545,8 +545,8 @@ function handleCameraMovement(keysPressed, cameraObj, controlsObj, delta) {
   if (keysPressed.s || keysPressed.arrowdown) { moveDir.sub(forward); isMoving = true; }
   if (keysPressed.a || keysPressed.arrowleft) { moveDir.sub(right); isMoving = true; }
   if (keysPressed.d || keysPressed.arrowright) { moveDir.add(right); isMoving = true; }
-  if (keysPressed[' '] || keysPressed.q) { moveDir.add(up); isMoving = true; } 
-  if (keysPressed.shift || keysPressed.e) { moveDir.sub(up); isMoving = true; }
+  if (keysPressed[' '] || keysPressed.e) { moveDir.add(up); isMoving = true; } 
+  if (keysPressed.shift || keysPressed.q) { moveDir.sub(up); isMoving = true; }
 
   if (isMoving) {
     holdTime += delta;
