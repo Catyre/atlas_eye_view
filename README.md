@@ -66,8 +66,6 @@ The database utilizes a single-table architecture to store a system's data.
 
 **SQL**
 
-SQL
-
 ```
 CREATE TABLE systems (
   id TEXT PRIMARY KEY,
